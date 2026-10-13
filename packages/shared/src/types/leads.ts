@@ -1,0 +1,15 @@
+export type {
+  LeadStatus,
+  LeadPriority,
+  IntentLabel,
+  BuyerDna,
+  ScoreHistoryItem,
+  HandoffBrief,
+  DuplicateMergeSuggestion,
+  ScoringConfig,
+  CaptureLeadInput,
+  UpdateLeadStatusInput,
+  MergeLeadInput,
+  LeadItemResponse,
+  LeadsListResponse,
+} from '../schemas/leads.js';

@@ -1,0 +1,67 @@
+services:
+  # 1. Main API Web Service (Always-on paid instance; free tier sleeps and breaks webhooks)
+  - type: web
+    name: propbot-api
+    runtime: node
+    plan: starter
+    region: singapore
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile=false && pnpm build
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /healthz/ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: propbot-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: propbot-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+
+  # 2. Background Worker (Outbox processor, scheduled sweeps, analytics rollups)
+  - type: worker
+    name: propbot-worker
+    runtime: node
+    plan: starter
+    region: singapore
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile=false && pnpm build
+    startCommand: node apps/api/dist/worker.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: propbot-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: propbot-redis
+          property: connectionString
+
+databases:
+  # 3. PostgreSQL Database with pgvector extension support
+  - name: propbot-postgres
+    plan: starter
+    region: singapore
+    postgresMajorVersion: 16
+    databaseName: propbot_pro
+    user: propbot
+
+  # 4. Redis Key-Value Store
+  - name: propbot-redis
+    type: redis
+    plan: starter
+    region: singapore
+    ipAllowList: []

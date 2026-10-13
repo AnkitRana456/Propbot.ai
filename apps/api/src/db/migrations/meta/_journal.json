@@ -1,0 +1,111 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790958767953,
+      "tag": "0000_mixed_christian_walker",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790960018338,
+      "tag": "0001_empty_carlie_cooper",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791035000000,
+      "tag": "0002_knowledge_rag",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791706461209,
+      "tag": "0003_right_thunderball",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791720000000,
+      "tag": "0004_crm_pipeline_enhancements",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791730000000,
+      "tag": "0005_property_inventory_shortlist_room",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791740000000,
+      "tag": "0006_appointments_calendar_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791750000000,
+      "tag": "0007_whatsapp_bot_inbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791760000000,
+      "tag": "0008_webhooks_integrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791770000000,
+      "tag": "0009_analytics_rollups",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791780000000,
+      "tag": "0010_users_billing_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791850000000,
+      "tag": "0011_multilingual_advanced_ai",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791876000000,
+      "tag": "0012_platform_safety_actions",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791880000000,
+      "tag": "0013_growth_workflows_campaigns_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791890000000,
+      "tag": "0014_voice_mcp_enterprise",
+      "breakpoints": true
+    }
+  ]
+}

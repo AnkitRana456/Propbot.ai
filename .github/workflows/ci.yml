@@ -1,0 +1,91 @@
+name: PropBot Pro CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Lint, Typecheck, Test, Eval & Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: propbot
+          POSTGRES_PASSWORD: propbot_password
+          POSTGRES_DB: propbot_pro
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://propbot:propbot_password@localhost:5432/propbot_pro
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: test_jwt_secret_must_be_at_least_32_characters_long_for_security
+      REFRESH_TOKEN_SECRET: test_refresh_token_secret_must_be_at_least_32_chars_long
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Run Database Migrations
+        run: pnpm --filter @propbot/api db:migrate
+
+      - name: Linter Check
+        run: pnpm lint
+
+      - name: TypeScript Typecheck
+        run: pnpm typecheck
+
+      - name: Run Automated Test Suites
+        run: pnpm test
+
+      - name: Run RAG Groundedness & Hallucination Evals
+        run: pnpm eval
+
+      - name: Build All Monorepo Packages
+        run: pnpm build
+
+      - name: Production Dependency Security Audit
+        run: pnpm audit --prod

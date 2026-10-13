@@ -1,0 +1,30 @@
+{
+  "name": "@propbot/widget",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/widget.js",
+  "module": "./dist/widget.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/widget.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/widget.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup && tsc -b",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --build --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@propbot/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.2.3",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.4"
+  }
+}
