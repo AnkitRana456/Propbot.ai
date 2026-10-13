@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { eq } from 'drizzle-orm';
 import { db } from './index.js';
 import {
   companies,
@@ -249,24 +250,48 @@ export async function runComprehensiveSeed() {
     where: (cb, { eq }) => eq(cb.publicKey, 'pb_pub_prestige_whatsapp_002'),
   }))!.id;
 
-  // WhatsApp Config
-  await db
-    .insert(whatsappConfigs)
-    .values({
-      companyId: comp1Id,
-      chatbotId: waBotId,
-      businessPhoneNumber: '+919820099880',
-      phoneNumberId: 'meta_pn_prestige_98200',
-      verifyToken: 'propbot_verify_token_prestige_2026',
-      status: 'connected',
-      enableAutomation: true,
-      aiAutoReplies: true,
-      templateName: 'property_inquiry_details',
-    })
-    .onConflictDoNothing();
+  // WhatsApp Config for Tenant A
+  const existingWa1 = await db.query.whatsappConfigs.findFirst({
+    where: (wc, { eq }) => eq(wc.companyId, comp1Id),
+  });
+  if (existingWa1) {
+    await db
+      .update(whatsappConfigs)
+      .set({
+        chatbotId: waBotId,
+        businessPhoneNumber: '+919820099880',
+        phoneNumberId: 'meta_pn_prestige_98200',
+        verifyToken: 'propbot_verify_token_prestige_2026',
+        status: 'connected',
+        enableAutomation: true,
+        aiAutoReplies: true,
+        pauseAfterAgentReply: true,
+        frustrationHandoff: true,
+        autoAssignOwner: true,
+      })
+      .where(eq(whatsappConfigs.id, existingWa1.id));
+  } else {
+    await db
+      .insert(whatsappConfigs)
+      .values({
+        companyId: comp1Id,
+        chatbotId: waBotId,
+        businessPhoneNumber: '+919820099880',
+        phoneNumberId: 'meta_pn_prestige_98200',
+        verifyToken: 'propbot_verify_token_prestige_2026',
+        status: 'connected',
+        enableAutomation: true,
+        aiAutoReplies: true,
+        pauseAfterAgentReply: true,
+        frustrationHandoff: true,
+        autoAssignOwner: true,
+        templateName: 'property_inquiry_details',
+      })
+      .onConflictDoNothing();
+  }
 
   // Chatbot for Tenant B
-  await db
+  const [botSobha] = await db
     .insert(chatbots)
     .values({
       companyId: comp2Id,
@@ -276,7 +301,46 @@ export async function runComprehensiveSeed() {
       publicKey: 'pb_pub_sobha_dream_001',
       config: {},
     })
-    .onConflictDoNothing();
+    .onConflictDoNothing()
+    .returning();
+
+  const sobhaBotId = botSobha?.id ?? (await db.query.chatbots.findFirst({
+    where: (cb, { eq }) => eq(cb.publicKey, 'pb_pub_sobha_dream_001'),
+  }))!.id;
+
+  // WhatsApp Config for Tenant B
+  const existingWa2 = await db.query.whatsappConfigs.findFirst({
+    where: (wc, { eq }) => eq(wc.companyId, comp2Id),
+  });
+  if (existingWa2) {
+    await db
+      .update(whatsappConfigs)
+      .set({
+        chatbotId: sobhaBotId,
+        status: 'connected',
+        businessPhoneNumber: '+919845011220',
+        phoneNumberId: 'meta_pn_sobha_98450',
+        verifyToken: 'propbot_verify_token_sobha_2026',
+        enableAutomation: true,
+        aiAutoReplies: true,
+      })
+      .where(eq(whatsappConfigs.id, existingWa2.id));
+  } else {
+    await db
+      .insert(whatsappConfigs)
+      .values({
+        companyId: comp2Id,
+        chatbotId: sobhaBotId,
+        businessPhoneNumber: '+919845011220',
+        phoneNumberId: 'meta_pn_sobha_98450',
+        verifyToken: 'propbot_verify_token_sobha_2026',
+        status: 'connected',
+        enableAutomation: true,
+        aiAutoReplies: true,
+        templateName: 'property_inquiry_details',
+      })
+      .onConflictDoNothing();
+  }
 
   // =========================================================================
   // 4. Projects, Units, and Brochures
@@ -685,66 +749,385 @@ export async function runComprehensiveSeed() {
   }
 
   // =========================================================================
-  // 8. Conversations & Live Chat Messages
+  // 8. Conversations & Live Chat Messages (Multi-Turn WhatsApp & Web Inbox)
   // =========================================================================
-  console.info('   [8/12] Seeding Multi-Turn AI Chatbot Conversations...');
+  console.info('   [8/12] Seeding Production WhatsApp Shared Inbox & Multi-Turn AI Conversations...');
 
-  const chatLeads = createdLeads.slice(0, 4);
+  const CONVERSATION_SCENARIOS = [
+    // 1. Needs Human - Escalation over pricing discount
+    {
+      channel: 'whatsapp',
+      status: 'needs_human',
+      assignedAgentId: agent1.id,
+      metadata: {
+        sentiment: 'frustrated',
+        aiPaused: true,
+        handoffTrigger: 'keyword_escalation',
+        handoffReason: 'Customer requested human manager over discount discrepancy',
+        lastInboundAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'bot', content: 'Namaste! Welcome to Prestige Living WhatsApp Concierge. How can I assist your luxury property search today?' },
+        { senderType: 'user', content: 'Hi, I received a launch brochure for Prestige Falcon City 3BHK. Your sales rep promised ₹2.05 Cr but the brochure shows ₹2.25 Cr. I want to speak to an agent right now, this is unacceptable.' },
+        { senderType: 'bot', content: 'I understand your concern regarding the pricing discrepancy. Let me connect you directly with our Senior Sales Advisor to review the launch pricing offers for you.' },
+      ],
+    },
+    // 2. Needs Human - Angry sentiment on delayed booking receipt
+    {
+      channel: 'whatsapp',
+      status: 'needs_human',
+      assignedAgentId: adminUser.id,
+      metadata: {
+        sentiment: 'frustrated',
+        aiPaused: true,
+        handoffTrigger: 'sentiment_frustration',
+        handoffReason: 'Frustrated client demanding booking receipt confirmation',
+        lastInboundAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'I transferred ₹5,00,000 booking token yesterday for Tower B Unit 1204 and still have not received my formal builder receipt. This is ridiculous, connect me to someone immediately.' },
+        { senderType: 'bot', content: 'I sincerely apologize for the delay. I have paused automated replies and notified our Accounts & Sales Manager Vikram Mehta to verify your transaction right away.' },
+      ],
+    },
+    // 3. Needs Human - Bespoke NRI payment terms
+    {
+      channel: 'whatsapp',
+      status: 'needs_human',
+      assignedAgentId: agent2.id,
+      metadata: {
+        sentiment: 'neutral',
+        aiPaused: true,
+        handoffTrigger: 'high_intent_custom_deal',
+        handoffReason: 'NRI buyer in Dubai requesting staggered NRE payment milestones',
+        lastInboundAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'bot', content: 'Welcome to Prestige Living. Are you exploring residences for self-use or high-yield investment?' },
+        { senderType: 'user', content: 'Hello, I am based out of Dubai looking to book 2 luxury villas in Prestige Sanctuary. We need custom staggered milestones aligned with NRE remittances. Representative please.' },
+        { senderType: 'bot', content: 'Thank you for reaching out! A dedicated NRI Luxury Portfolio Advisor will take over this chat to assist with international remittable contracts.' },
+      ],
+    },
+    // 4. Needs Human - Bank loan approval query
+    {
+      channel: 'whatsapp',
+      status: 'needs_human',
+      assignedAgentId: null, // Unassigned & Needs Human!
+      metadata: {
+        sentiment: 'negative',
+        aiPaused: true,
+        handoffTrigger: 'keyword_human',
+        handoffReason: 'Buyer requesting human assistance with SBI APF loan pre-approval',
+        lastInboundAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Can someone please guide me on SBI pre-approved home loan tenure for Prestige Elm Park? Human agent please.' },
+        { senderType: 'bot', content: 'A property advisor will continue this conversation shortly.' },
+      ],
+    },
+    // 5. AI Handled - Multi-turn 3BHK pricing and brochure delivery
+    {
+      channel: 'whatsapp',
+      status: 'bot',
+      assignedAgentId: agent1.id,
+      metadata: {
+        sentiment: 'positive',
+        aiPaused: false,
+        lastInboundAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Hi, what are the starting prices for 3BHK units at Prestige Elm Park in Whitefield?' },
+        { senderType: 'bot', content: 'Namaste! At Prestige Elm Park in Whitefield, luxury 3BHK units (1,850 sq.ft.) start at ₹2.10 Cr all-inclusive. All units overlook landscaped central courtyards with RERA registration PRM/KA/RERA/1251/446/PR/171015/000452. Would you like the official PDF brochure?' },
+        { senderType: 'user', content: 'Yes please send the brochure.' },
+        { senderType: 'bot', content: '📄 Prestige Elm Park Complete Brochure has been dispatched: https://propbot.pro/brochures/prestige-elm-park-rera.pdf. Would you also like to schedule a site visit this weekend?' },
+      ],
+    },
+    // 6. AI Handled - Amenities & Sports Facilities inquiry
+    {
+      channel: 'whatsapp',
+      status: 'bot',
+      assignedAgentId: agent1.id,
+      metadata: {
+        sentiment: 'positive',
+        aiPaused: false,
+        lastInboundAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'What clubhouse amenities are provided at Prestige Lakeside Habitat?' },
+        { senderType: 'bot', content: 'Prestige Lakeside Habitat features a 50,000 sq.ft. clubhouse with an Olympic-length swimming pool, 4 badminton courts, tennis courts, a mini-theatre, dedicated pet park, and 24/7 power backup.' },
+        { senderType: 'user', content: 'Looks great! Can I visit this Saturday?' },
+        { senderType: 'bot', content: 'Certainly! I have reserved your VIP physical walkthrough for Saturday at 11:00 AM. A calendar invitation has been generated for your visit.' },
+      ],
+    },
+    // 7. AI Handled - RERA Carpet Area Verification
+    {
+      channel: 'whatsapp',
+      status: 'bot',
+      assignedAgentId: agent2.id,
+      metadata: {
+        sentiment: 'neutral',
+        aiPaused: false,
+        lastInboundAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Is the RERA carpet area verified for Tower C 2BHK?' },
+        { senderType: 'bot', content: 'Yes, 100% verified. Tower C 2BHK carpet area is 1,180 sq.ft. with a 75 sq.ft. utility deck. RERA registration number PRM/KA/RERA/1251/446/PR/171015/000452 is officially approved.' },
+      ],
+    },
+    // 8. AI Handled - Penthouse immediate possession
+    {
+      channel: 'whatsapp',
+      status: 'bot',
+      assignedAgentId: null, // Unassigned & Bot
+      metadata: {
+        sentiment: 'positive',
+        aiPaused: false,
+        lastInboundAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Do you have ready-to-move 4BHK penthouses with OC received?' },
+        { senderType: 'bot', content: 'Yes, we have 2 exclusive 4BHK Sky Penthouses (3,650 sq.ft.) at Prestige White Meadows with full Occupancy Certificate (OC). Ready for immediate possession starting at ₹5.20 Cr.' },
+      ],
+    },
+    // 9. Mine (Agent Assigned to adminUser.id) - Negotiations & Developer Credit
+    {
+      channel: 'whatsapp',
+      status: 'agent',
+      assignedAgentId: adminUser.id,
+      metadata: {
+        sentiment: 'positive',
+        aiPaused: true,
+        agentTakenOver: true,
+        lastInboundAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Hi Vikram, can the developer offer any stamp duty waiver if we sign agreement this week?' },
+        { senderType: 'agent', content: 'Hello! Yes, if you complete the agreement formalities by Friday, management has approved a 2% developer credit against registration costs. Let me share the revised cost sheet.' },
+        { senderType: 'user', content: 'Thank you Vikram, please send it over.' },
+        { senderType: 'agent', content: 'Sending over the approved cost sheet right now!' },
+      ],
+    },
+    // 10. Mine (Agent Assigned to adminUser.id) - Rescheduling Private Tour
+    {
+      channel: 'whatsapp',
+      status: 'agent',
+      assignedAgentId: adminUser.id,
+      metadata: {
+        sentiment: 'positive',
+        aiPaused: true,
+        agentTakenOver: true,
+        lastInboundAt: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Hi Vikram, can we move our site visit from Saturday to Sunday 10 AM?' },
+        { senderType: 'agent', content: 'Absolutely! I have rescheduled your VIP site visit to Sunday 10:00 AM. Our chauffeur will pick you up from Indiranagar.' },
+        { senderType: 'user', content: 'Perfect, see you Sunday.' },
+      ],
+    },
+    // 11. Mine (Agent Assigned to adminUser.id) - Loan Subvention Confirmation
+    {
+      channel: 'whatsapp',
+      status: 'agent',
+      assignedAgentId: adminUser.id,
+      metadata: {
+        sentiment: 'neutral',
+        aiPaused: true,
+        agentTakenOver: true,
+        lastInboundAt: new Date(Date.now() - 110 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Vikram, which bank has the lowest interest rate for the 80:20 payment scheme?' },
+        { senderType: 'agent', content: 'HDFC currently offers 8.45% under our corporate developer tie-up, with zero processing charges for Prestige buyers.' },
+      ],
+    },
+    // 12. Agent Assigned to agent1.id - Unit Reservation
+    {
+      channel: 'whatsapp',
+      status: 'agent',
+      assignedAgentId: agent1.id,
+      metadata: {
+        sentiment: 'positive',
+        aiPaused: true,
+        agentTakenOver: true,
+        lastInboundAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Can we hold Unit 1402 on the 14th floor for 48 hours?' },
+        { senderType: 'agent', content: 'Unit 1402 has been soft-blocked for you until Thursday 6 PM. Looking forward to finalizing your application.' },
+      ],
+    },
+    // 13. Closed - Successful Booking
+    {
+      channel: 'whatsapp',
+      status: 'closed',
+      assignedAgentId: agent1.id,
+      metadata: {
+        sentiment: 'positive',
+        aiPaused: true,
+        closedReason: 'Booking token received and allotment letter dispatched',
+        lastInboundAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Booking amount paid online. Thank you for making the process so smooth!' },
+        { senderType: 'bot', content: 'Heartiest congratulations on your new home at Prestige Lakeside Habitat! Your Allotment Letter has been emailed to you.' },
+      ],
+    },
+    // 14. Closed - Site Visit Completed
+    {
+      channel: 'whatsapp',
+      status: 'closed',
+      assignedAgentId: adminUser.id,
+      metadata: {
+        sentiment: 'positive',
+        aiPaused: true,
+        closedReason: 'Physical tour completed successfully',
+        lastInboundAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'The physical tour was fantastic yesterday. We loved the corner 3BHK unit.' },
+        { senderType: 'agent', content: 'It was a pleasure hosting you! Feel free to reach out when you are ready for the documentation.' },
+      ],
+    },
+    // 15. Unassigned & AI Active
+    {
+      channel: 'whatsapp',
+      status: 'bot',
+      assignedAgentId: null,
+      metadata: {
+        sentiment: 'neutral',
+        aiPaused: false,
+        lastInboundAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      },
+      messages: [
+        { senderType: 'user', content: 'Inquiring from MagicBricks. Are there any launch discounts for the first 50 bookings?' },
+        { senderType: 'bot', content: 'Yes! Early-bird buyers receive an inaugural discount of ₹300 per sq.ft. plus zero club membership fees. Would you like to view eligible units?' },
+      ],
+    },
+  ];
+
+  const chatLeads = createdLeads.slice(0, 16);
   for (let idx = 0; idx < chatLeads.length; idx++) {
     const cLead = chatLeads[idx]!;
-    const [conv] = await db
-      .insert(conversations)
-      .values({
-        companyId: comp1Id,
-        chatbotId: webBotId,
-        contactId: cLead.contactId,
-        leadId: cLead.id,
-        channel: idx % 2 === 0 ? 'web' : 'whatsapp',
-        status: 'bot',
-        assignedAgentId: agent1.id,
-      })
-      .onConflictDoNothing()
-      .returning();
+    const scenario = CONVERSATION_SCENARIOS[idx % CONVERSATION_SCENARIOS.length]!;
+
+    let conv = await db.query.conversations.findFirst({
+      where: (cv, { and: qAnd, eq: qEq }) =>
+        qAnd(
+          qEq(cv.companyId, comp1Id),
+          qEq(cv.contactId, cLead.contactId),
+          qEq(cv.channel, scenario.channel),
+        ),
+    });
+
+    if (!conv) {
+      const [inserted] = await db
+        .insert(conversations)
+        .values({
+          companyId: comp1Id,
+          chatbotId: scenario.channel === 'whatsapp' ? waBotId : webBotId,
+          contactId: cLead.contactId,
+          leadId: cLead.id,
+          channel: scenario.channel,
+          status: scenario.status,
+          assignedAgentId: scenario.assignedAgentId,
+          metadata: scenario.metadata,
+        })
+        .returning();
+      conv = inserted;
+    } else {
+      await db
+        .update(conversations)
+        .set({
+          status: scenario.status,
+          assignedAgentId: scenario.assignedAgentId,
+          metadata: scenario.metadata,
+          updatedAt: new Date(),
+        })
+        .where(eq(conversations.id, conv.id));
+    }
 
     if (conv) {
+      await db.delete(messages).where(eq(messages.conversationId, conv.id));
+
+      const now = Date.now();
+      const messageRows = scenario.messages.map((m, mIdx) => ({
+        companyId: comp1Id,
+        conversationId: conv!.id,
+        senderType: m.senderType,
+        content: m.content,
+        latencyMs: m.senderType === 'bot' ? 350 + mIdx * 120 : undefined,
+        createdAt: new Date(now - (scenario.messages.length - mIdx) * 5 * 60 * 1000),
+      }));
+
+      await db.insert(messages).values(messageRows);
+    }
+  }
+
+  // Also seed WhatsApp config & conversations for Sobha (comp2Id) and legacy tenant (if exists)
+  const extraCompanies = [comp2Id];
+  const legacyCompany = await db.query.companies.findFirst({
+    where: (c, { eq }) => eq(c.id, '11111111-1111-1111-1111-111111111101'),
+  });
+  if (legacyCompany) {
+    extraCompanies.push(legacyCompany.id);
+    const existingLegacyWa = await db.query.whatsappConfigs.findFirst({
+      where: (wc, { eq }) => eq(wc.companyId, legacyCompany.id),
+    });
+    if (!existingLegacyWa) {
       await db
-        .insert(messages)
-        .values([
-          {
-            companyId: comp1Id,
-            conversationId: conv.id,
-            senderType: 'bot',
-            content: 'Namaste! Welcome to Prestige Living. Are you exploring luxury residences for personal stay or investment?',
-            latencyMs: 320,
-          },
-          {
-            companyId: comp1Id,
-            conversationId: conv.id,
-            senderType: 'user',
-            content: 'Hi! Looking for a 3BHK flat in Whitefield. What are the starting prices and RERA carpet areas for Tower B?',
-          },
-          {
-            companyId: comp1Id,
-            conversationId: conv.id,
-            senderType: 'bot',
-            content: 'In Tower B at Prestige Lakeside Habitat, 3BHK units feature 1,850 sq.ft. carpet area starting at ₹2.10 Cr all-inclusive. All units overlook Varthur Lake with RERA registration PRM/KA/RERA/1251/446/PR/171015/000452. Would you like me to reserve a VIP site visit this Saturday at 11:00 AM?',
-            latencyMs: 840,
-          },
-          {
-            companyId: comp1Id,
-            conversationId: conv.id,
-            senderType: 'user',
-            content: 'Yes, please schedule Saturday 11 AM. My phone number is verified.',
-          },
-          {
-            companyId: comp1Id,
-            conversationId: conv.id,
-            senderType: 'bot',
-            content: 'Splendid! Your physical site visit is confirmed for Saturday 11:00 AM. Senior Property Advisor Rahul Sharma has been assigned to your tour and will receive you at the Experience Center clubhouse.',
-            latencyMs: 410,
-          },
-        ])
+        .insert(whatsappConfigs)
+        .values({
+          companyId: legacyCompany.id,
+          chatbotId: waBotId,
+          businessPhoneNumber: '+919820099880',
+          phoneNumberId: 'meta_pn_prestige_98200',
+          verifyToken: 'propbot_verify_token_prestige_2026',
+          status: 'connected',
+          enableAutomation: true,
+          aiAutoReplies: true,
+        })
         .onConflictDoNothing();
+    }
+  }
+
+  for (const exCompId of extraCompanies) {
+    const exContacts = await db.query.contacts.findMany({
+      where: (ct, { eq }) => eq(ct.companyId, exCompId),
+      limit: 5,
+    });
+    for (let cIdx = 0; cIdx < exContacts.length; cIdx++) {
+      const contact = exContacts[cIdx]!;
+      const sc = CONVERSATION_SCENARIOS[cIdx % CONVERSATION_SCENARIOS.length]!;
+      let cConv = await db.query.conversations.findFirst({
+        where: (cv, { and, eq }) =>
+          and(eq(cv.companyId, exCompId), eq(cv.contactId, contact.id), eq(cv.channel, 'whatsapp')),
+      });
+      if (!cConv) {
+        const [inserted] = await db
+          .insert(conversations)
+          .values({
+            companyId: exCompId,
+            chatbotId: waBotId,
+            contactId: contact.id,
+            channel: 'whatsapp',
+            status: sc.status,
+            metadata: sc.metadata,
+          })
+          .returning();
+        cConv = inserted;
+      }
+      if (cConv) {
+        await db.delete(messages).where(eq(messages.conversationId, cConv.id));
+        const now = Date.now();
+        const messageRows = sc.messages.map((m, mIdx) => ({
+          companyId: exCompId,
+          conversationId: cConv!.id,
+          senderType: m.senderType,
+          content: m.content,
+          latencyMs: m.senderType === 'bot' ? 350 + mIdx * 120 : undefined,
+          createdAt: new Date(now - (sc.messages.length - mIdx) * 5 * 60 * 1000),
+        }));
+        await db.insert(messages).values(messageRows);
+      }
     }
   }
 

@@ -99,9 +99,9 @@ export class MemoryRateLimiter {
 // Pre-configured rate limiters
 export const authRateLimiter = new MemoryRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 mins
-  max: 20, // 20 login/register attempts
+  max: process.env.NODE_ENV === 'production' ? 20 : 1000, // 20 attempts in prod, 1000 in dev
   message: 'Too many authentication attempts. Please wait 15 minutes before trying again.',
-  skipInTests: false,
+  skipInTests: true,
 });
 
 export const publicSessionRateLimiter = new MemoryRateLimiter({

@@ -10,11 +10,13 @@ import { WhatsAppOverviewTab } from '../components/whatsapp/WhatsAppOverviewTab.
 import { WhatsAppInboxTab } from '../components/whatsapp/WhatsAppInboxTab.js';
 import { WhatsAppConfigTab } from '../components/whatsapp/WhatsAppConfigTab.js';
 import { BroadcastCampaignModal } from '../components/whatsapp/BroadcastCampaignModal.js';
+import { SimulateInboundModal } from '../components/whatsapp/SimulateInboundModal.js';
 import { useWhatsappConfig } from '../services/whatsapp.service.js';
 
 export function WhatsAppPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'inbox' | 'config'>('inbox');
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
+  const [isSimulateOpen, setIsSimulateOpen] = useState(false);
   const { data: config } = useWhatsappConfig();
 
   const isConnected = config?.status === 'connected';
@@ -42,6 +44,13 @@ export function WhatsAppPage() {
 
         {/* Quick Actions */}
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsSimulateOpen(true)}
+            className="inline-flex items-center px-3.5 py-2 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 rounded-xl transition shadow-xs"
+          >
+            <Radio className="h-3.5 w-3.5 mr-1.5 text-emerald-600 animate-pulse" />
+            Simulate Inbound Message
+          </button>
           <button
             onClick={() => setIsBroadcastOpen(true)}
             className="inline-flex items-center px-3.5 py-2 text-xs font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition shadow-xs"
@@ -108,6 +117,12 @@ export function WhatsAppPage() {
       <BroadcastCampaignModal
         isOpen={isBroadcastOpen}
         onClose={() => setIsBroadcastOpen(false)}
+      />
+
+      {/* Simulate Inbound Modal */}
+      <SimulateInboundModal
+        isOpen={isSimulateOpen}
+        onClose={() => setIsSimulateOpen(false)}
       />
     </div>
   );

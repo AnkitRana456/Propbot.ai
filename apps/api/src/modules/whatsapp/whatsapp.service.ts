@@ -202,6 +202,159 @@ export class WhatsAppService {
   }
 
   /**
+   * One-click sandbox connector for instant demo & development testing.
+   */
+  async quickConnectSandbox(companyId: string): Promise<WhatsappConfigResponse> {
+    const existing = await db.query.whatsappConfigs.findFirst({
+      where: eq(whatsappConfigs.companyId, companyId),
+    });
+
+    const defaultBot = await this.resolveDefaultChatbot(companyId);
+
+    if (existing) {
+      await db
+        .update(whatsappConfigs)
+        .set({
+          status: 'connected',
+          phoneNumberId: existing.phoneNumberId || 'meta_pn_prestige_98200',
+          businessPhoneNumber: existing.businessPhoneNumber || '+919820099880',
+          accessToken: existing.accessToken || 'EAAG_mock_sandbox_token_prestige_2026',
+          enableAutomation: true,
+          aiAutoReplies: true,
+          chatbotId: existing.chatbotId || defaultBot,
+          updatedAt: new Date(),
+        })
+        .where(eq(whatsappConfigs.companyId, companyId));
+    } else {
+      await db.insert(whatsappConfigs).values({
+        companyId,
+        chatbotId: defaultBot,
+        phoneNumberId: 'meta_pn_prestige_98200',
+        businessPhoneNumber: '+919820099880',
+        accessToken: 'EAAG_mock_sandbox_token_prestige_2026',
+        verifyToken: 'propbot_verify_token_prestige_2026',
+        templateName: 'property_inquiry_details',
+        status: 'connected',
+        enableAutomation: true,
+        aiAutoReplies: true,
+        pauseAfterAgentReply: true,
+        frustrationHandoff: true,
+        autoAssignOwner: true,
+      });
+    }
+
+    return this.getConfig(companyId);
+  }
+
+  /**
+   * Simulates an inbound WhatsApp buyer message for interactive live testing in CRM.
+   */
+  async simulateInboundMessage(
+    companyId: string,
+    input: { phone: string; name?: string; text: string; isVoiceNote?: boolean },
+  ): Promise<{ success: boolean; conversationId: string; responseSnippet?: string }> {
+    let config = await db.query.whatsappConfigs.findFirst({
+      where: eq(whatsappConfigs.companyId, companyId),
+    });
+
+    if (!config || config.status !== 'connected') {
+      await this.quickConnectSandbox(companyId);
+      config = await db.query.whatsappConfigs.findFirst({
+        where: eq(whatsappConfigs.companyId, companyId),
+      });
+    }
+
+    const wamid = `wamid.HBgL${Date.now()}_sim_${Math.random().toString(36).substring(2, 9)}`;
+    const cleanPhone = input.phone.replace(/[^0-9]/g, '') || '919820199001';
+
+    const payload = {
+      object: 'whatsapp_business_account',
+      entry: [
+        {
+          id: 'meta_biz_account_sim',
+          changes: [
+            {
+              field: 'messages',
+              value: {
+                messaging_product: 'whatsapp',
+                metadata: {
+                  display_phone_number: config?.businessPhoneNumber || '+919820099880',
+                  phone_number_id: config?.phoneNumberId || 'meta_pn_prestige_98200',
+                },
+                contacts: [
+                  {
+                    profile: { name: input.name || 'WhatsApp Prospect' },
+                    wa_id: cleanPhone,
+                  },
+                ],
+                messages: [
+                  input.isVoiceNote
+                    ? {
+                        from: cleanPhone,
+                        id: wamid,
+                        timestamp: String(Math.floor(Date.now() / 1000)),
+                        type: 'audio',
+                        audio: { id: 'media_audio_sample_id', mime_type: 'audio/ogg' },
+                      }
+                    : {
+                        from: cleanPhone,
+                        id: wamid,
+                        timestamp: String(Math.floor(Date.now() / 1000)),
+                        type: 'text',
+                        text: { body: input.text },
+                      },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    await this.processWebhook(payload, JSON.stringify(payload));
+
+    // Retrieve active conversation for this phone
+    const last10 = cleanPhone.slice(-10);
+    const contact = await db.query.contacts.findFirst({
+      where: and(
+        eq(contacts.companyId, companyId),
+        or(
+          eq(contacts.phone, cleanPhone),
+          eq(contacts.phone, `+${cleanPhone}`),
+          ilike(contacts.phone, `%${last10}%`),
+        ),
+      ),
+    });
+
+    let convId = '';
+    let responseSnippet = '';
+
+    if (contact) {
+      const conv = await db.query.conversations.findFirst({
+        where: and(
+          eq(conversations.companyId, companyId),
+          eq(conversations.contactId, contact.id),
+          eq(conversations.channel, 'whatsapp'),
+        ),
+        orderBy: desc(conversations.updatedAt),
+      });
+
+      if (conv) {
+        convId = conv.id;
+        const [lastBotMsg] = await db
+          .select({ content: messages.content })
+          .from(messages)
+          .where(and(eq(messages.conversationId, conv.id), eq(messages.senderType, 'bot')))
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
+        responseSnippet = lastBotMsg?.content || '';
+      }
+    }
+
+    return { success: true, conversationId: convId, responseSnippet };
+  }
+
+  /**
    * Evaluates Overview tab KPIs.
    */
   async getOverviewKpi(companyId: string): Promise<WhatsappOverviewKpi> {

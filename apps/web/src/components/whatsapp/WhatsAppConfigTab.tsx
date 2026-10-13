@@ -12,6 +12,7 @@ import {
   useWhatsappConfig,
   useUpdateWhatsappConfig,
   useGenerateVerifyToken,
+  useQuickConnectSandbox,
 } from '../../services/whatsapp.service.js';
 import { useChatbots } from '../../services/chatbots.service.js';
 
@@ -20,6 +21,7 @@ export function WhatsAppConfigTab() {
   const { data: chatbotsData } = useChatbots();
   const updateConfigMutation = useUpdateWhatsappConfig();
   const generateTokenMutation = useGenerateVerifyToken();
+  const quickConnectMutation = useQuickConnectSandbox();
 
   // Form State
   const [phoneNumberId, setPhoneNumberId] = useState('');
@@ -101,6 +103,42 @@ export function WhatsAppConfigTab() {
 
   return (
     <form onSubmit={handleSaveAll} className="space-y-6 max-w-4xl">
+      {/* Quick Sandbox Connect Card */}
+      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center space-x-3">
+          <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-xs">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-bold text-gray-900">Meta Cloud API Connection</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  config?.status === 'connected'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-amber-100 text-amber-800'
+                }`}
+              >
+                {config?.status === 'connected' ? 'Connected (Active)' : 'Disconnected'}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-600 mt-0.5">
+              Connect your Meta Business WhatsApp phone number or use the instant 1-click sandbox to test AI replies.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => quickConnectMutation.mutate()}
+          disabled={quickConnectMutation.isPending}
+          className="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center space-x-1.5 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${quickConnectMutation.isPending ? 'animate-spin' : ''}`} />
+          <span>{config?.status === 'connected' ? 'Reconnect Sandbox' : 'Quick Connect Sandbox'}</span>
+        </button>
+      </div>
+
       {saveSuccess && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center space-x-2">
           <Check className="h-4 w-4 text-emerald-600" />

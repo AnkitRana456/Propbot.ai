@@ -219,6 +219,42 @@ export class WhatsAppController {
       next(err);
     }
   }
+
+  /**
+   * POST /api/whatsapp/config/quick-connect
+   */
+  async quickConnect(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = req.tenant!.companyId;
+      const data = await whatsappService.quickConnectSandbox(companyId);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * POST /api/whatsapp/simulate-inbound
+   */
+  async simulateInbound(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = req.tenant!.companyId;
+      const { phone, name, text, isVoiceNote } = req.body;
+      if (!phone || !text) {
+        res.status(400).json({ error: { message: 'Phone and text are required for inbound simulation' } });
+        return;
+      }
+      const data = await whatsappService.simulateInboundMessage(companyId, {
+        phone: String(phone),
+        name: name ? String(name) : undefined,
+        text: String(text),
+        isVoiceNote: Boolean(isVoiceNote),
+      });
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const whatsappController = new WhatsAppController();

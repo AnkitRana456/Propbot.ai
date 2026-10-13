@@ -28,6 +28,18 @@ whatsappRouter.post(
   (req, res, next) => whatsappController.generateVerifyToken(req, res, next),
 );
 
+whatsappRouter.post(
+  '/config/quick-connect',
+  requirePermission('manage_chatbots'),
+  (req, res, next) => whatsappController.quickConnect(req, res, next),
+);
+
+whatsappRouter.post(
+  '/simulate-inbound',
+  requirePermission('view_leads'),
+  (req, res, next) => whatsappController.simulateInbound(req, res, next),
+);
+
 whatsappRouter.get('/overview', (req, res, next) => whatsappController.getOverview(req, res, next));
 
 // Shared Inbox (view_leads / edit_leads)

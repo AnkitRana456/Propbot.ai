@@ -226,3 +226,45 @@ export function useBroadcastCampaign() {
     },
   });
 }
+
+export function useQuickConnectSandbox() {
+  const queryClient = useQueryClient();
+  return useMutation<WhatsappConfigResponse, Error, void>({
+    mutationFn: async () => {
+      const res = await apiRequest<{ success: boolean; data: WhatsappConfigResponse }>(
+        '/api/whatsapp/config/quick-connect',
+        { method: 'POST' },
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp', 'config'] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp', 'overview'] });
+    },
+  });
+}
+
+export function useSimulateInboundMessage() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { success: boolean; conversationId: string; responseSnippet?: string },
+    Error,
+    { phone: string; name?: string; text: string; isVoiceNote?: boolean }
+  >({
+    mutationFn: async input => {
+      const res = await apiRequest<{
+        success: boolean;
+        data: { success: boolean; conversationId: string; responseSnippet?: string };
+      }>('/api/whatsapp/simulate-inbound', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp', 'overview'] });
+    },
+  });
+}

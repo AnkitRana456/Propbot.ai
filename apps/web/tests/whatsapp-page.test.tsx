@@ -6,6 +6,7 @@ import { WhatsAppChatThread } from '../src/components/whatsapp/WhatsAppChatThrea
 import { WhatsAppLeadSidebar } from '../src/components/whatsapp/WhatsAppLeadSidebar.js';
 import { WhatsAppConfigTab } from '../src/components/whatsapp/WhatsAppConfigTab.js';
 import { BroadcastCampaignModal } from '../src/components/whatsapp/BroadcastCampaignModal.js';
+import { SimulateInboundModal } from '../src/components/whatsapp/SimulateInboundModal.js';
 import type { WhatsAppConversationDetail, WhatsAppConversationItem } from '@propbot/shared';
 
 // Mock services
@@ -77,6 +78,14 @@ vi.mock('../src/services/whatsapp.service.js', () => ({
     isPending: false,
   }),
   useBroadcastCampaign: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+  useQuickConnectSandbox: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+  useSimulateInboundMessage: () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
@@ -228,5 +237,20 @@ describe('WhatsApp Frontend Components', () => {
     expect(el).toBeDefined();
     expect(el.props.isOpen).toBe(true);
     expect(el.props.onClose).toBe(handleClose);
+  });
+
+  it('renders SimulateInboundModal with test scenarios and submit callback', () => {
+    const handleClose = vi.fn();
+    const handleSuccess = vi.fn();
+    const el = React.createElement(SimulateInboundModal, {
+      isOpen: true,
+      onClose: handleClose,
+      onSuccess: handleSuccess,
+    });
+
+    expect(el).toBeDefined();
+    expect(el.props.isOpen).toBe(true);
+    expect(el.props.onClose).toBe(handleClose);
+    expect(el.props.onSuccess).toBe(handleSuccess);
   });
 });
