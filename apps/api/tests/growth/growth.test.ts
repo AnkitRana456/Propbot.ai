@@ -10,8 +10,6 @@ import {
   projects,
   companyAiSettings,
   segments,
-  campaigns,
-  bookingTransactions,
   domainEvents,
 } from '../../src/db/schema/index.js';
 import { signAccessToken } from '../../src/modules/auth/auth.utils.js';
@@ -203,7 +201,7 @@ describe('Phase 15B: Growth Layer (Segments, Campaigns, Ask Your Pipeline, Booki
         .set('Authorization', `Bearer ${tokenA}`);
 
       expect(listRes.status).toBe(200);
-      expect(listRes.body.data.some((s: any) => s.id === segmentId)).toBe(true);
+      expect(listRes.body.data.some((s: { id: string }) => s.id === segmentId)).toBe(true);
     });
   });
 
@@ -258,7 +256,7 @@ describe('Phase 15B: Growth Layer (Segments, Campaigns, Ask Your Pipeline, Booki
         .set('Authorization', `Bearer ${tokenA}`);
 
       expect(listRes.status).toBe(200);
-      expect(listRes.body.data.some((c: any) => c.id === campaignId)).toBe(true);
+      expect(listRes.body.data.some((c: { id: string }) => c.id === campaignId)).toBe(true);
 
       // Launch the campaign
       const launchRes = await request(app)
@@ -319,7 +317,7 @@ describe('Phase 15B: Growth Layer (Segments, Campaigns, Ask Your Pipeline, Booki
         .set('Authorization', `Bearer ${tokenA}`);
 
       expect(listRes.status).toBe(200);
-      expect(listRes.body.data.some((t: any) => t.paymentLinkId === paymentLinkId)).toBe(true);
+      expect(listRes.body.data.some((t: { paymentLinkId: string }) => t.paymentLinkId === paymentLinkId)).toBe(true);
 
       // Webhook confirmation: POST /api/growth/payments/booking/webhook
       const webhookRes = await request(app)

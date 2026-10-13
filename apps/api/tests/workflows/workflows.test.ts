@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/server.js';
 import { testDb, cleanupTestDatabase } from '../helpers/test-db.js';
-import { companies, users, companyAiSettings, workflows, workflowRuns, workflowRunSteps, leads, contacts } from '../../src/db/schema/index.js';
+import { companies, users, companyAiSettings, leads, contacts } from '../../src/db/schema/index.js';
 import { signAccessToken } from '../../src/modules/auth/auth.utils.js';
 import { workflowEngineService } from '../../src/modules/workflows/workflow-engine.service.js';
 import { WORKFLOW_TEMPLATES } from '../../src/modules/workflows/workflow-templates.js';
@@ -155,7 +155,7 @@ describe('Phase 15B: Workflow Automation Engine & Canvas Endpoints', () => {
       .set('Authorization', `Bearer ${tokenA}`);
 
     expect(listRes.status).toBe(200);
-    expect(listRes.body.data.some((w: any) => w.id === workflowId)).toBe(true);
+    expect(listRes.body.data.some((w: { id: string }) => w.id === workflowId)).toBe(true);
 
     // GET /api/workflows/:id
     const singleRes = await request(app)
@@ -358,6 +358,6 @@ describe('Phase 15B: Workflow Automation Engine & Canvas Endpoints', () => {
       .set('Authorization', `Bearer ${tokenB}`);
 
     expect(listBRes.status).toBe(200);
-    expect(listBRes.body.data.some((w: any) => w.id === workflowAId)).toBe(false);
+    expect(listBRes.body.data.some((w: { id: string }) => w.id === workflowAId)).toBe(false);
   });
 });

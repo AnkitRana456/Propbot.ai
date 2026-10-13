@@ -209,7 +209,7 @@ describe('Phase 15C: Voice Calling & Telephony Integration', () => {
       expect(call!.leadId).toBe(leadAId);
       expect(call!.disclosedAsAi).toBe(true);
       expect(call!.metadata).toHaveProperty('discloseAiText');
-      expect((call!.metadata as any).discloseAiText).toContain('AI assistant calling on behalf of');
+      expect((call!.metadata as Record<string, unknown>).discloseAiText).toContain('AI assistant calling on behalf of');
     });
 
     it('processes lead_created outbox events via VoiceCallbackConsumer', async () => {
@@ -263,7 +263,7 @@ describe('Phase 15C: Voice Calling & Telephony Integration', () => {
       expect(call!.durationSeconds).toBe(125);
       expect(call!.recordingUrl).toBe('https://mock-telephony.storage.com/rec-12345.mp3');
       expect(call!.transcript).toContain('20% discount');
-      expect((call!.metadata as any).priceEscalation).toBe(true);
+      expect((call!.metadata as Record<string, unknown>).priceEscalation).toBe(true);
 
       // Verify lead Buyer DNA updated
       const [lead] = await testDb
@@ -350,7 +350,7 @@ describe('Phase 15C: Voice Calling & Telephony Integration', () => {
 
       expect(resA.status).toBe(200);
       expect(resA.body.data.length).toBeGreaterThan(0);
-      expect(resA.body.data.every((c: any) => c.companyId === companyAId)).toBe(true);
+      expect(resA.body.data.every((c: { companyId: string }) => c.companyId === companyAId)).toBe(true);
 
       // Company B lists calls (should be empty for company B)
       const resB = await request(app)

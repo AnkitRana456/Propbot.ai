@@ -1,6 +1,6 @@
 import { eq, and, sql, inArray, gte, lte } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { segments, leads, contacts } from '../../db/schema/index.js';
+import { segments, leads } from '../../db/schema/index.js';
 import type { SegmentFilterCriteria, CreateSegmentRequest } from '@propbot/shared';
 
 export class SegmentsService {

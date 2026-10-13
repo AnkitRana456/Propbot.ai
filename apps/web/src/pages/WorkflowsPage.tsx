@@ -3,31 +3,35 @@ import {
   Workflow as WorkflowIcon,
   Plus,
   Play,
-  Pause,
   Sparkles,
   Layers,
   History,
   CheckCircle2,
-  XCircle,
-  Clock,
-  ArrowRight,
-  Settings,
-  Trash2,
   Save,
   ChevronDown,
-  Info,
-  ShieldAlert,
   Loader2,
-  Search,
-  Filter,
 } from 'lucide-react';
 import { apiRequest } from '../services/api-client.js';
+
+interface WorkflowSimulationResult {
+  runId: string;
+  status: string;
+  stepsExecuted?: number;
+  logs?: string[];
+  executionSteps?: Array<{
+    nodeId: string;
+    actionKind?: string;
+    status: string;
+    tier?: string;
+    details?: string;
+  }>;
+}
 
 interface WorkflowNode {
   id: string;
   type: 'trigger' | 'condition' | 'action' | 'delay';
   name?: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 interface WorkflowEdge {
@@ -72,7 +76,7 @@ interface WorkflowRun {
     nodeId: string;
     status: string;
     startedAt: string;
-    output?: any;
+    output?: Record<string, unknown>;
     errorMessage?: string;
   }>;
 }
@@ -97,7 +101,7 @@ export const WorkflowsPage: React.FC = () => {
 
   // Test Run Simulator
   const [simulationLeadId, setSimulationLeadId] = useState('');
-  const [simulationResult, setSimulationResult] = useState<any>(null);
+  const [simulationResult, setSimulationResult] = useState<WorkflowSimulationResult | null>(null);
   const [testingWorkflow, setTestingWorkflow] = useState(false);
 
   // Execution History
@@ -246,7 +250,7 @@ export const WorkflowsPage: React.FC = () => {
     try {
       setTestingWorkflow(true);
       setSimulationResult(null);
-      const res = await apiRequest<any>(`/api/workflows/${activeWorkflow.id}/test`, {
+      const res = await apiRequest<WorkflowSimulationResult>(`/api/workflows/${activeWorkflow.id}/test`, {
         method: 'POST',
         body: JSON.stringify({
           leadId: simulationLeadId || undefined,
@@ -263,7 +267,7 @@ export const WorkflowsPage: React.FC = () => {
   const handleAddNode = (type: 'condition' | 'action' | 'delay') => {
     if (!activeWorkflow) return;
     const newId = `${type}_${Date.now()}`;
-    let newConfig: Record<string, any> = {};
+    let newConfig: Record<string, unknown> = {};
 
     if (type === 'condition') {
       newConfig = { field: 'score', operator: 'gte', value: 70 };
@@ -383,8 +387,9 @@ export const WorkflowsPage: React.FC = () => {
         {/* Left Sidebar: Workflow List */}
         <aside className="w-80 border-r border-slate-800 bg-slate-900/60 flex flex-col">
           <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               Workflows ({workflows.length})
+              {loading && <Loader2 className="h-3 w-3 animate-spin text-teal-400" />}
             </span>
             <button
               onClick={() => setIsTemplateModalOpen(true)}
@@ -603,7 +608,7 @@ export const WorkflowsPage: React.FC = () => {
                     <label className="block text-slate-400 font-medium mb-1">Field</label>
                     <input
                       type="text"
-                      value={selectedNode.config?.field || ''}
+                      value={(selectedNode.config?.field as string) || ''}
                       onChange={(e) => {
                         const updated = {
                           ...selectedNode,
@@ -617,7 +622,7 @@ export const WorkflowsPage: React.FC = () => {
                   <div>
                     <label className="block text-slate-400 font-medium mb-1">Operator</label>
                     <select
-                      value={selectedNode.config?.operator || 'equals'}
+                      value={(selectedNode.config?.operator as string) || 'equals'}
                       onChange={(e) => {
                         const updated = {
                           ...selectedNode,
@@ -637,7 +642,7 @@ export const WorkflowsPage: React.FC = () => {
                     <label className="block text-slate-400 font-medium mb-1">Value</label>
                     <input
                       type="text"
-                      value={selectedNode.config?.value ?? ''}
+                      value={(selectedNode.config?.value as string | number) ?? ''}
                       onChange={(e) => {
                         const updated = {
                           ...selectedNode,
@@ -656,7 +661,7 @@ export const WorkflowsPage: React.FC = () => {
                   <label className="block text-slate-400 font-medium mb-1">Duration (Minutes)</label>
                   <input
                     type="number"
-                    value={selectedNode.config?.durationMinutes || 0}
+                    value={(selectedNode.config?.durationMinutes as number) || 0}
                     onChange={(e) => {
                       const updated = {
                         ...selectedNode,
@@ -674,7 +679,7 @@ export const WorkflowsPage: React.FC = () => {
                   <div>
                     <label className="block text-slate-400 font-medium mb-1">Action Type</label>
                     <select
-                      value={selectedNode.config?.action || 'send_whatsapp'}
+                      value={(selectedNode.config?.action as string) || 'send_whatsapp'}
                       onChange={(e) => {
                         const updated = {
                           ...selectedNode,
@@ -697,7 +702,7 @@ export const WorkflowsPage: React.FC = () => {
                     <label className="block text-slate-400 font-medium mb-1">Template / Message</label>
                     <textarea
                       rows={3}
-                      value={selectedNode.config?.template || selectedNode.config?.message || ''}
+                      value={(selectedNode.config?.template as string) || (selectedNode.config?.message as string) || ''}
                       onChange={(e) => {
                         const updated = {
                           ...selectedNode,

@@ -1,13 +1,11 @@
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { workflows, workflowRuns, workflowRunSteps, leads, contacts } from '../../db/schema/index.js';
+import { workflows, workflowRuns, workflowRunSteps } from '../../db/schema/index.js';
 import { guardedActionsService, type ActionTier } from '../ai/guarded-actions.service.js';
 import { WORKFLOW_TEMPLATES } from './workflow-templates.js';
 import type {
-  WorkflowDefinition,
   WorkflowNode,
   WorkflowEdge,
-  ActionKind,
 } from '@propbot/shared';
 import { pino } from 'pino';
 

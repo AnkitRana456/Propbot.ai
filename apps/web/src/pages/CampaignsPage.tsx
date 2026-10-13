@@ -7,24 +7,29 @@ import {
   Send,
   AlertTriangle,
   CheckCircle,
-  Copy,
-  Plus,
   Loader2,
-  Filter,
   BarChart2,
-  Calendar,
-  MessageSquare,
-  Mail,
-  Smartphone,
   Eye,
 } from 'lucide-react';
 import { apiRequest } from '../services/api-client.js';
+
+interface ReraComplianceResult {
+  isCompliant: boolean;
+  violations?: string[];
+  generatedCopy?: {
+    headline?: string;
+    body: string;
+    callToAction?: string;
+    reraNumber?: string;
+    disclaimer?: string;
+  };
+}
 
 interface SegmentItem {
   id: string;
   name: string;
   description?: string;
-  filterCriteria: Record<string, any>;
+  filterCriteria: Record<string, unknown>;
   cachedCount: number;
   lastCalculatedAt: string;
 }
@@ -77,7 +82,7 @@ export const CampaignsPage: React.FC = () => {
   const [usps, setUsps] = useState('Metro adjacency, 80% open greens, ready-to-move-in luxury clubhouse');
   const [draftHeadline, setDraftHeadline] = useState('');
   const [draftBody, setDraftBody] = useState('');
-  const [complianceResult, setComplianceResult] = useState<any>(null);
+  const [complianceResult, setComplianceResult] = useState<ReraComplianceResult | null>(null);
   const [generatingRera, setGeneratingRera] = useState(false);
 
   useEffect(() => {
@@ -115,7 +120,7 @@ export const CampaignsPage: React.FC = () => {
   const handlePreviewCount = async () => {
     try {
       setLoadingPreview(true);
-      const criteria: Record<string, any> = {};
+      const criteria: Record<string, unknown> = {};
       if (minScore !== '') criteria.minScore = Number(minScore);
       if (maxScore !== '') criteria.maxScore = Number(maxScore);
       if (selectedStage) criteria.stage = selectedStage;
@@ -138,7 +143,7 @@ export const CampaignsPage: React.FC = () => {
     e.preventDefault();
     if (!newSegmentName.trim()) return;
     try {
-      const criteria: Record<string, any> = {};
+      const criteria: Record<string, unknown> = {};
       if (minScore !== '') criteria.minScore = Number(minScore);
       if (maxScore !== '') criteria.maxScore = Number(maxScore);
       if (selectedStage) criteria.stage = selectedStage;
@@ -195,8 +200,8 @@ export const CampaignsPage: React.FC = () => {
       setVariantA('');
       setVariantB('');
       alert('Campaign launched successfully! Sent recipients logged.');
-    } catch (err: any) {
-      alert(`Launch error: ${err.message || 'Failed to launch'}`);
+    } catch (err: unknown) {
+      alert(`Launch error: ${(err as Error).message || 'Failed to launch'}`);
     } finally {
       setLaunchingCampaign(false);
     }
@@ -207,7 +212,7 @@ export const CampaignsPage: React.FC = () => {
       setGeneratingRera(true);
       setComplianceResult(null);
 
-      const res = await apiRequest<any>('/api/growth/rera-copy/generate', {
+      const res = await apiRequest<ReraComplianceResult>('/api/growth/rera-copy/generate', {
         method: 'POST',
         body: JSON.stringify({
           projectName: reraProjectName,
@@ -220,10 +225,10 @@ export const CampaignsPage: React.FC = () => {
       });
 
       setComplianceResult(res);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setComplianceResult({
         isCompliant: false,
-        violations: [err.message || 'Generation error'],
+        violations: [(err as Error).message || 'Generation error'],
       });
     } finally {
       setGeneratingRera(false);
@@ -606,7 +611,10 @@ export const CampaignsPage: React.FC = () => {
 
           {/* Saved Segments List */}
           <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 backdrop-blur">
-            <h3 className="text-base font-bold text-white mb-4">Saved Segments ({segments.length})</h3>
+            <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              Saved Segments ({segments.length})
+              {loadingSegments && <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />}
+            </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {segments.map((s) => (
@@ -706,7 +714,20 @@ export const CampaignsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Draft Headline / Body to Inspect (Optional)
+                  Draft Headline (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g.: Luxury 3BHK Residences near Hebbal"
+                  value={draftHeadline}
+                  onChange={(e) => setDraftHeadline(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-2 text-xs text-slate-100 placeholder-slate-500 mb-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Draft Body to Inspect (Optional)
                 </label>
                 <textarea
                   rows={3}

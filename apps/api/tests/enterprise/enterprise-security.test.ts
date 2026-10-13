@@ -295,7 +295,7 @@ describe('Phase 15C: Enterprise Security, SSO & Compliance', () => {
       expect(res.body.data.certifications).toContain('SOC 2 Type II Compliant');
       expect(res.body.data.qaList.length).toBeGreaterThanOrEqual(5);
 
-      const rlsAnswer = res.body.data.qaList.find((q: any) =>
+      const rlsAnswer = res.body.data.qaList.find((q: { question: string }) =>
         q.question.includes('tenant data'),
       );
       expect(rlsAnswer).toBeDefined();

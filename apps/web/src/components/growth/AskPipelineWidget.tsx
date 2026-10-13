@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
 import {
-  MessageSquareQuote,
   Send,
   Sparkles,
   ShieldCheck,
-  ChevronRight,
   TrendingUp,
-  UserCheck,
-  Calendar,
   X,
   Loader2,
   AlertCircle,

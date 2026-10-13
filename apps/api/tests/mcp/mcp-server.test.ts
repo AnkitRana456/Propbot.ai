@@ -10,9 +10,7 @@ import {
   contacts,
   units,
   projects,
-  appointments,
   auditLogs,
-  agentActions,
   companyAiSettings,
   users,
 } from '../../src/db/schema/index.js';
@@ -210,7 +208,7 @@ describe('Phase 15C: Model Context Protocol (MCP) CRM Integration', () => {
 
       expect(resRead.status).toBe(200);
       expect(resRead.body.data.tools.length).toBeGreaterThanOrEqual(5);
-      const toolNames = resRead.body.data.tools.map((t: any) => t.name);
+      const toolNames = resRead.body.data.tools.map((t: { name: string }) => t.name);
       expect(toolNames).toContain('get_leads');
       expect(toolNames).toContain('get_lead_detail');
       expect(toolNames).toContain('get_pipeline_stats');
@@ -224,7 +222,7 @@ describe('Phase 15C: Model Context Protocol (MCP) CRM Integration', () => {
         .set('Authorization', `Bearer ${rawKeyA_Write}`);
 
       expect(resFull.status).toBe(200);
-      const fullNames = resFull.body.data.tools.map((t: any) => t.name);
+      const fullNames = resFull.body.data.tools.map((t: { name: string }) => t.name);
       expect(fullNames).toContain('create_lead_note');
       expect(fullNames).toContain('update_lead_status');
       expect(fullNames).toContain('schedule_appointment');
@@ -239,7 +237,7 @@ describe('Phase 15C: Model Context Protocol (MCP) CRM Integration', () => {
         .send({ minIntentScore: 0 });
 
       expect(resA.status).toBe(200);
-      const leadIdsA = resA.body.data.leads.map((l: any) => l.id);
+      const leadIdsA = resA.body.data.leads.map((l: { id: string }) => l.id);
       expect(leadIdsA).toContain(leadAId);
       expect(leadIdsA).not.toContain(leadBId);
 
@@ -250,7 +248,7 @@ describe('Phase 15C: Model Context Protocol (MCP) CRM Integration', () => {
         .send({ companyId: companyBId, company_id: companyBId });
 
       expect(resSpoof.status).toBe(200);
-      const spoofIds = resSpoof.body.data.leads.map((l: any) => l.id);
+      const spoofIds = resSpoof.body.data.leads.map((l: { id: string }) => l.id);
       expect(spoofIds).not.toContain(leadBId); // Cross-tenant leak prevented!
     });
 

@@ -1,6 +1,6 @@
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { campaigns, campaignRecipients, segments, leads, contacts } from '../../db/schema/index.js';
+import { campaigns, campaignRecipients, contacts } from '../../db/schema/index.js';
 import { segmentsService } from './segments.service.js';
 import type { CreateCampaignRequest, SegmentFilterCriteria } from '@propbot/shared';
 import { pino } from 'pino';
