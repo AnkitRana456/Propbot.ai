@@ -286,6 +286,36 @@ describe('Phase 15B: Growth Layer (Segments, Campaigns, Ask Your Pipeline, Booki
       expect(res.body.data.citations.length).toBeGreaterThanOrEqual(1);
       expect(res.body.data.citations[0].intentLabel).toBe('hot');
     });
+
+    it('POST /api/growth/ask-pipeline handles "hello" greeting using query field', async () => {
+      const res = await request(app)
+        .post('/api/growth/ask-pipeline')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          query: 'hello',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.toolUsed).toBe('greeting');
+      expect(res.body.data.answer).toContain('Pipeline Assistant');
+      expect(Array.isArray(res.body.data.citations)).toBe(true);
+    });
+
+    it('POST /api/growth/ask-pipeline handles "Who are my hottest leads?"', async () => {
+      const res = await request(app)
+        .post('/api/growth/ask-pipeline')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          query: 'Who are my hottest leads?',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.toolUsed).toBe('list_leads');
+      expect(res.body.data.answer).toContain('hottest leads');
+      expect(Array.isArray(res.body.data.citations)).toBe(true);
+    });
   });
 
   describe('4. Instant Booking Token & Payments', () => {

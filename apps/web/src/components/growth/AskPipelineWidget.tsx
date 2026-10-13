@@ -14,8 +14,11 @@ import { apiRequest } from '../../services/api-client.js';
 interface LeadCitation {
   id: string;
   name: string;
-  stage: string;
-  score: number;
+  stage?: string;
+  status?: string;
+  score?: number;
+  intentScore?: number;
+  intentLabel?: string;
   budgetMin?: number;
   budgetMax?: number;
 }
@@ -71,7 +74,7 @@ export const AskPipelineWidget: React.FC = () => {
         guardrailTriggered?: boolean;
       }>('/api/growth/ask-pipeline', {
         method: 'POST',
-        body: JSON.stringify({ query: textToSend }),
+        body: JSON.stringify({ question: textToSend, query: textToSend }),
       });
 
       const assistantMessage: Message = {
@@ -200,7 +203,7 @@ export const AskPipelineWidget: React.FC = () => {
                             <div>
                               <div className="text-xs font-semibold text-slate-200">{c.name}</div>
                               <div className="text-[10px] text-slate-400">
-                                Stage: <span className="text-teal-400 capitalize">{c.stage}</span> • Score: <span className="font-bold text-emerald-400">{c.score}</span>
+                                Stage: <span className="text-teal-400 capitalize">{c.stage || c.status || 'Active'}</span> • Score: <span className="font-bold text-emerald-400">{c.score ?? c.intentScore ?? 0}</span>
                               </div>
                             </div>
                           </div>

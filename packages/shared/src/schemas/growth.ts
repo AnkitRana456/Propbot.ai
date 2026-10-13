@@ -72,12 +72,29 @@ export const leadCitationSchema = z.object({
   intentScore: z.number(),
   intentLabel: z.string(),
   status: z.string(),
+  stage: z.string().optional(),
+  score: z.number().optional(),
   lastContactedAt: z.string().nullable().optional(),
 });
 
-export const askPipelineRequestSchema = z.object({
-  question: z.string().min(3).max(1000),
-});
+export const askPipelineRequestSchema = z
+  .object({
+    question: z.string().max(1000).optional(),
+    query: z.string().max(1000).optional(),
+  })
+  .refine(
+    (data) => Boolean((data.question && data.question.trim().length > 0) || (data.query && data.query.trim().length > 0)),
+    {
+      message: 'Please provide a valid question or query for your pipeline.',
+    },
+  )
+  .transform((data) => {
+    const text = (data.question?.trim() || data.query?.trim())!;
+    return {
+      question: text,
+      query: text,
+    };
+  });
 
 export const askPipelineResponseSchema = z.object({
   answer: z.string(),
