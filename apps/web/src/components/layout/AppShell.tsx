@@ -4,9 +4,23 @@ import { Sidebar } from './Sidebar.js';
 import { TopBar } from './TopBar.js';
 import { AskPipelineWidget } from '../growth/AskPipelineWidget.js';
 
+import { useAuth } from '../../contexts/AuthContext.js';
+
 export const AppShell: React.FC = () => {
+  const { isInitialized } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  if (!isInitialized) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-900 text-slate-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+          <p className="text-xs text-slate-400 font-medium">Connecting to PropBot Pro...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-50/70 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">

@@ -124,6 +124,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </NavLink>
               );
             })}
+
+            {/* Explore Platform Link */}
+            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <NavLink
+                to="/platform"
+                className={({ isActive }) =>
+                  `group flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200'
+                  }`
+                }
+                title={isCollapsed ? 'Explore Platform' : undefined}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                {!isCollapsed && (
+                  <div className="flex flex-1 items-center justify-between">
+                    <span>Explore Platform</span>
+                    <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+                      Showcase
+                    </span>
+                  </div>
+                )}
+              </NavLink>
+            </div>
           </nav>
         </div>
 

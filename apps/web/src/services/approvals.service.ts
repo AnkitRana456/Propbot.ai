@@ -34,6 +34,7 @@ export interface ApprovalsListResponse {
 }
 
 export function usePendingApprovals(options: { page?: number; limit?: number; status?: string } = {}) {
+  const hasToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('propbot_access_token'));
   return useQuery({
     queryKey: ['approvals', options],
     queryFn: async () => {
@@ -47,18 +48,21 @@ export function usePendingApprovals(options: { page?: number; limit?: number; st
       );
       return res.data;
     },
-    refetchInterval: 10000, // Poll every 10s for new approval items
+    enabled: hasToken,
+    refetchInterval: hasToken ? 10000 : false,
   });
 }
 
 export function usePendingApprovalsCount() {
+  const hasToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('propbot_access_token'));
   return useQuery({
     queryKey: ['approvals-count'],
     queryFn: async () => {
       const res = await apiRequest<{ success: boolean; count: number }>(`/api/approvals/count`);
       return res.count;
     },
-    refetchInterval: 15000,
+    enabled: hasToken,
+    refetchInterval: hasToken ? 15000 : false,
   });
 }
 

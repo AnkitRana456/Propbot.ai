@@ -34,6 +34,12 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('propbot_access_token');
+      localStorage.removeItem('propbot_user');
+      localStorage.removeItem('propbot_company');
+      window.dispatchEvent(new CustomEvent('propbot:unauthorized'));
+    }
     const errorDetails = data?.error;
     throw new ApiError(
       errorDetails?.code || 'API_ERROR',

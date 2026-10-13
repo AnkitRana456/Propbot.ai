@@ -25,10 +25,12 @@ import { ApprovalsPage } from './pages/ApprovalsPage.js';
 import { WorkflowsPage } from './pages/WorkflowsPage.js';
 import { CampaignsPage } from './pages/CampaignsPage.js';
 import { StatusPage } from './pages/StatusPage.js';
+import { PlatformPage } from './pages/PlatformPage.js';
 
 export const App: React.FC = () => {
   return (
     <Routes>
+      <Route path="/platform" element={<PlatformPage />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
       <Route path="/status" element={<StatusPage />} />
