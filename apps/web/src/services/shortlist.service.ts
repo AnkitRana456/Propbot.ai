@@ -64,3 +64,25 @@ export function useTrackShortlistTelemetry() {
       }),
   });
 }
+
+export interface SubmitShortlistRequestInput {
+  type: 'visit' | 'callback';
+  name: string;
+  preferredTime?: string;
+  notes?: string;
+  projectId?: string;
+}
+
+export function useSubmitShortlistRequest() {
+  return useMutation<
+    { success: boolean; leadId: string; message: string },
+    Error,
+    { token: string; input: SubmitShortlistRequestInput }
+  >({
+    mutationFn: ({ token, input }) =>
+      apiRequest<{ success: boolean; leadId: string; message: string }>(`/api/shortlist-room/${token}/request`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+  });
+}

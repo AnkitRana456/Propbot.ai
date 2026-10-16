@@ -4,6 +4,7 @@ import {
   leads,
   contacts,
   conversations,
+  messages,
   leadActivities,
   domainEvents,
   companyAiSettings,
@@ -758,6 +759,71 @@ export class LeadsService {
       });
 
     return this.getScoringConfig(companyId);
+  }
+
+  /**
+   * Retrieves conversation transcript and messages for a lead.
+   */
+  async getLeadConversation(companyId: string, leadId: string): Promise<{
+    conversationId: string | null;
+    status: string | null;
+    channel: string | null;
+    messages: Array<{
+      id: string;
+      senderType: 'visitor' | 'bot' | 'agent' | 'system';
+      content: string;
+      createdAt: string;
+      metadata: Record<string, unknown>;
+    }>;
+  }> {
+    const lead = await db.query.leads.findFirst({
+      where: and(eq(leads.id, leadId), eq(leads.companyId, companyId), isNull(leads.deletedAt)),
+    });
+
+    if (!lead) {
+      const err = new Error('Lead not found');
+      Object.assign(err, { statusCode: 404 });
+      throw err;
+    }
+
+    const conv = await db.query.conversations.findFirst({
+      where: and(eq(conversations.leadId, leadId), eq(conversations.companyId, companyId)),
+      orderBy: desc(conversations.createdAt),
+    });
+
+    if (!conv) {
+      return {
+        conversationId: null,
+        status: null,
+        channel: null,
+        messages: [],
+      };
+    }
+
+    const rows = await db
+      .select({
+        id: messages.id,
+        senderType: messages.senderType,
+        content: messages.content,
+        createdAt: messages.createdAt,
+        metadata: messages.metadata,
+      })
+      .from(messages)
+      .where(eq(messages.conversationId, conv.id))
+      .orderBy(messages.createdAt);
+
+    return {
+      conversationId: conv.id,
+      status: conv.status,
+      channel: conv.channel,
+      messages: rows.map(r => ({
+        id: r.id,
+        senderType: r.senderType as 'visitor' | 'bot' | 'agent' | 'system',
+        content: r.content,
+        createdAt: r.createdAt.toISOString(),
+        metadata: (r.metadata as Record<string, unknown>) || {},
+      })),
+    };
   }
 }
 

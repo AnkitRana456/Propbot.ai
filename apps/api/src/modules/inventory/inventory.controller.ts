@@ -280,6 +280,30 @@ export class InventoryController {
       next(err);
     }
   }
+
+  async submitRoomRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { type, name, preferredTime, notes, projectId } = req.body;
+      if (!name || typeof name !== 'string') {
+        res.status(400).json({ error: { message: 'Name is required' } });
+        return;
+      }
+      const validTypes = ['visit', 'callback'] as const;
+      const reqType = validTypes.includes(type) ? type : 'visit';
+
+      const result = await shortlistRoomService.submitRoomRequest(req.params.token as string, {
+        type: reqType,
+        name: name.trim(),
+        preferredTime: preferredTime ? String(preferredTime).trim() : undefined,
+        notes: notes ? String(notes).trim() : undefined,
+        projectId: projectId ? String(projectId).trim() : undefined,
+      });
+
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const inventoryController = new InventoryController();

@@ -817,8 +817,10 @@ export class ChatWidgetUi {
             Authorization: `Bearer ${this.sessionToken}`,
           },
           body: JSON.stringify({
+            fullName: nameInput.value.trim(),
             name: nameInput.value.trim(),
             phone: phoneInput.value.trim(),
+            conversationId: this.conversationId,
           }),
         });
 

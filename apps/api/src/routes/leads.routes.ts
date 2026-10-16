@@ -42,3 +42,8 @@ leadsRouter.patch('/:id/status', requirePermission('edit_leads'), (req, res, nex
 leadsRouter.post('/:id/merge', requirePermission('edit_leads'), (req, res, next) => {
   leadsController.merge(req, res, next);
 });
+
+// Get lead conversation transcript
+leadsRouter.get('/:id/conversation', requirePermission('view_leads'), (req, res, next) => {
+  leadsController.getConversation(req, res, next);
+});

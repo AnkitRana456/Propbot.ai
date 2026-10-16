@@ -103,11 +103,23 @@ export class PublicChatController {
         ? authHeader.slice(7)
         : (req.body.token as string | undefined);
 
-      const { conversationId, fullName, phone, email, preferences } = req.body;
+      if (!token) {
+        res.status(401).json({
+          error: { message: 'Session token is required to capture lead' },
+        });
+        return;
+      }
 
-      if (!token || !conversationId || !fullName || !phone) {
+      const session = publicChatService.verifySessionToken(token);
+      const conversationId = (req.body.conversationId as string) || session.conversationId;
+      const fullName = (req.body.fullName as string) || (req.body.name as string);
+      const phone = req.body.phone as string;
+      const email = req.body.email as string | undefined;
+      const preferences = req.body.preferences as Record<string, unknown> | undefined;
+
+      if (!fullName || !phone) {
         res.status(400).json({
-          error: { message: 'token, conversationId, fullName, and phone are required' },
+          error: { message: 'fullName (or name) and phone are required' },
         });
         return;
       }

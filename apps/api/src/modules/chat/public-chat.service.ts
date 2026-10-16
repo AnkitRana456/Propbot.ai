@@ -6,12 +6,14 @@ import {
   chatbots,
   conversations,
   messages,
-  contacts,
   leads,
   domainEvents,
 } from '../../db/schema/index.js';
 import { modelRouter, TaskTier } from '../ai/router.js';
 import { retrievalService } from '../ai/retrieval.service.js';
+import { leadsService } from '../leads/leads.service.js';
+import { buyerDnaService } from '../leads/buyer-dna.service.js';
+import type { BuyerDna } from '@propbot/shared';
 
 const JWT_SECRET = process.env.JWT_ACCESS_SECRET || 'propbot_pro_dev_jwt_access_secret_key_super_secure_32chars';
 
@@ -223,6 +225,39 @@ export class PublicChatService {
       metadata: {},
     });
 
+    // Background Buyer DNA extraction from visitor message
+    try {
+      const extracted = buyerDnaService.extractWithRules(params.message);
+      if (extracted.explicitFields && extracted.explicitFields.length > 0) {
+        const [currentConv] = await db
+          .select({ metadata: conversations.metadata, leadId: conversations.leadId })
+          .from(conversations)
+          .where(eq(conversations.id, session.conversationId));
+
+        if (currentConv) {
+          const meta = (currentConv.metadata as Record<string, unknown>) || {};
+          const existingDna = (meta.buyerDna as Partial<BuyerDna>) || buyerDnaService.getDefaultDna();
+          const merged = buyerDnaService.mergeDna(existingDna as BuyerDna, extracted, extracted.explicitFields);
+          await db
+            .update(conversations)
+            .set({ metadata: { ...meta, buyerDna: merged }, updatedAt: new Date() })
+            .where(eq(conversations.id, session.conversationId));
+
+          if (currentConv.leadId) {
+            void leadsService.processMessageAsync({
+              companyId: session.companyId,
+              chatbotId: session.chatbotId,
+              conversationId: session.conversationId,
+              message: params.message,
+              senderType: 'visitor',
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch {
+      // Non-blocking preference extraction
+    }
+
     const isAiConfigured = modelRouter.isConfigured();
     const isMockAllowed =
       (process.env.ALLOW_OFFLINE_MOCK === 'true' || process.env.MOCK_PROVIDERS === 'true') &&
@@ -338,83 +373,94 @@ export class PublicChatService {
       throw err;
     }
 
-    const cleanPhone = params.phone.replace(/[^0-9+]/g, '');
-    const names = params.fullName.trim().split(/\s+/);
-    const firstName = names[0] || 'Visitor';
-    const lastName = names.slice(1).join(' ') || undefined;
+    // 1. Recover any accumulated preferences from conversation metadata & messages
+    let accumulatedDna: Partial<BuyerDna> = {};
+    const [conv] = await db
+      .select({ metadata: conversations.metadata })
+      .from(conversations)
+      .where(eq(conversations.id, session.conversationId));
 
-    // 1. Find or create contact
-    let [contact] = await db
-      .select()
-      .from(contacts)
-      .where(and(eq(contacts.companyId, session.companyId), eq(contacts.phone, cleanPhone)));
+    if (conv?.metadata) {
+      const meta = conv.metadata as Record<string, unknown>;
+      if (meta.buyerDna) {
+        accumulatedDna = meta.buyerDna as Partial<BuyerDna>;
+      }
+    }
 
-    if (!contact) {
-      const [newContact] = await db
-        .insert(contacts)
-        .values({
-          companyId: session.companyId,
-          firstName,
-          lastName,
-          phone: cleanPhone,
-          email: params.email?.trim() || undefined,
-          lifecycleStage: 'lead',
-        })
-        .returning();
-      contact = newContact!;
-    } else if (params.email && !contact.email) {
+    // Check recent visitor messages in this conversation if DNA not yet populated
+    if (!accumulatedDna.bhk && !accumulatedDna.budgetMax) {
+      const pastMsgs = await db
+        .select({ content: messages.content })
+        .from(messages)
+        .where(and(eq(messages.conversationId, session.conversationId), eq(messages.senderType, 'visitor')))
+        .limit(10);
+
+      for (const m of pastMsgs) {
+        const extracted = buyerDnaService.extractWithRules(m.content);
+        accumulatedDna = buyerDnaService.mergeDna(
+          (accumulatedDna as BuyerDna) || buyerDnaService.getDefaultDna(),
+          extracted,
+          extracted.explicitFields,
+        );
+      }
+    }
+
+    // 2. Delegate to official leadsService.captureOrUpdateLead()
+    const leadCaptureResult = await leadsService.captureOrUpdateLead(session.companyId, {
+      name: params.fullName,
+      phone: params.phone,
+      email: params.email?.trim() || undefined,
+      chatbotId: session.chatbotId,
+      conversationId: session.conversationId,
+      budget: accumulatedDna.budgetMax
+        ? `₹${(accumulatedDna.budgetMax / 10000000).toFixed(2)} Cr`
+        : (params.preferences?.budget as string | undefined),
+      bhk: accumulatedDna.bhk?.[0] || (params.preferences?.bhk as string | undefined),
+      location: accumulatedDna.localities?.[0] || (params.preferences?.location as string | undefined),
+      timeline: accumulatedDna.timeline || undefined,
+      purpose: accumulatedDna.purpose || undefined,
+      metadata: params.preferences || {},
+    });
+
+    const lead = leadCaptureResult.lead;
+
+    // 3. Merge full structured Buyer DNA if accumulated has extra fields
+    if (Object.keys(accumulatedDna).length > 0) {
+      const currentDna = (lead.buyerDna as BuyerDna) || buyerDnaService.getDefaultDna();
+      const updatedDna = buyerDnaService.mergeDna(
+        currentDna,
+        accumulatedDna,
+        accumulatedDna.explicitFields || [],
+      );
+
       await db
-        .update(contacts)
-        .set({ email: params.email.trim(), updatedAt: new Date() })
-        .where(eq(contacts.id, contact.id));
+        .update(leads)
+        .set({ buyerDna: updatedDna, updatedAt: new Date() })
+        .where(eq(leads.id, lead.id));
     }
 
-    // 2. Find or create lead
-    let [lead] = await db
-      .select()
-      .from(leads)
-      .where(and(eq(leads.companyId, session.companyId), eq(leads.contactId, contact.id)));
-
-    if (!lead) {
-      const [newLead] = await db
-        .insert(leads)
-        .values({
-          companyId: session.companyId,
-          contactId: contact.id,
-          chatbotId: session.chatbotId,
-          status: 'new',
-          priority: 'high',
-          intentScore: 70,
-          intentLabel: 'warm',
-          source: 'web_widget',
-          buyerDna: params.preferences || {},
-        })
-        .returning();
-      lead = newLead!;
-    }
-
-    // 3. Link conversation to contact and lead
+    // 4. Ensure conversation links to contact and lead
     await db
       .update(conversations)
       .set({
-        contactId: contact.id,
+        contactId: lead.contactId,
         leadId: lead.id,
         updatedAt: new Date(),
       })
       .where(eq(conversations.id, session.conversationId));
 
-    // 4. Record transactional domain event for outbox worker
+    // 5. Emit legacy lead.created event alongside standard lead_created
     await db.insert(domainEvents).values({
       companyId: session.companyId,
       type: 'lead.created',
       payload: {
         leadId: lead.id,
-        contactId: contact.id,
+        contactId: lead.contactId,
         companyId: session.companyId,
         chatbotId: session.chatbotId,
         conversationId: session.conversationId,
         fullName: params.fullName,
-        phone: cleanPhone,
+        phone: lead.phone,
         email: params.email,
         source: 'web_widget',
       },
@@ -423,7 +469,8 @@ export class PublicChatService {
     return {
       success: true,
       leadId: lead.id,
-      contactId: contact.id,
+      contactId: lead.contactId,
+      isDuplicate: leadCaptureResult.isDuplicate,
     };
   }
 

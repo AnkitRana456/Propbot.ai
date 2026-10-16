@@ -31,6 +31,7 @@ import { AssignAgentModal } from '../crm/AssignAgentModal.js';
 import { ShortlistPanel } from '../crm/ShortlistPanel.js';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel.js';
 import { LeadCallHistoryTab } from '../voice/LeadCallHistoryTab.js';
+import { LeadConversationTab } from './LeadConversationTab.js';
 import { useUpdateLeadStatus, useMergeLead } from '../../services/leads.service.js';
 
 interface LeadDetailDrawerProps {
@@ -55,7 +56,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
   const mergeMutation = useMergeLead();
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'copilot' | 'dna' | 'calls' | 'timeline' | 'notes' | 'tasks' | 'appointments' | 'documents'
+    'overview' | 'copilot' | 'chat' | 'dna' | 'calls' | 'timeline' | 'notes' | 'tasks' | 'appointments' | 'documents'
   >('overview');
 
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
@@ -197,10 +198,11 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
                 {[
                   { id: 'overview', label: 'Overview', icon: FileText },
                   { id: 'copilot', label: 'AI Copilot', icon: Sparkles },
+                  { id: 'chat', label: 'Chat Transcript', icon: MessageSquare },
                   { id: 'dna', label: 'Buyer DNA & Intent', icon: Dna },
                   { id: 'calls', label: 'Calls', icon: Phone },
                   { id: 'timeline', label: 'Visitor Timeline', icon: History },
-                  { id: 'notes', label: 'Notes', icon: MessageSquare },
+                  { id: 'notes', label: 'Notes', icon: FileText },
                   { id: 'tasks', label: 'Tasks', icon: Calendar },
                   { id: 'appointments', label: 'Appointments', icon: Clock3 },
                   { id: 'documents', label: 'Shortlists & Docs', icon: FolderOpen },
@@ -326,6 +328,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
               {activeTab === 'calls' && (
                 <LeadCallHistoryTab leadId={lead.id} leadName={lead.name} phone={lead.phone} />
               )}
+
+              {activeTab === 'chat' && <LeadConversationTab leadId={lead.id} />}
 
               {activeTab === 'timeline' && <VisitorTimeline leadId={lead.id} />}
 

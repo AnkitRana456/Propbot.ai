@@ -9,6 +9,8 @@ import {
   companies,
   leadActivities,
   domainEvents,
+  tasks,
+  users,
 } from '../../db/schema/index.js';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import crypto from 'crypto';
@@ -23,6 +25,7 @@ import type {
 } from '@propbot/shared';
 import { shortlistMatchingService } from './shortlist-matching.service.js';
 import { inventoryService } from './inventory.service.js';
+import { handoffBriefService } from '../leads/handoff-brief.service.js';
 
 export class ShortlistRoomService {
   /**
@@ -436,6 +439,58 @@ export class ShortlistRoomService {
       const updatedScore = Math.min(100, currentScore + 15);
       const newPriority = updatedScore >= 70 ? 'high' : updatedScore >= 35 ? 'medium' : 'low';
       const newLabel = updatedScore >= 70 ? 'hot' : updatedScore >= 35 ? 'warm' : 'cold';
+      const crossedHotThreshold = updatedScore >= 70 && currentScore < 70;
+
+      let handoffBrief = lead.handoffBrief;
+      let slaStartedAt = lead.slaStartedAt;
+
+      if (crossedHotThreshold) {
+        slaStartedAt = new Date();
+        try {
+          const contact = await db.query.contacts.findFirst({
+            where: eq(contacts.id, lead.contactId),
+          });
+          const brief = await handoffBriefService.generateBrief({
+            companyId: room.companyId,
+            chatbotId: lead.chatbotId || '',
+            leadId: lead.id,
+            leadName: contact?.firstName ? `${contact.firstName} ${contact.lastName || ''}`.trim() : 'Valued Buyer',
+            intentScore: updatedScore,
+            buyerDna: (lead.buyerDna as BuyerDna) || {
+              budgetMin: null,
+              budgetMax: null,
+              bhk: [],
+              localities: [],
+              propertyType: null,
+              purpose: null,
+              timeline: null,
+              financing: null,
+              familySize: null,
+              mustHaves: [],
+              dealBreakers: [],
+              objections: [],
+              competitorsMentioned: [],
+              language: 'en',
+            },
+            assignedAgentId: lead.assignedAgentId,
+          });
+          handoffBrief = brief;
+        } catch {
+          // Fallback if brief generation fails
+        }
+
+        // Emit lead_hot outbox event for urgent notification
+        await db.insert(domainEvents).values({
+          companyId: room.companyId,
+          type: 'lead_hot',
+          payload: {
+            lead_id: lead.id,
+            leadId: lead.id,
+            score: updatedScore,
+            summary: `🔥 Hot Lead Alert: Prospect viewing shortlist room reached ${updatedScore}% Intent Score!`,
+          },
+        });
+      }
 
       await db
         .update(leads)
@@ -443,6 +498,8 @@ export class ShortlistRoomService {
           intentScore: updatedScore,
           intentLabel: newLabel,
           priority: newPriority,
+          handoffBrief,
+          slaStartedAt,
           updatedAt: new Date(),
         })
         .where(eq(leads.id, room.leadId));
@@ -451,6 +508,143 @@ export class ShortlistRoomService {
     }
 
     return { success: true, intentScoreIncreased };
+  }
+
+  /**
+   * Submits a site visit or instant callback request from a public shortlist room.
+   */
+  async submitRoomRequest(
+    token: string,
+    input: {
+      type: 'visit' | 'callback';
+      name: string;
+      preferredTime?: string;
+      notes?: string;
+      projectId?: string;
+    },
+  ): Promise<{
+    success: boolean;
+    leadId: string;
+    message: string;
+  }> {
+    const [room] = await db
+      .select({
+        room: shortlistRooms,
+        lead: leads,
+        contact: contacts,
+        company: companies,
+      })
+      .from(shortlistRooms)
+      .leftJoin(leads, eq(shortlistRooms.leadId, leads.id))
+      .leftJoin(contacts, eq(leads.contactId, contacts.id))
+      .leftJoin(companies, eq(shortlistRooms.companyId, companies.id))
+      .where(eq(shortlistRooms.token, token));
+
+    if (!room || !room.lead) {
+      const err = new Error('Shortlist room not found');
+      Object.assign(err, { statusCode: 404 });
+      throw err;
+    }
+
+    const companyId = room.room.companyId;
+    const leadId = room.lead.id;
+    const contactId = room.lead.contactId;
+
+    // Resolve assigned agent or fallback to company admin
+    let assigneeId = room.lead.assignedAgentId;
+    if (!assigneeId) {
+      const [admin] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.companyId, companyId), eq(users.role, 'company_admin')))
+        .limit(1);
+      assigneeId = admin?.id || null;
+    }
+
+    const isVisit = input.type === 'visit';
+    const taskTitle = isVisit
+      ? `Shortlist Site Visit Request: ${input.name}`
+      : `Shortlist Callback Request: ${input.name}`;
+    const taskDesc = `Prospective buyer submitted request from Shortlist Room "${room.room.title}".\nPreferred Time: ${input.preferredTime || 'Immediate'}\nNotes: ${input.notes || 'None'}`;
+
+    // 1. Create high-priority follow-up task
+    if (assigneeId) {
+      await db.insert(tasks).values({
+        companyId,
+        leadId,
+        assignedUserId: assigneeId,
+        type: isVisit ? 'site_visit' : 'call',
+        title: taskTitle,
+        description: taskDesc,
+        dueDate: new Date(Date.now() + 2 * 3600 * 1000), // Due in 2 hours
+        priority: 'urgent',
+        status: 'pending',
+      });
+    }
+
+    // 2. Advance stage if site visit requested
+    if (isVisit && room.lead.status === 'new') {
+      await db
+        .update(leads)
+        .set({ status: 'site_visit_scheduled', updatedAt: new Date() })
+        .where(eq(leads.id, leadId));
+    }
+
+    // 3. Log lead activity
+    await db.insert(leadActivities).values({
+      companyId,
+      leadId,
+      contactId,
+      activityType: isVisit ? 'stage_changed' : 'call_logged',
+      title: isVisit ? 'Site Visit Requested from Shortlist Room' : 'Instant Callback Requested',
+      description: `Visitor ${input.name} requested ${input.type}. Preferred time: ${input.preferredTime || 'ASAP'}. Notes: ${input.notes || '—'}`,
+      metadata: {
+        token,
+        type: input.type,
+        preferredTime: input.preferredTime,
+        notes: input.notes,
+        projectId: input.projectId,
+      },
+    });
+
+    // 4. Boost Intent Score (+15)
+    const currentScore = room.lead.intentScore || 0;
+    const updatedScore = Math.min(100, currentScore + 15);
+    const newPriority = updatedScore >= 70 ? 'high' : 'medium';
+    const newLabel = updatedScore >= 70 ? 'hot' : 'warm';
+
+    await db
+      .update(leads)
+      .set({
+        intentScore: updatedScore,
+        intentLabel: newLabel,
+        priority: newPriority,
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, leadId));
+
+    // 5. Emit domain event
+    await db.insert(domainEvents).values({
+      companyId,
+      type: isVisit ? 'visit_booked' : 'handoff_requested',
+      payload: {
+        lead_id: leadId,
+        leadId,
+        room_token: token,
+        action: input.type,
+        preferredTime: input.preferredTime,
+        notes: input.notes,
+        summary: `${taskTitle} - Preferred time: ${input.preferredTime || 'Immediate'}`,
+      },
+    });
+
+    return {
+      success: true,
+      leadId,
+      message: isVisit
+        ? 'Your site visit request has been received. Our property specialist will contact you shortly to confirm arrangements.'
+        : 'Your callback request has been received. Our property specialist will call you within 15 minutes.',
+    };
   }
 }
 

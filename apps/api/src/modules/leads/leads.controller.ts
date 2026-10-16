@@ -181,6 +181,36 @@ export class LeadsController {
       next(err);
     }
   }
+
+  async getConversation(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = req.tenant?.companyId;
+      const leadId = req.params.id as string;
+
+      if (!companyId) {
+        res.status(401).json({
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+        return;
+      }
+
+      if (!leadId) {
+        res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Lead ID is required' } });
+        return;
+      }
+
+      const conversation = await leadsService.getLeadConversation(companyId, leadId);
+      res.json({ data: conversation });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'Lead not found') {
+        res.status(404).json({
+          error: { code: 'NOT_FOUND', message: 'Lead not found' },
+        });
+        return;
+      }
+      next(err);
+    }
+  }
 }
 
 export const leadsController = new LeadsController();

@@ -101,7 +101,30 @@
     - `pnpm lint` passed with 0 warnings (`--max-warnings 0`).
 
 ### Phase R4 — Business Workflow Audit & Fixes
-- **Status:** [ ] Pending
+- **Status:** [x] Done
+- **Scope Completed:**
+  - **11-Step Customer Journey Audit & Verification**:
+    - Traced full journey from visitor chatbot interaction to dynamic Buyer DNA extraction, intent scoring, CRM lead creation/updating, auto-handoff, shortlist room link generation, room visit request, and sales follow-up task assignment.
+  - **Unified Chatbot Lead Capture & Contract Harmonization**:
+    - Aligned `public-chat.controller.ts` and `widget/src/ui.ts` schema to support both `name` and `fullName`, automatically defaulting `conversationId` from session token when missing.
+    - Routed public chat lead capture directly to `leadsService.captureOrUpdateLead()` to enforce Indian `+91` phone normalization, duplicate detection with `duplicateMergeSuggestion`, dynamic 11-signal intent scoring, and immediate AI Handoff Brief creation.
+    - Background dynamic Buyer DNA extraction in `sendMessage()` continually updates conversation metadata.
+    - Transactional dual outbox domain event emission (`lead_created` and `lead.created`) ensuring compatibility across `smoke-chat.ts` and downstream workflow/voice workers.
+  - **Agent Lead Conversation Transcript Feature**:
+    - Added backend `GET /api/leads/:id/conversation` endpoint with strict tenant isolation and `view_leads` RBAC.
+    - Added frontend hook `useLeadConversation` and `LeadConversationTab` component with verified source citations, sender badges, and token metadata.
+    - Integrated live "Chat Transcript" tab into the CRM `LeadDetailDrawer`.
+  - **Shortlist Room Real Request Submission & Telemetry Escalation**:
+    - Implemented `POST /api/shortlist-room/:token/request` handling site visit booking and callback requests.
+    - Automatically creates urgent CRM task for assigned agent, logs activity timeline event, advances lead stage to `site_visit_scheduled`, awards +15 intent score boost, and emits `visit_booked` or `handoff_requested` outbox events.
+    - Hooked live `useSubmitShortlistRequest` into `ShortlistRoomPage` replacing placeholder alert logic with real API calls and feedback toasts.
+    - In `shortlist-room.service.ts#trackInteraction`, telemetry threshold crossings ($\ge 70$) trigger AI Handoff Brief generation, set `slaStartedAt`, and emit `lead_hot` domain event.
+  - **Comprehensive Integration Testing & Monorepo Verification**:
+    - Added `apps/api/tests/business-workflows.test.ts` covering 5 end-to-end integration scenarios (100% pass rate).
+    - Monorepo test suite: 104 test suites, 468 tests passing (100% pass rate).
+    - `pnpm smoke:chat`: 5/5 steps passing.
+    - `pnpm typecheck`: 0 errors across all workspaces.
+    - `pnpm lint`: 0 warnings, 0 errors with `--max-warnings 0`.
 
 ---
 

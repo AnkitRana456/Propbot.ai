@@ -12,3 +12,8 @@ shortlistRoomRouter.get('/:token', (req, res, next) => {
 shortlistRoomRouter.post('/:token/track', (req, res, next) => {
   inventoryController.trackRoomInteraction(req, res, next);
 });
+
+// Public endpoint to submit site visit or callback request
+shortlistRoomRouter.post('/:token/request', (req, res, next) => {
+  inventoryController.submitRoomRequest(req, res, next);
+});

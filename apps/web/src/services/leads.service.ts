@@ -119,3 +119,26 @@ export function useUpdateScoringConfig() {
     },
   });
 }
+
+export interface LeadConversationMessage {
+  id: string;
+  senderType: 'visitor' | 'bot' | 'agent' | 'system';
+  content: string;
+  createdAt: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface LeadConversationResponse {
+  conversationId: string | null;
+  status: string | null;
+  channel: string | null;
+  messages: LeadConversationMessage[];
+}
+
+export function useLeadConversation(leadId: string | null) {
+  return useQuery<LeadConversationResponse, Error>({
+    queryKey: ['lead-conversation', leadId],
+    queryFn: () => apiRequest<LeadConversationResponse>(`/api/leads/${leadId}/conversation`),
+    enabled: Boolean(leadId),
+  });
+}

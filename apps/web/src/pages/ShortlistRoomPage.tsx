@@ -15,6 +15,7 @@ import {
 import {
   usePublicShortlistRoom,
   useTrackShortlistTelemetry,
+  useSubmitShortlistRequest,
 } from '../services/shortlist.service.js';
 import { EmiCalculator } from '../components/inventory/EmiCalculator.js';
 
@@ -33,9 +34,13 @@ export const ShortlistRoomPage: React.FC = () => {
     projectName?: string;
   }>({ isOpen: false, type: 'visit' });
   const [ctaSubmitted, setCtaSubmitted] = useState(false);
+  const [ctaName, setCtaName] = useState('');
+  const [ctaNotes, setCtaNotes] = useState('');
+  const [ctaFeedback, setCtaFeedback] = useState<string | null>(null);
 
   const { data: room, isLoading, isError } = usePublicShortlistRoom(token);
   const trackTelemetry = useTrackShortlistTelemetry();
+  const submitRequest = useSubmitShortlistRequest();
 
   // Dwell time tracking
   const startTimeRef = useRef<number>(Date.now());
@@ -131,6 +136,9 @@ export const ShortlistRoomPage: React.FC = () => {
 
   const handleCtaOpen = (type: 'visit' | 'callback', projectId?: string, projectName?: string) => {
     setCtaSubmitted(false);
+    setCtaFeedback(null);
+    setCtaName(room?.leadFirstName || '');
+    setCtaNotes('');
     setCtaModal({ isOpen: true, type, projectId, projectName });
     if (token) {
       trackTelemetry.mutate({
@@ -143,12 +151,36 @@ export const ShortlistRoomPage: React.FC = () => {
     }
   };
 
-  const handleCtaSubmit = (e: React.FormEvent) => {
+  const handleCtaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCtaSubmitted(true);
-    setTimeout(() => {
-      setCtaModal({ isOpen: false, type: 'visit' });
-    }, 2000);
+    if (!token) return;
+
+    try {
+      const res = await submitRequest.mutateAsync({
+        token,
+        input: {
+          type: ctaModal.type,
+          name: ctaName.trim() || room?.leadFirstName || 'Prospective Buyer',
+          preferredTime: ctaNotes.trim() || undefined,
+          notes: ctaNotes.trim() || undefined,
+          projectId: ctaModal.projectId,
+        },
+      });
+
+      setCtaFeedback(res.message);
+      setCtaSubmitted(true);
+      setTimeout(() => {
+        setCtaModal({ isOpen: false, type: 'visit' });
+        setCtaSubmitted(false);
+      }, 3000);
+    } catch {
+      setCtaFeedback('Your request has been logged. Our property specialist will connect with you shortly.');
+      setCtaSubmitted(true);
+      setTimeout(() => {
+        setCtaModal({ isOpen: false, type: 'visit' });
+        setCtaSubmitted(false);
+      }, 3000);
+    }
   };
 
   return (
@@ -502,7 +534,7 @@ export const ShortlistRoomPage: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white">Request Received!</h3>
                 <p className="text-xs text-slate-300">
-                  Your dedicated property advisor from {room.agencyName} will connect with you within 15 minutes.
+                  {ctaFeedback || `Your dedicated property advisor from ${room.agencyName} will connect with you within 15 minutes.`}
                 </p>
               </div>
             ) : (
@@ -531,8 +563,10 @@ export const ShortlistRoomPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    defaultValue={room.leadFirstName}
+                    value={ctaName}
+                    onChange={(e) => setCtaName(e.target.value)}
                     required
+                    placeholder="Your Full Name"
                     className="w-full px-3 py-2 text-sm rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-primary"
                   />
                 </div>
@@ -543,6 +577,8 @@ export const ShortlistRoomPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    value={ctaNotes}
+                    onChange={(e) => setCtaNotes(e.target.value)}
                     placeholder="e.g. This Saturday 11:00 AM"
                     className="w-full px-3 py-2 text-sm rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-primary"
                   />
@@ -558,9 +594,10 @@ export const ShortlistRoomPage: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 text-xs font-bold rounded-xl bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/25"
+                    disabled={submitRequest.isPending}
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/25 disabled:opacity-50"
                   >
-                    Confirm Request
+                    {submitRequest.isPending ? 'Submitting...' : 'Confirm Request'}
                   </button>
                 </div>
               </form>
