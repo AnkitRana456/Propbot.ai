@@ -4,17 +4,27 @@
 
 :root {
   --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Sora', 'Inter', sans-serif;
   --color-primary: #2563eb;
   --color-primary-hover: #1d4ed8;
   --color-bg: #f8fafc;
   --color-surface: #ffffff;
   --color-border: #e2e8f0;
-  --color-text: #0f172a;
+  --color-text: #0b1b3a;
   --color-text-muted: #64748b;
   --radius-xl: 0.75rem;
+  --radius-2xl: 1.25rem;
   --radius-full: 9999px;
 
-  /* Standard Tailwind Slate light mode default RGB values */
+  /* Aurora Estate Brand Colors */
+  --aurora-navy: #0B1B3A;
+  --aurora-blue: #2563EB;
+  --aurora-mint: #14B8A6;
+  --aurora-sand: #F6F1E7;
+  --aurora-gold: #F5B942;
+  --aurora-rose: #E11D48;
+
+  /* Standard Slate light mode RGB values */
   --color-slate-50: 248 250 252;
   --color-slate-100: 241 245 249;
   --color-slate-200: 226 232 240;
@@ -29,43 +39,43 @@
 }
 
 .dark {
-  /* Cue Theme Design Tokens */
-  --color-bg: #141414;
-  --color-surface: #1c1c1c;
-  --color-surface-subtle: #1a1a1a;
-  --color-border: #2a2a2a;
-  --color-border-edge: #262626;
-  --color-text: #e6e6e6;
-  --color-text-muted: #8a8a8a;
-  --color-text-secondary: #a3a3a3;
+  /* Aurora Estate Midnight Navy Theme Tokens */
+  --color-bg: #070F1E;
+  --color-surface: #0B1B3A;
+  --color-surface-subtle: #102246;
+  --color-border: #182F5D;
+  --color-border-edge: #142850;
+  --color-text: #F8FAFC;
+  --color-text-muted: #94A3B8;
+  --color-text-secondary: #CBD5E1;
   color-scheme: dark;
 
   /*
-   * Cue Dark Slate Token Mapping:
-   * slate-950 = #141414 (App canvas background)
-   * slate-900 = #1c1c1c (Card background, containers)
-   * slate-850 = #1f1f1f (Pills, inputs, sub-containers)
-   * slate-800 = #2a2a2a (Card borders, dividers, subtle button bg)
-   * slate-700 = #333333 (Secondary borders, hover states)
-   * slate-600 = #404040
-   * slate-500 = #8a8a8a (Muted text, sub-labels)
-   * slate-400 = #a3a3a3 (Secondary text, labels)
-   * slate-300 = #c4c4c4 (Semi-bright text)
-   * slate-200 = #e6e6e6 (Primary text, values)
-   * slate-100 = #f2f2f2 (High-contrast text, headers)
-   * slate-50  = #fafafa
+   * Aurora Estate Midnight Navy Dark Slate Token Mapping:
+   * slate-950 = #070F1E (Deepest Midnight App Canvas)
+   * slate-900 = #0B1B3A (Midnight Navy Card & Container Surface)
+   * slate-850 = #102246 (Elevated Pills, Inputs, Sub-containers)
+   * slate-800 = #182F5D (Subtle Indigo-Navy Borders, Dividers)
+   * slate-700 = #243F75 (Secondary Borders, Hover States)
+   * slate-600 = #4F7EC0 (Muted Accents)
+   * slate-500 = #83A6D6 (Secondary Text, Sub-labels)
+   * slate-400 = #94A3B8 (Readable Slate Text)
+   * slate-300 = #CBD5E1 (Light Slate Body)
+   * slate-200 = #E2E8F0 (High Contrast Text)
+   * slate-100 = #F1F5F9 (Headers, Values)
+   * slate-50  = #FFFFFF
    */
-  --color-slate-950: 20 20 20;
-  --color-slate-900: 28 28 28;
-  --color-slate-800: 42 42 42;
-  --color-slate-700: 51 51 51;
-  --color-slate-600: 64 64 64;
-  --color-slate-500: 138 138 138;
-  --color-slate-400: 163 163 163;
-  --color-slate-300: 196 196 196;
-  --color-slate-200: 230 230 230;
-  --color-slate-100: 242 242 242;
-  --color-slate-50: 250 250 250;
+  --color-slate-950: 7 15 30;
+  --color-slate-900: 11 27 58;
+  --color-slate-800: 24 47 93;
+  --color-slate-700: 36 63 117;
+  --color-slate-600: 79 126 192;
+  --color-slate-500: 131 166 214;
+  --color-slate-400: 148 163 184;
+  --color-slate-300: 203 213 225;
+  --color-slate-200: 226 232 240;
+  --color-slate-100: 241 245 249;
+  --color-slate-50: 255 255 255;
 }
 
 * {

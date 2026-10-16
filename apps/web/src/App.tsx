@@ -26,6 +26,7 @@ import { WorkflowsPage } from './pages/WorkflowsPage.js';
 import { CampaignsPage } from './pages/CampaignsPage.js';
 import { StatusPage } from './pages/StatusPage.js';
 import { PlatformPage } from './pages/PlatformPage.js';
+import { DesignSystemPage } from './pages/DesignSystemPage.js';
 import AnalyticsDashboard from './components/AnalyticsDashboard.js';
 
 export const App: React.FC = () => {
@@ -34,6 +35,7 @@ export const App: React.FC = () => {
       <Route path="/platform" element={<PlatformPage />} />
       <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
       <Route path="/cue-analytics" element={<AnalyticsDashboard />} />
+      <Route path="/design" element={<DesignSystemPage />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
       <Route path="/status" element={<StatusPage />} />
@@ -42,6 +44,7 @@ export const App: React.FC = () => {
       <Route path="/" element={<AppShell />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="design" element={<DesignSystemPage />} />
         <Route path="chatbots" element={<ChatbotsListPage />} />
         <Route path="chatbots/new" element={<ChatbotWizardPage />} />
         <Route path="chatbots/:id/wizard" element={<ChatbotWizardPage />} />

@@ -17,14 +17,16 @@ export class ChatWidgetUi {
   private conversationId: string | null = null;
   private isOpen = false;
   private isAiOffline = false;
+  private activeLanguage: 'en' | 'hi' | 'hinglish' = 'en';
 
   private containerEl!: HTMLElement;
+  private launcherContainerEl!: HTMLElement;
   private launcherBtn!: HTMLButtonElement;
+  private proactiveBubbleEl!: HTMLElement;
   private chatBoxEl!: HTMLElement;
   private messagesListEl!: HTMLElement;
   private inputEl!: HTMLInputElement;
   private sendBtn!: HTMLButtonElement;
-  private leadModalEl!: HTMLElement;
 
   constructor(shadow: ShadowRoot, config: WidgetUiConfig) {
     this.shadow = shadow;
@@ -34,19 +36,20 @@ export class ChatWidgetUi {
 
   private getStyles(): string {
     const isDark = this.config.themeMode !== 'light';
-    const bgApp = isDark ? '#141414' : '#ffffff';
-    const bgCard = isDark ? '#1c1c1c' : '#f9fafb';
-    const textMain = isDark ? '#f3f4f6' : '#111827';
-    const textMuted = isDark ? '#9ca3af' : '#6b7280';
-    const borderCol = isDark ? '#262626' : '#e5e7eb';
-    const primary = this.config.primaryColor || '#3b82f6';
+    const bgApp = isDark ? '#070F1E' : '#FFFFFF';
+    const bgCard = isDark ? '#0B1B3A' : '#FAF8F5';
+    const bgSubtle = isDark ? '#102246' : '#F1F5F9';
+    const textMain = isDark ? '#F8FAFC' : '#0B1B3A';
+    const textMuted = isDark ? '#94A3B8' : '#64748B';
+    const borderCol = isDark ? '#182F5D' : '#E2E8F0';
+    const primary = this.config.primaryColor || '#2563EB';
 
     return `
       * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Segoe UI", Roboto, sans-serif;
       }
       .propbot-root {
         position: fixed;
@@ -54,102 +57,194 @@ export class ChatWidgetUi {
         right: 24px;
         z-index: 2147483647;
       }
+      /* Proactive speech bubble */
+      .propbot-launcher-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+      }
+      .propbot-bubble {
+        background: ${bgCard};
+        border: 1px solid ${borderCol};
+        color: ${textMain};
+        padding: 10px 14px;
+        border-radius: 16px;
+        border-bottom-right-radius: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: 0 4px 20px rgba(11, 27, 58, 0.15);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        animation: propbot-float 3s ease-in-out infinite alternate;
+        max-width: 260px;
+        transition: opacity 0.2s, transform 0.2s;
+      }
+      .propbot-bubble:hover {
+        transform: translateY(-2px);
+      }
+      .propbot-bubble-close {
+        background: none;
+        border: none;
+        color: ${textMuted};
+        cursor: pointer;
+        font-size: 16px;
+        padding: 2px;
+        line-height: 1;
+      }
+      @keyframes propbot-float {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-4px); }
+      }
+
+      /* Launcher button with pulse ring */
       .propbot-launcher {
-        width: 60px;
-        height: 60px;
+        position: relative;
+        width: 62px;
+        height: 62px;
         border-radius: 50%;
-        background: ${primary};
+        background: linear-gradient(135deg, ${primary}, #1D4ED8);
         color: white;
         border: none;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
       }
       .propbot-launcher:hover {
-        transform: scale(1.05);
+        transform: scale(1.06);
+        box-shadow: 0 10px 28px rgba(37, 99, 235, 0.45);
       }
       .propbot-launcher svg {
-        width: 28px;
-        height: 28px;
+        width: 30px;
+        height: 30px;
         fill: currentColor;
       }
+      .propbot-online-badge {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 14px;
+        height: 14px;
+        background: #14B8A6;
+        border: 2px solid ${bgApp};
+        border-radius: 50%;
+      }
+
+      /* Main Chatbox */
       .propbot-chatbox {
         position: fixed;
         bottom: 96px;
         right: 24px;
-        width: 380px;
-        height: 600px;
+        width: 400px;
+        height: 640px;
         max-width: calc(100vw - 32px);
         max-height: calc(100vh - 120px);
         background: ${bgApp};
         border: 1px solid ${borderCol};
-        border-radius: 16px;
+        border-radius: 20px;
         display: none;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+        box-shadow: 0 16px 48px rgba(11, 27, 58, 0.25);
+        animation: propbot-slideup 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes propbot-slideup {
+        from { opacity: 0; transform: translateY(12px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
       }
       .propbot-chatbox.open {
         display: flex;
       }
+
+      /* Header */
       .propbot-header {
-        padding: 16px;
+        padding: 14px 18px;
         background: ${bgCard};
         border-bottom: 1px solid ${borderCol};
         display: flex;
         align-items: center;
         justify-content: space-between;
       }
-      .propbot-header-info {
+      .propbot-header-left {
         display: flex;
         align-items: center;
         gap: 12px;
       }
       .propbot-avatar {
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
-        background: ${primary};
+        background: linear-gradient(135deg, ${primary}, #1D4ED8);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-weight: bold;
-        font-size: 15px;
+        font-weight: 700;
+        font-size: 16px;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
       }
       .propbot-title {
         font-size: 15px;
-        font-weight: 600;
+        font-weight: 700;
         color: ${textMain};
+        letter-spacing: -0.01em;
       }
-      .propbot-status {
+      .propbot-subtitle {
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 12px;
+        font-size: 11px;
         color: ${textMuted};
+        font-weight: 500;
       }
-      .propbot-dot {
-        width: 8px;
-        height: 8px;
+      .propbot-status-dot {
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
-        background: #10b981;
+        background: #14B8A6;
       }
-      .propbot-dot.offline {
-        background: #f59e0b;
+      .propbot-status-dot.offline {
+        background: #F5B942;
+      }
+      .propbot-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .propbot-lang-select {
+        background: ${bgSubtle};
+        border: 1px solid ${borderCol};
+        color: ${textMain};
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 4px 6px;
+        cursor: pointer;
+        outline: none;
       }
       .propbot-close-btn {
         background: none;
         border: none;
         color: ${textMuted};
         cursor: pointer;
-        padding: 4px;
-        font-size: 20px;
-        line-height: 1;
+        padding: 6px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.15s;
       }
+      .propbot-close-btn:hover {
+        background: ${bgSubtle};
+        color: ${textMain};
+      }
+
+      /* Messages area */
       .propbot-messages {
         flex: 1;
         overflow-y: auto;
@@ -158,32 +253,143 @@ export class ChatWidgetUi {
         flex-direction: column;
         gap: 12px;
       }
-      .propbot-msg {
-        max-width: 82%;
-        padding: 10px 14px;
+
+      /* Welcome Action Cards Grid (v5 Requirement) */
+      .propbot-welcome-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 8px 0;
+      }
+      .propbot-action-card {
+        background: ${bgCard};
+        border: 1px solid ${borderCol};
         border-radius: 12px;
-        font-size: 14px;
-        line-height: 1.45;
+        padding: 12px 10px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .propbot-action-card:hover {
+        border-color: ${primary};
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(11, 27, 58, 0.08);
+      }
+      .propbot-action-icon {
+        font-size: 18px;
+        line-height: 1;
+      }
+      .propbot-action-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: ${textMain};
+      }
+      .propbot-action-desc {
+        font-size: 10px;
+        color: ${textMuted};
+        line-height: 1.3;
+      }
+
+      /* Message Bubbles */
+      .propbot-msg {
+        max-width: 86%;
+        padding: 12px 15px;
+        border-radius: 14px;
+        font-size: 13.5px;
+        line-height: 1.5;
         word-break: break-word;
       }
       .propbot-msg.visitor {
         align-self: flex-end;
-        background: ${primary};
+        background: linear-gradient(135deg, ${primary}, #1D4ED8);
         color: white;
-        border-bottom-right-radius: 4px;
+        border-bottom-right-radius: 3px;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
       }
       .propbot-msg.bot {
         align-self: flex-start;
         background: ${bgCard};
         color: ${textMain};
         border: 1px solid ${borderCol};
-        border-bottom-left-radius: 4px;
+        border-bottom-left-radius: 3px;
       }
+
+      /* Property Carousel Card in Chat */
+      .propbot-property-card {
+        background: ${bgSubtle};
+        border: 1px solid ${borderCol};
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+      }
+      .propbot-property-img {
+        height: 110px;
+        background: linear-gradient(135deg, #102246, #0B1B3A);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94A3B8;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .propbot-property-body {
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .propbot-property-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: ${textMain};
+      }
+      .propbot-property-meta {
+        font-size: 11px;
+        color: ${textMuted};
+        display: flex;
+        gap: 8px;
+      }
+      .propbot-property-price {
+        font-size: 14px;
+        font-weight: 800;
+        color: ${primary};
+      }
+      .propbot-property-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .propbot-btn-mini {
+        flex: 1;
+        padding: 6px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+      }
+      .propbot-btn-mini.primary {
+        background: ${primary};
+        color: white;
+      }
+      .propbot-btn-mini.secondary {
+        background: ${bgCard};
+        border: 1px solid ${borderCol};
+        color: ${textMain};
+      }
+
+      /* Quick replies */
       .propbot-pills {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
+        gap: 6px;
+        margin-top: 6px;
       }
       .propbot-pill {
         background: ${bgCard};
@@ -191,18 +397,27 @@ export class ChatWidgetUi {
         color: ${primary};
         border-radius: 20px;
         padding: 6px 12px;
-        font-size: 12px;
+        font-size: 11.5px;
+        font-weight: 600;
         cursor: pointer;
         text-align: left;
-        transition: background-color 0.15s;
+        transition: all 0.15s;
       }
       .propbot-pill:hover {
         border-color: ${primary};
+        background: ${bgSubtle};
       }
+
+      /* Input Footer */
       .propbot-footer {
-        padding: 12px 16px;
+        padding: 10px 14px;
         background: ${bgCard};
         border-top: 1px solid ${borderCol};
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .propbot-input-row {
         display: flex;
         gap: 8px;
       }
@@ -210,11 +425,12 @@ export class ChatWidgetUi {
         flex: 1;
         background: ${bgApp};
         border: 1px solid ${borderCol};
-        border-radius: 8px;
-        padding: 10px 12px;
+        border-radius: 12px;
+        padding: 10px 14px;
         color: ${textMain};
-        font-size: 14px;
+        font-size: 13.5px;
         outline: none;
+        transition: border-color 0.15s;
       }
       .propbot-input:focus {
         border-color: ${primary};
@@ -223,46 +439,88 @@ export class ChatWidgetUi {
         background: ${primary};
         color: white;
         border: none;
-        border-radius: 8px;
-        padding: 0 16px;
+        border-radius: 12px;
+        width: 42px;
+        height: 42px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: transform 0.15s;
       }
+      .propbot-send-btn:hover {
+        transform: scale(1.04);
+      }
+
+      /* Trust Row */
+      .propbot-trust-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 10px;
+        color: ${textMuted};
+        padding: 0 4px;
+      }
+      .propbot-rera-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #14B8A6;
+        font-weight: 700;
+      }
+
+      /* Lead form banner */
       .propbot-lead-banner {
-        background: ${isDark ? '#262626' : '#eff6ff'};
-        border: 1px solid ${isDark ? '#3b82f6' : '#93c5fd'};
+        background: ${isDark ? '#102246' : '#EFF6FF'};
+        border: 1px solid ${isDark ? '#182F5D' : '#BFDBFE'};
         border-radius: 12px;
         padding: 12px;
-        margin-top: 8px;
+        margin-top: 6px;
       }
       .propbot-lead-banner h4 {
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 12.5px;
+        font-weight: 700;
         color: ${textMain};
         margin-bottom: 6px;
       }
       .propbot-lead-form input {
         width: 100%;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         padding: 8px 10px;
-        font-size: 13px;
-        border-radius: 6px;
+        font-size: 12.5px;
+        border-radius: 8px;
         border: 1px solid ${borderCol};
         background: ${bgApp};
         color: ${textMain};
       }
       .propbot-lead-form button {
         width: 100%;
-        padding: 8px;
+        padding: 9px;
         background: ${primary};
         color: white;
         border: none;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: 600;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
         cursor: pointer;
+      }
+
+      /* Mobile Responsive (<= 640px) */
+      @media (max-width: 640px) {
+        .propbot-chatbox {
+          bottom: 0;
+          right: 0;
+          width: 100vw;
+          height: 100vh;
+          max-width: 100vw;
+          max-height: 100vh;
+          border-radius: 0;
+          border: none;
+        }
+        .propbot-root {
+          bottom: 16px;
+          right: 16px;
+        }
       }
     `;
   }
@@ -275,52 +533,107 @@ export class ChatWidgetUi {
     this.containerEl = document.createElement('div');
     this.containerEl.className = 'propbot-root';
 
+    // Launcher wrap with proactive bubble
+    this.launcherContainerEl = document.createElement('div');
+    this.launcherContainerEl.className = 'propbot-launcher-wrap';
+
+    this.proactiveBubbleEl = document.createElement('div');
+    this.proactiveBubbleEl.className = 'propbot-bubble';
+    this.proactiveBubbleEl.innerHTML = `
+      <span>Looking for a home? Ask me anything</span>
+      <button class="propbot-bubble-close" aria-label="Dismiss">&times;</button>
+    `;
+    this.proactiveBubbleEl.onclick = (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('propbot-bubble-close')) {
+        this.proactiveBubbleEl.style.display = 'none';
+        e.stopPropagation();
+      } else {
+        this.open();
+      }
+    };
+
     // Launcher button
     this.launcherBtn = document.createElement('button');
     this.launcherBtn.className = 'propbot-launcher';
-    this.launcherBtn.setAttribute('aria-label', 'Open property chat assistant');
+    this.launcherBtn.setAttribute('aria-label', 'Open Aurora property assistant');
     this.launcherBtn.innerHTML = `
+      <span class="propbot-online-badge"></span>
       <svg viewBox="0 0 24 24">
         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
       </svg>
     `;
     this.launcherBtn.onclick = () => this.toggle();
 
+    this.launcherContainerEl.appendChild(this.proactiveBubbleEl);
+    this.launcherContainerEl.appendChild(this.launcherBtn);
+
     // Chatbox
     this.chatBoxEl = document.createElement('div');
     this.chatBoxEl.className = 'propbot-chatbox';
 
-    // Header
     const initial = (this.config.botName || 'P')[0]?.toUpperCase();
     this.chatBoxEl.innerHTML = `
       <div class="propbot-header">
-        <div class="propbot-header-info">
+        <div class="propbot-header-left">
           <div class="propbot-avatar">${initial}</div>
           <div>
             <div class="propbot-title">${this.config.botName}</div>
-            <div class="propbot-status"><span class="propbot-dot" id="status-dot"></span> <span id="status-text">Online</span></div>
+            <div class="propbot-subtitle">
+              <span class="propbot-status-dot" id="status-dot"></span>
+              <span id="status-text">Replies instantly</span>
+            </div>
           </div>
         </div>
-        <button class="propbot-close-btn" aria-label="Close chat">&times;</button>
+        <div class="propbot-header-actions">
+          <select class="propbot-lang-select" id="lang-select" aria-label="Select Language">
+            <option value="en">EN</option>
+            <option value="hi">हिंदी</option>
+            <option value="hinglish">Hinglish</option>
+          </select>
+          <button class="propbot-close-btn" aria-label="Minimize chat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+        </div>
       </div>
+
       <div class="propbot-messages" id="propbot-msgs"></div>
+
       <div class="propbot-footer">
-        <input class="propbot-input" placeholder="Ask about 2BHK/3BHK, pricing, site visits..." />
-        <button class="propbot-send-btn" aria-label="Send">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </button>
+        <div class="propbot-input-row">
+          <input class="propbot-input" placeholder="Ask about 2BHK/3BHK, pricing, site visits..." />
+          <button class="propbot-send-btn" aria-label="Send message">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="propbot-trust-row">
+          <span class="propbot-rera-badge">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+            </svg>
+            RERA Verified Data
+          </span>
+          <span>Powered by PropBot Pro</span>
+        </div>
       </div>
     `;
 
     this.containerEl.appendChild(this.chatBoxEl);
-    this.containerEl.appendChild(this.launcherBtn);
+    this.containerEl.appendChild(this.launcherContainerEl);
     this.shadow.appendChild(this.containerEl);
 
-    // Bind event handlers
+    // Event bindings
     const closeBtn = this.chatBoxEl.querySelector('.propbot-close-btn') as HTMLButtonElement;
     closeBtn.onclick = () => this.close();
+
+    const langSelect = this.chatBoxEl.querySelector('#lang-select') as HTMLSelectElement;
+    langSelect.onchange = (e) => {
+      this.activeLanguage = (e.target as HTMLSelectElement).value as 'en' | 'hi' | 'hinglish';
+    };
 
     this.messagesListEl = this.chatBoxEl.querySelector('#propbot-msgs') as HTMLElement;
     this.inputEl = this.chatBoxEl.querySelector('.propbot-input') as HTMLInputElement;
@@ -357,10 +670,13 @@ export class ChatWidgetUi {
       this.sessionToken = data.data.sessionToken;
       this.conversationId = data.data.conversationId;
 
-      // Render greeting
+      // 1. Initial Greeting
       this.addBotMessage(this.config.greetingMessage);
 
-      // Render quick pills
+      // 2. Render 4 Action Cards (v5 R2.2 requirement)
+      this.renderWelcomeActionCards();
+
+      // 3. Render Quick Question Pills
       if (this.config.quickQuestions && this.config.quickQuestions.length > 0) {
         const pillsContainer = document.createElement('div');
         pillsContainer.className = 'propbot-pills';
@@ -379,7 +695,57 @@ export class ChatWidgetUi {
     } catch (err) {
       console.warn('PropBot session initialization failed:', err);
       this.addBotMessage(this.config.greetingMessage);
+      this.renderWelcomeActionCards();
     }
+  }
+
+  private renderWelcomeActionCards(): void {
+    const wrap = document.createElement('div');
+    wrap.className = 'propbot-welcome-actions';
+
+    const cards = [
+      {
+        icon: '🏡',
+        title: 'Find My Home',
+        desc: 'Explore 2BHK, 3BHK & Villas',
+        prompt: 'Show me available 2BHK and 3BHK residences with price and carpet area.',
+      },
+      {
+        icon: '📅',
+        title: 'Book Site Visit',
+        desc: 'Pick weekend slots with pickup',
+        prompt: 'I want to schedule a site visit this Saturday. What slots are available?',
+      },
+      {
+        icon: '📄',
+        title: 'Get Brochure',
+        desc: 'Official master plan & specs',
+        prompt: 'Please send me the master floor plans and project brochure.',
+      },
+      {
+        icon: '📞',
+        title: 'Talk to Advisor',
+        desc: 'Request an instant callback',
+        prompt: 'I would like to speak to a senior property advisor regarding payment plans.',
+      },
+    ];
+
+    for (const c of cards) {
+      const cardEl = document.createElement('div');
+      cardEl.className = 'propbot-action-card';
+      cardEl.innerHTML = `
+        <span class="propbot-action-icon">${c.icon}</span>
+        <span class="propbot-action-title">${c.title}</span>
+        <span class="propbot-action-desc">${c.desc}</span>
+      `;
+      cardEl.onclick = () => {
+        this.inputEl.value = c.prompt;
+        this.handleSend();
+      };
+      wrap.appendChild(cardEl);
+    }
+
+    this.messagesListEl.appendChild(wrap);
   }
 
   toggle(): void {
@@ -393,6 +759,7 @@ export class ChatWidgetUi {
   open(): void {
     this.isOpen = true;
     this.chatBoxEl.classList.add('open');
+    this.proactiveBubbleEl.style.display = 'none';
     this.initSession();
     setTimeout(() => this.inputEl.focus(), 100);
   }
@@ -450,15 +817,19 @@ export class ChatWidgetUi {
             Authorization: `Bearer ${this.sessionToken}`,
           },
           body: JSON.stringify({
-            conversationId: this.conversationId,
-            fullName: nameInput.value.trim(),
+            name: nameInput.value.trim(),
             phone: phoneInput.value.trim(),
           }),
         });
-        banner.innerHTML = `<h4>Thank you! Our property advisor will call you shortly.</h4>`;
+
+        banner.innerHTML = `
+          <div style="color: #14B8A6; font-size: 13px; font-weight: 700; text-align: center; padding: 6px 0;">
+            ✓ Thank you! An advisor will connect with verified floor plans shortly.
+          </div>
+        `;
       } catch {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Retry Submission';
+        submitBtn.textContent = 'Try Again';
       }
     };
 
@@ -473,11 +844,9 @@ export class ChatWidgetUi {
     this.inputEl.value = '';
     this.addVisitorMessage(text);
 
-    if (!this.sessionToken) {
-      await this.initSession();
-    }
-
+    // Create bot placeholder for streaming
     const botMsgEl = this.addBotMessage('...');
+    this.sendBtn.disabled = true;
 
     try {
       const res = await fetch(`${this.config.apiUrl}/public/message`, {
@@ -487,66 +856,90 @@ export class ChatWidgetUi {
           Authorization: `Bearer ${this.sessionToken}`,
         },
         body: JSON.stringify({
-          conversationId: this.conversationId,
           message: text,
-          stream: true,
+          language: this.activeLanguage,
         }),
       });
 
       if (!res.ok) {
-        throw new Error(`Message failed with status ${res.status}`);
+        throw new Error(`HTTP ${res.status}`);
       }
 
       if (res.headers.get('content-type')?.includes('text/event-stream')) {
+        // SSE Stream reading
         const reader = res.body?.getReader();
         const decoder = new TextDecoder();
-        let fullText = '';
+        let accumulatedText = '';
         botMsgEl.textContent = '';
 
         if (reader) {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            const chunk = decoder.decode(value);
+
+            const chunk = decoder.decode(value, { stream: true });
             const lines = chunk.split('\n');
+
             for (const line of lines) {
               if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                if (dataStr === '[DONE]') continue;
                 try {
-                  const data = JSON.parse(line.slice(6));
-                  if (data.chunk) {
-                    fullText += data.chunk;
-                    botMsgEl.textContent = fullText;
+                  const parsed = JSON.parse(dataStr);
+                  if (parsed.delta) {
+                    accumulatedText += parsed.delta;
+                    botMsgEl.innerHTML = sanitizeHtml(accumulatedText);
                     this.scrollToBottom();
-                  }
-                  if (data.done) {
-                    if (data.aiOffline) {
-                      this.renderLeadCaptureForm();
-                    }
+                  } else if (parsed.aiOffline) {
+                    this.isAiOffline = true;
+                    this.updateOfflineStatus();
                   }
                 } catch {
-                  // Ignore JSON parse errors on partial stream chunks
+                  // Ignore JSON parse error on partial chunks
                 }
               }
             }
           }
         }
       } else {
-        const data = await res.json();
-        botMsgEl.textContent = data.data.reply;
-        if (data.data.aiOffline) {
-          this.renderLeadCaptureForm();
+        const json = await res.json();
+        botMsgEl.innerHTML = sanitizeHtml(json.data?.reply || 'Thank you for your inquiry.');
+        if (json.data?.aiOffline) {
+          this.isAiOffline = true;
+          this.updateOfflineStatus();
         }
+      }
+
+      // Check for lead capture trigger
+      const lower = text.toLowerCase();
+      if (
+        lower.includes('price') ||
+        lower.includes('cost') ||
+        lower.includes('brochure') ||
+        lower.includes('visit') ||
+        lower.includes('call') ||
+        lower.includes('contact')
+      ) {
+        this.renderLeadCaptureForm();
       }
     } catch {
       botMsgEl.textContent =
-        'Sorry, I could not connect right now. Please share your phone number and our team will get back to you.';
+        'Our verified property advisors are available to share live inventory. Please leave your contact number.';
       this.renderLeadCaptureForm();
+    } finally {
+      this.sendBtn.disabled = false;
+      this.scrollToBottom();
     }
   }
 
+  private updateOfflineStatus(): void {
+    const dot = this.chatBoxEl.querySelector('#status-dot');
+    const text = this.chatBoxEl.querySelector('#status-text');
+    if (dot) dot.classList.add('offline');
+    if (text) text.textContent = 'Assisted Mode';
+  }
+
   private scrollToBottom(): void {
-    setTimeout(() => {
-      this.messagesListEl.scrollTop = this.messagesListEl.scrollHeight;
-    }, 50);
+    this.messagesListEl.scrollTop = this.messagesListEl.scrollHeight;
   }
 }

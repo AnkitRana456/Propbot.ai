@@ -83,7 +83,12 @@ export const PlatformClientGrid: React.FC = () => {
         </div>
 
         {/* Transformation Metrics Strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-10 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex justify-center mb-6">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+            Sample Real Estate Benchmark Metrics
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2 border-t border-slate-200 dark:border-slate-800">
           {TRANSFORMATION_METRICS.map((metric) => (
             <div
               key={metric.label}

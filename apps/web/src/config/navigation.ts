@@ -20,114 +20,137 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+export type NavSection = 'CORE' | 'ENGAGE' | 'SELL' | 'GROW' | 'ADMIN';
+
 export interface NavItemConfig {
   label: string;
   path: string;
   icon: LucideIcon;
+  section: NavSection;
   badge?: string;
   requiredPermission?: Permission;
 }
 
 export const NAVIGATION_ITEMS: NavItemConfig[] = [
+  // Core
   {
     label: 'Dashboard',
     path: '/dashboard',
     icon: LayoutDashboard,
+    section: 'CORE',
   },
+
+  // ENGAGE: Chatbots, WhatsApp, Inbox
   {
     label: 'Chatbots',
     path: '/chatbots',
     icon: Bot,
+    section: 'ENGAGE',
     requiredPermission: 'manage_chatbots',
   },
   {
     label: 'WhatsApp Bot',
     path: '/whatsapp',
     icon: MessageSquare,
-    badge: 'New',
+    section: 'ENGAGE',
+    badge: 'Live',
     requiredPermission: 'manage_chatbots',
   },
+
+  // SELL: Leads, Pipeline, Appointments, Properties
   {
     label: 'Leads',
     path: '/leads',
     icon: Users,
-    badge: 'New',
+    section: 'SELL',
     requiredPermission: 'view_leads',
   },
   {
     label: 'Contacts',
     path: '/contacts',
     icon: Contact2,
+    section: 'SELL',
     requiredPermission: 'view_leads',
   },
   {
     label: 'Properties',
     path: '/properties',
     icon: Building2,
-    badge: 'Live',
+    section: 'SELL',
     requiredPermission: 'view_inventory',
   },
   {
     label: 'Appointments',
     path: '/appointments',
     icon: Calendar,
-    badge: 'New',
+    section: 'SELL',
     requiredPermission: 'view_leads',
   },
+
+  // GROW: Campaigns, Workflows, Analytics
   {
-    label: 'Analytics',
-    path: '/analytics',
-    icon: BarChart3,
-    requiredPermission: 'view_analytics',
+    label: 'Campaigns',
+    path: '/campaigns',
+    icon: Megaphone,
+    section: 'GROW',
+    requiredPermission: 'manage_chatbots',
   },
   {
     label: 'Workflows',
     path: '/workflows',
     icon: Workflow,
-    badge: 'Growth',
+    section: 'GROW',
     requiredPermission: 'manage_workflows',
   },
   {
-    label: 'Campaigns',
-    path: '/campaigns',
-    icon: Megaphone,
-    badge: 'Growth',
-    requiredPermission: 'manage_chatbots',
+    label: 'Analytics',
+    path: '/analytics',
+    icon: BarChart3,
+    section: 'GROW',
+    requiredPermission: 'view_analytics',
   },
-  {
-    label: 'Webhook Logs',
-    path: '/webhook-logs',
-    icon: Webhook,
-    requiredPermission: 'manage_settings',
-  },
+
+  // ADMIN: Approvals, Users, Subscription, Settings, Support
   {
     label: 'Approvals',
     path: '/approvals',
     icon: ShieldCheck,
+    section: 'ADMIN',
     requiredPermission: 'approve_ai_actions',
   },
   {
     label: 'Users',
     path: '/users',
     icon: UserCheck,
+    section: 'ADMIN',
     requiredPermission: 'manage_users',
   },
   {
     label: 'Subscription',
     path: '/subscription',
     icon: CreditCard,
+    section: 'ADMIN',
     requiredPermission: 'manage_billing',
   },
   {
     label: 'Settings',
     path: '/settings',
     icon: Settings,
+    section: 'ADMIN',
+    requiredPermission: 'manage_settings',
+  },
+  {
+    label: 'Webhook Logs',
+    path: '/webhook-logs',
+    icon: Webhook,
+    section: 'ADMIN',
     requiredPermission: 'manage_settings',
   },
   {
     label: 'Help & Support',
     path: '/help',
     icon: HelpCircle,
+    section: 'ADMIN',
   },
 ];
 

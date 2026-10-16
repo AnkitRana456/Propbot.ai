@@ -568,6 +568,24 @@ export const ShortlistRoomPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Sticky Bottom Action Bar for Mobile Viewports (v5 R2.4) */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 p-3 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 flex gap-2 shadow-2xl">
+        <button
+          onClick={() => handleCtaOpen('callback')}
+          className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-white flex items-center justify-center gap-1.5"
+        >
+          <PhoneCall className="w-3.5 h-3.5 text-blue-400" />
+          <span>Call Me Back</span>
+        </button>
+        <button
+          onClick={() => handleCtaOpen('visit')}
+          className="flex-1 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/30"
+        >
+          <CalendarCheck className="w-3.5 h-3.5" />
+          <span>Book Visit</span>
+        </button>
+      </div>
     </div>
   );
 };

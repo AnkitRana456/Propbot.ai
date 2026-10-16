@@ -63,7 +63,42 @@
     - All TypeScript typechecks passing clean across all workspaces (`pnpm typecheck`).
 
 ### Phase R2 — Consistent UI/UX Redesign
-- **Status:** [ ] Pending
+- **Status:** [x] Done
+- **Scope Completed:**
+  - **Aurora Estate Design System & Tokens**:
+    - Centralized design tokens in `packages/shared/src/tokens/design-tokens.ts` and exported from `@propbot/shared` (Midnight Navy `#070F1E` / `#0B1B3A`, Electric Blue `#2563EB`, Mint `#14B8A6`, Warm Sand `#F6F1E7`, Gold `#F5B942`, Rose `#E11D48`, 12px/20px border radii, soft glow shadows, and `Plus Jakarta Sans` typography).
+    - Tailwind configuration (`apps/web/tailwind.config.js`) and CSS custom property theme bridge (`apps/web/src/index.css`) mapping dark slate tokens to Midnight Navy with glowing aura accents.
+    - Documented comprehensive guidelines in `docs/DESIGN_SYSTEM.md`.
+  - **Reusable UI Component Primitives**:
+    - `Button.tsx`: Variants (`primary`, `secondary`, `outline`, `ghost`, `mint`, `gold`, `danger`), sizes (`sm`, `md`, `lg`), loading spinner states, and icon slots.
+    - `Badge.tsx`: Status pills (`blue`, `mint`, `gold`, `rose`, `slate`), dot indicators, and size variants.
+    - `Card.tsx`: Surfaces (`default`, `elevated`, `glass`, `subtle`) with `xl` (12px) and `2xl` (20px) radii.
+    - `StatTile.tsx`: KPI summary card with trend indicators, subtitle, and accent borders.
+    - `Gauge.tsx`: Radial SVG intent score gauge (0–100) with dynamic color thresholds and size options.
+    - `CommandPalette.tsx`: Global search modal triggered via `Ctrl+K` / `Cmd+K` or TopBar search bar.
+    - `TodayChecklist.tsx`: 5-step onboarding guide with progression indicators and direct action routing.
+    - `TodaySlaQueue.tsx`: Real-time hot leads queue with live countdown SLA timers.
+  - **Design System Showcase Page**:
+    - Interactive showcase mounted at `/design` (`apps/web/src/pages/DesignSystemPage.tsx`) displaying all color swatches, typography hierarchy, button variants, badges, cards, stat tiles, and interactive gauges.
+  - **Chat Widget Redesign (`packages/widget/src/ui.ts`)**:
+    - Proactive speech bubble invitation ("👋 Looking for luxury properties? Tap here to explore...") with dismiss capability.
+    - 4 quick starter action cards: "Find my ideal home", "Book a site visit", "Get digital brochure", and "Talk to property advisor".
+    - Rich property recommendation card with image, price, BHK, location, and brochure download CTA.
+    - Multilingual language switcher selector (`en`, `hi`, `mr`, `gu`, `kn`, `te`, `ta`).
+    - RERA compliance & SSL 256-bit encrypted security trust row in footer.
+    - Modern Aurora Estate header with agent avatar and online status badge.
+  - **Navigation & Dashboard Overhaul**:
+    - Sidebar grouped into `CORE`, `ENGAGE`, `SELL`, `GROW`, and `ADMIN` sections while strictly maintaining the 16 RBAC navigation labels required by automated tests.
+    - TopBar integrated with the `CommandPalette` modal.
+    - Dashboard transformed into "Today" overview with Onboarding Checklist, Hot Leads SLA Queue, Pending Approvals banner, and integrated Lead Detail Drawer.
+  - **Shortlist Room Polish (`ShortlistRoomPage.tsx`)**:
+    - Mobile-responsive sticky bottom CTA bar for site visit booking and instant callback requests.
+    - Preserved 30s dwell telemetry and favorite project selection.
+  - **Quality Verification & Testing**:
+    - Unit tests added in `apps/web/tests/design-system.test.tsx` (7 tests).
+    - Monorepo tests: 103 test suites, 463 tests passing (100% pass rate).
+    - `pnpm typecheck` passed with 0 errors across all workspaces.
+    - `pnpm lint` passed with 0 warnings (`--max-warnings 0`).
 
 ### Phase R4 — Business Workflow Audit & Fixes
 - **Status:** [ ] Pending

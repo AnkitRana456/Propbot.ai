@@ -1,6 +1,9 @@
 // Utilities
 export * from './utils/assert-never.js';
 
+// Design Tokens (Aurora Estate Theme)
+export * from './tokens/design-tokens.js';
+
 // Schemas
 export * from './schemas/events.js';
 export * from './schemas/actions.js';

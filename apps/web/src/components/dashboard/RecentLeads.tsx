@@ -8,6 +8,7 @@ import { EmptyState } from '../common/EmptyState.js';
 interface RecentLeadsProps {
   leads?: RecentLeadItem[];
   isLoading: boolean;
+  onSelectLead?: (lead: RecentLeadItem) => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
@@ -38,7 +39,7 @@ const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
   },
 };
 
-export const RecentLeads: React.FC<RecentLeadsProps> = ({ leads, isLoading }) => {
+export const RecentLeads: React.FC<RecentLeadsProps> = ({ leads, isLoading, onSelectLead }) => {
   const navigate = useNavigate();
   if (isLoading) {
     return (
@@ -130,7 +131,7 @@ export const RecentLeads: React.FC<RecentLeadsProps> = ({ leads, isLoading }) =>
               return (
                 <tr
                   key={lead.id}
-                  onClick={() => navigate('/leads')}
+                  onClick={() => (onSelectLead ? onSelectLead(lead) : navigate('/leads'))}
                   className="group cursor-pointer transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
                 >
                   {/* Lead Info */}

@@ -15,6 +15,7 @@ import type { UserRole } from '@propbot/shared';
 import { useAuth } from '../../contexts/AuthContext.js';
 import { useTheme } from '../../contexts/ThemeContext.js';
 import { UserChip } from './UserChip.js';
+import { CommandPalette } from '../ui/CommandPalette.js';
 
 interface TopBarProps {
   onOpenMobileMenu: () => void;
@@ -29,6 +30,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const { user, company, logout, switchRole } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(unreadNotificationsCount);
@@ -86,30 +88,35 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 backdrop-blur-md dark:border-[#262626] dark:bg-[#1a1a1a] sm:px-6 lg:px-8">
-      {/* Left Section: Mobile Hamburger & Global Search */}
-      <div className="flex flex-1 items-center gap-3">
-        <button
-          onClick={onOpenMobileMenu}
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus:outline-none dark:text-[#a3a3a3] dark:hover:bg-[#222222] md:hidden"
-          aria-label="Open sidebar"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+    <>
+      <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90 sm:px-6 lg:px-8">
+        {/* Left Section: Mobile Hamburger & Global Search */}
+        <div className="flex flex-1 items-center gap-3">
+          <button
+            onClick={onOpenMobileMenu}
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus:outline-none dark:text-slate-400 dark:hover:bg-slate-800 md:hidden"
+            aria-label="Open sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
 
-        {/* Global Search Input */}
-        <div className="relative w-full max-w-md">
-          <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-[#8a8a8a]" />
-          <input
-            type="text"
-            placeholder="Search leads, chatbots, properties... (Press '/' to focus)"
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-2 pr-12 pl-10 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#2a2a2a] dark:bg-[#1c1c1c] dark:text-[#e6e6e6] dark:placeholder:text-[#8a8a8a] dark:focus:border-[#4a8fe7] dark:focus:bg-[#1c1c1c] transition-all"
-          />
-          <kbd className="absolute top-1/2 right-3 -translate-y-1/2 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 dark:border-[#2a2a2a] dark:bg-[#262626] dark:text-[#a3a3a3] hidden sm:inline-block">
-            /
-          </kbd>
+          {/* Global Search Input / Command Palette Trigger */}
+          <div
+            onClick={() => setIsCommandOpen(true)}
+            className="relative w-full max-w-md cursor-pointer group"
+          >
+            <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 transition-colors" />
+            <input
+              type="text"
+              readOnly
+              placeholder="Search leads, chatbots, properties... (Ctrl+K)"
+              className="w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50/80 py-2 pr-14 pl-10 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-100 dark:placeholder:text-slate-500 transition-all group-hover:border-blue-400 dark:group-hover:border-blue-500"
+            />
+            <kbd className="absolute top-1/2 right-3 -translate-y-1/2 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 hidden sm:inline-block">
+              ⌘K
+            </kbd>
+          </div>
         </div>
-      </div>
 
       {/* Right Section: Theme Toggle + Notification Center + User Chip */}
       <div className="flex items-center gap-2 sm:gap-3">
@@ -266,5 +273,11 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
     </header>
+
+    <CommandPalette
+      isOpen={isCommandOpen}
+      onClose={() => setIsCommandOpen(false)}
+    />
+  </>
   );
 };
