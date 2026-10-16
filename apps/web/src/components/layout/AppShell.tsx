@@ -13,17 +13,17 @@ export const AppShell: React.FC = () => {
 
   if (!isInitialized) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-900 text-slate-100">
+      <div className="flex h-screen w-full items-center justify-center bg-slate-900 text-slate-100 dark:bg-[#141414]">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-          <p className="text-xs text-slate-400 font-medium">Connecting to PropBot Pro...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent dark:border-[#4a8fe7] dark:border-t-transparent" />
+          <p className="text-xs text-slate-400 font-medium dark:text-[#8a8a8a]">Connecting to PropBot Pro...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-50/70 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-50/70 text-slate-900 transition-colors duration-200 dark:bg-[#141414] dark:text-[#e6e6e6]">
       {/* Collapsible Sidebar */}
       <Sidebar
         isCollapsed={isCollapsed}

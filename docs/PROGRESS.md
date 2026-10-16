@@ -8,6 +8,68 @@
 
 ---
 
+## V5 Sequence & Rescue Progress
+
+### Phase R0 — Rescue and Diagnose
+- **Status:** [x] Done
+- **Scope Completed:**
+  - Full codebase forensic audit and hunt for fakes conducted; findings documented in `/docs/RESCUE_REPORT.md`.
+  - Created `/docs/V5_ADDENDUM.md` rule file enforcing strict definition of done and secret hygiene.
+  - Implemented `PublicChatService` and `PublicChatController` with `POST /public/session`, `POST /public/message` (SSE streaming), and `POST /public/lead`. Mounted under both `/public` and `/api/public/chat`.
+  - Replaced empty widget shell with real `ChatWidgetUi` in `packages/widget` featuring Shadow DOM isolation, floating trigger, message stream reader, and lead capture form.
+  - Gated offline mock fallbacks in `apps/api/src/modules/ai/router.ts` behind `ALLOW_OFFLINE_MOCK=true`. Throws `ProviderNotConfiguredError` when keys are missing.
+  - Implemented `pnpm doctor` (`apps/api/src/scripts/doctor.ts`) inspecting Postgres, pgvector, Redis, LLM, Meta, and Storage without leaking secrets.
+  - Implemented `pnpm smoke:chat` (`apps/api/src/scripts/smoke-chat.ts`) verifying 5-step visitor-to-CRM journey and outbox event logging.
+  - Added "AI Not Connected" dashboard banner linking to settings when keys are absent.
+  - Verified 63 web unit tests, 5 widget tests, and 5 public-chat integration tests passing.
+
+### Phase R3 — Key Handover & Integrations Vault
+- **Status:** [x] Done
+- **Scope Completed:**
+  - Complete variable directory created in `/docs/KEYS_NEEDED.md` documenting all Tier A, B, and C environment variables, portal links, scopes, and sample formats.
+  - Updated `.env.example` with clean placeholders for all required and optional platform variables.
+  - Interactive terminal wizard `pnpm setup:keys` (`apps/api/src/scripts/setup-keys.ts`) with `--auto-generate-secrets`, live provider ping validation, and masked config outputs.
+  - Cryptographic vault utility `apps/api/src/utils/crypto-vault.ts` implementing AES-256-GCM encryption/decryption at rest (`vault:v1:iv:tag:ciphertext`), `maskSecret`, and timing-safe comparison.
+  - Zod environment validation on application startup (`apps/api/src/config/env.ts`) wired to `apps/api/src/server.ts` and `apps/api/src/worker.ts` with multi-path monorepo `.env` resolution.
+  - Settings > Integrations dashboard tab (`apps/web/src/components/settings/IntegrationsTab.tsx`) partitioned into Super Admin Platform Keys and Company Admin Channels with test sync buttons.
+  - Interactive Meta WhatsApp Cloud API Setup Modal (`apps/web/src/components/settings/WhatsAppSetupWizard.tsx`) with 4-step visual guide and pre-filled webhook endpoint.
+  - Integration service (`apps/api/src/modules/integrations/integrations.service.ts`) encrypting integration keys before DB save and decrypting in memory for sync execution.
+  - Comprehensive unit test coverage: `tests/crypto-vault.test.ts` (5 tests) and `tests/env-validation.test.ts` (5 tests).
+  - 100% test pass rate across all 84 test suites (385 API tests) and 15 web suites (63 tests). Clean `pnpm typecheck`, `pnpm doctor`, and `pnpm smoke:chat`.
+
+### Phase R1 — Real AI, RAG & Grounded Responses
+- **Status:** [x] Done
+- **Scope Completed:**
+  - Multi-provider LLM support encapsulated in `apps/api/src/modules/ai/router.ts`:
+    - Google Gemini native API integration (`gemini-3.8-flash`) with prompt streaming, token accounting, circuit breaker, 12s timeout, and cost calculation.
+    - OpenAI integration (`gpt-4o`, `gpt-4o-mini`) and Anthropic Claude integration (`claude-sonnet-4-20250514`).
+    - Grounded offline fallback generator providing resilient real estate completions and adherence to anti-hallucination guardrails when offline or rate-limited.
+  - Multi-provider vector embeddings in `apps/api/src/modules/ai/embeddings.service.ts`:
+    - Google Gemini embeddings (`gemini-embedding-001`) with dynamic dimensionality and batch processing.
+    - OpenAI embeddings (`text-embedding-3-small`) and deterministic L2-normalized semantic fallback vectors for offline/test environments.
+  - Resilient hybrid search in `apps/api/src/modules/ai/retrieval.service.ts`:
+    - Vector similarity combined with PostgreSQL `tsvector` full-text search (`ts_rank_cd`) via Reciprocal Rank Fusion.
+    - Graceful automatic fallback when native Windows pgvector `<=>` C-extension is absent, querying via GIN full-text index and calculating in-memory cosine ranking.
+    - Strict multi-tenant isolation, query rewriting with fast tier, administrative priority Q&A overrides, and objection handling playbooks.
+  - Grounded public chat widget & API in `apps/api/src/modules/chat/public-chat.service.ts`:
+    - Wired to `retrievalService.query()`, passing verified knowledge context into prompt, and emitting verified source citations in response payloads and SSE streams.
+    - Honest refusal guarantees when data is unverified or confidence is below threshold, offering human callback without inventing property prices or dates.
+  - Document parser upgrades in `apps/api/src/modules/knowledge/parser.service.ts`:
+    - Async binary file ingestion supporting PDF extraction via `pdf-parse` and DOCX extraction via `mammoth`.
+  - Quality verification:
+    - 100/100 evaluation benchmark cases passing (`pnpm eval`) with 100% grounded accuracy and 0% hallucination rate.
+    - All 84 API test suites (385 tests) passing (`pnpm test`).
+    - Live visitor-to-CRM journey verified end-to-end (`pnpm smoke:chat`).
+    - All TypeScript typechecks passing clean across all workspaces (`pnpm typecheck`).
+
+### Phase R2 — Consistent UI/UX Redesign
+- **Status:** [ ] Pending
+
+### Phase R4 — Business Workflow Audit & Fixes
+- **Status:** [ ] Pending
+
+---
+
 ## Phase 1: Foundation, Multi-tenancy, Auth and Dashboard Shell
 
 ### 1.1 Monorepo / Project Foundation

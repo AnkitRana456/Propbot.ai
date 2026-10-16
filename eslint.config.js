@@ -36,4 +36,10 @@ export default tseslint.config(
       'no-console': ['warn', { allow: ['info', 'warn', 'error'] }],
     },
   },
+  {
+    files: ['**/scripts/**', '**/tests/**', '**/seed*.ts', '**/db/migrate.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 );

@@ -12,11 +12,12 @@ import { SecurityTab } from '../components/settings/SecurityTab.js';
 import { ApiDataPrivacyTab } from '../components/settings/ApiDataPrivacyTab.js';
 import { VoiceSettingsTab } from '../components/settings/VoiceSettingsTab.js';
 import { EnterpriseSecurityTab } from '../components/settings/EnterpriseSecurityTab.js';
+import { IntegrationsTab } from '../components/settings/IntegrationsTab.js';
 import type { CompanyBranding, OperationsSettings, AiControlsSettings } from '@propbot/shared';
 
 export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'branding' | 'pipeline' | 'ai' | 'voice' | 'security' | 'enterprise' | 'api'
+    'branding' | 'pipeline' | 'ai' | 'voice' | 'security' | 'enterprise' | 'api' | 'integrations'
   >('branding');
 
   const { data: settingsData, isLoading } = useCompanySettings();
@@ -125,6 +126,16 @@ export const SettingsPage: React.FC = () => {
         >
           API Keys & Data
         </button>
+        <button
+          onClick={() => setActiveTab('integrations')}
+          className={`pb-3 transition-colors border-b-2 whitespace-nowrap ${
+            activeTab === 'integrations'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-semibold'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          Integrations & Vault
+        </button>
       </div>
 
       {/* Active Tab Panel */}
@@ -156,6 +167,8 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'enterprise' && <EnterpriseSecurityTab />}
 
       {activeTab === 'api' && <ApiDataPrivacyTab />}
+
+      {activeTab === 'integrations' && <IntegrationsTab />}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { eq, and, sql, desc, gte, lte, isNull } from 'drizzle-orm';
 import type { DashboardStats, RecentLeadItem, NotificationItem } from '@propbot/shared';
 import { db } from '../../db/index.js';
 import { leads, contacts, chatbots, appointments, notifications } from '../../db/schema/index.js';
+import { modelRouter } from '../ai/router.js';
 
 export class DashboardService {
   async getDashboardStats(companyId: string): Promise<DashboardStats> {
@@ -56,6 +57,7 @@ export class DashboardService {
       convertedLeads: leadsCounts?.convertedCount ?? 0,
       activeChatbots: botCount?.active ?? 0,
       todayVisits: visitCount?.today ?? 0,
+      aiConnected: modelRouter.isConfigured(),
     };
   }
 

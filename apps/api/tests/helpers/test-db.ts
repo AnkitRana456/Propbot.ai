@@ -1,3 +1,4 @@
+import '../../src/config/env.js';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
@@ -15,6 +16,23 @@ export const testQueryClient = postgres(TEST_DATABASE_URL, {
 });
 
 export const testDb = drizzle(testQueryClient, { schema });
+
+export const RLS_DATABASE_URL =
+  process.env.TEST_RLS_DATABASE_URL ||
+  process.env.RLS_DATABASE_URL ||
+  'postgresql://propbot:propbot_password@localhost:5432/propbot_pro?sslmode=disable';
+
+export const rlsQueryClient = postgres(RLS_DATABASE_URL, {
+  max: 5,
+  idle_timeout: 10,
+  connect_timeout: 5,
+});
+
+export const rlsTestDb = drizzle(rlsQueryClient, { schema });
+
+export async function withRlsRole(tx: { execute: (query: unknown) => Promise<unknown> }): Promise<void> {
+  await tx.execute(sql`SET LOCAL ROLE propbot`);
+}
 
 /**
  * Clean up test database data created during tests

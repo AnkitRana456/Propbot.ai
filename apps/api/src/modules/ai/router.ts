@@ -23,7 +23,7 @@ export interface ModelCallParams {
 
 export interface ModelCallResult {
   text: string;
-  provider: 'openai' | 'anthropic' | 'fallback_offline';
+  provider: 'openai' | 'anthropic' | 'gemini' | 'fallback_offline';
   model: string;
   tokens: {
     prompt: number;
@@ -36,17 +36,36 @@ export interface ModelCallResult {
 }
 
 // Approximate cost rates per 1,000 tokens (USD)
-const PRICING = {
+const PRICING: Record<string, { prompt: number; completion: number }> = {
   'gpt-4o-mini': { prompt: 0.00015, completion: 0.0006 },
   'gpt-4o': { prompt: 0.005, completion: 0.015 },
-  'claude-3-5-sonnet': { prompt: 0.003, completion: 0.015 },
+  'gemini-3.8-flash': { prompt: 0.0001, completion: 0.0004 },
+  'gemini-2.0-flash': { prompt: 0.0001, completion: 0.0004 },
+  'gemini-2.5-pro': { prompt: 0.00125, completion: 0.005 },
+  'claude-sonnet-4-20250514': { prompt: 0.003, completion: 0.015 },
   fallback_offline: { prompt: 0, completion: 0 },
 };
+
+export class ProviderNotConfiguredError extends Error {
+  readonly code = 'PROVIDER_NOT_CONFIGURED';
+  constructor(message = 'No AI provider API key configured. Run pnpm setup:keys or set ALLOW_OFFLINE_MOCK=true for testing.') {
+    super(message);
+    this.name = 'ProviderNotConfiguredError';
+  }
+}
 
 export class ModelRouter {
   private primaryFailureCount = 0;
   private readonly failureThreshold = 3;
   private circuitBreakerOpenUntil = 0;
+
+  isConfigured(): boolean {
+    return Boolean(
+      process.env.OPENAI_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.GEMINI_API_KEY,
+    );
+  }
 
   /**
    * Masks Personally Identifiable Information (email, phone, credit card)
@@ -378,13 +397,41 @@ export class ModelRouter {
 
   async executeCompletion(params: ModelCallParams): Promise<ModelCallResult> {
     const startTime = Date.now();
-    const apiKey = process.env.OPENAI_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const hasKey = Boolean(geminiKey || openaiKey || anthropicKey);
 
-    // Fast tier model vs Strong tier model
-    const targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
+    const isMockAllowed =
+      (process.env.ALLOW_OFFLINE_MOCK === 'true' ||
+        process.env.MOCK_PROVIDERS === 'true' ||
+        process.env.NODE_ENV === 'test') &&
+      process.env.NODE_ENV !== 'production';
+
+    if (!hasKey && !isMockAllowed) {
+      throw new ProviderNotConfiguredError();
+    }
+
+    // Provider selection: Gemini -> OpenAI -> Anthropic
+    let activeProvider: 'gemini' | 'openai' | 'anthropic';
+    let targetModel: string;
+
+    if (geminiKey) {
+      activeProvider = 'gemini';
+      targetModel = 'gemini-3.8-flash';
+    } else if (openaiKey) {
+      activeProvider = 'openai';
+      targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
+    } else if (anthropicKey) {
+      activeProvider = 'anthropic';
+      targetModel = 'claude-sonnet-4-20250514';
+    } else {
+      activeProvider = 'openai';
+      targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
+    }
 
     // If circuit breaker is open or no API key, use fallback
-    if (this.isCircuitBreakerOpen() || !apiKey) {
+    if (this.isCircuitBreakerOpen() || !hasKey) {
       const offlineReply = this.generateOfflineGroundedResponse(params);
       const latencyMs = Date.now() - startTime;
       const promptTokens = Math.ceil((params.systemPrompt.length + params.userMessage.length) / 4);
@@ -405,44 +452,124 @@ export class ModelRouter {
       };
     }
 
-    // Attempt Primary Provider: OpenAI
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: targetModel,
-          messages: [
-            { role: 'system', content: params.systemPrompt },
-            { role: 'user', content: params.userMessage },
-          ],
-          temperature: params.temperature ?? 0.7,
-          max_tokens: params.maxTokens ?? 600,
-        }),
-      });
+      let reply = '';
+      let promptTokens = 0;
+      let completionTokens = 0;
+      let totalTokens = 0;
 
-      clearTimeout(timeout);
+      if (activeProvider === 'gemini') {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              systemInstruction: {
+                parts: [{ text: params.systemPrompt }],
+              },
+              contents: [
+                {
+                  role: 'user',
+                  parts: [{ text: params.userMessage }],
+                },
+              ],
+              generationConfig: {
+                temperature: params.temperature ?? 0.7,
+                maxOutputTokens: params.maxTokens ?? 600,
+              },
+            }),
+          },
+        );
 
-      if (!response.ok) {
-        throw new Error(`OpenAI HTTP ${response.status}: ${response.statusText}`);
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error(`Gemini HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        promptTokens =
+          data.usageMetadata?.promptTokenCount ??
+          Math.ceil((params.systemPrompt.length + params.userMessage.length) / 4);
+        completionTokens =
+          data.usageMetadata?.candidatesTokenCount ?? Math.ceil(reply.length / 4);
+        totalTokens =
+          data.usageMetadata?.totalTokenCount ?? promptTokens + completionTokens;
+      } else if (activeProvider === 'openai') {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: targetModel,
+            messages: [
+              { role: 'system', content: params.systemPrompt },
+              { role: 'user', content: params.userMessage },
+            ],
+            temperature: params.temperature ?? 0.7,
+            max_tokens: params.maxTokens ?? 600,
+          }),
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error(`OpenAI HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        reply = data.choices[0]?.message?.content || '';
+        const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+        promptTokens = usage.prompt_tokens;
+        completionTokens = usage.completion_tokens;
+        totalTokens = usage.total_tokens;
+      } else if (activeProvider === 'anthropic') {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey!,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: targetModel,
+            max_tokens: params.maxTokens ?? 600,
+            temperature: params.temperature ?? 0.7,
+            system: params.systemPrompt,
+            messages: [{ role: 'user', content: params.userMessage }],
+          }),
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error(`Anthropic HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        reply = data.content?.[0]?.text || '';
+        promptTokens = data.usage?.input_tokens ?? 0;
+        completionTokens = data.usage?.output_tokens ?? 0;
+        totalTokens = promptTokens + completionTokens;
       }
 
-      const data = await response.json();
-      const reply = data.choices[0]?.message?.content || '';
-      const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
       const latencyMs = Date.now() - startTime;
-
-      const rate = PRICING[targetModel];
+      const rate = PRICING[targetModel] || { prompt: 0.001, completion: 0.002 };
       const costUsd =
-        (usage.prompt_tokens / 1000) * rate.prompt +
-        (usage.completion_tokens / 1000) * rate.completion;
+        (promptTokens / 1000) * rate.prompt +
+        (completionTokens / 1000) * rate.completion;
 
       this.recordPrimarySuccess();
 
@@ -453,22 +580,23 @@ export class ModelRouter {
           chatbotId: params.chatbotId,
           promptName: params.promptName || 'rag_answer',
           promptVersion: params.promptVersion || 'v1.0',
-          tokens: usage.total_tokens,
+          tokens: totalTokens,
           latencyMs,
           costUsd,
           maskedQuery: this.maskPii(params.userMessage),
+          provider: activeProvider,
         },
         'AI Model Router completion executed successfully',
       );
 
       return {
         text: reply,
-        provider: 'openai',
+        provider: activeProvider,
         model: targetModel,
         tokens: {
-          prompt: usage.prompt_tokens,
-          completion: usage.completion_tokens,
-          total: usage.total_tokens,
+          prompt: promptTokens,
+          completion: completionTokens,
+          total: totalTokens,
         },
         costUsd,
         latencyMs,
@@ -502,10 +630,39 @@ export class ModelRouter {
     onChunk: (chunk: string) => Promise<void> | void,
   ): Promise<ModelCallResult> {
     const startTime = Date.now();
-    const apiKey = process.env.OPENAI_API_KEY;
-    const targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const hasKey = Boolean(geminiKey || openaiKey || anthropicKey);
 
-    if (this.isCircuitBreakerOpen() || !apiKey) {
+    const isMockAllowed =
+      (process.env.ALLOW_OFFLINE_MOCK === 'true' ||
+        process.env.MOCK_PROVIDERS === 'true' ||
+        process.env.NODE_ENV === 'test') &&
+      process.env.NODE_ENV !== 'production';
+
+    if (!hasKey && !isMockAllowed) {
+      throw new ProviderNotConfiguredError();
+    }
+
+    let activeProvider: 'gemini' | 'openai' | 'anthropic';
+    let targetModel: string;
+
+    if (geminiKey) {
+      activeProvider = 'gemini';
+      targetModel = 'gemini-3.8-flash';
+    } else if (openaiKey) {
+      activeProvider = 'openai';
+      targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
+    } else if (anthropicKey) {
+      activeProvider = 'anthropic';
+      targetModel = 'claude-sonnet-4-20250514';
+    } else {
+      activeProvider = 'openai';
+      targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
+    }
+
+    if (this.isCircuitBreakerOpen() || !hasKey) {
       const offlineReply = this.generateOfflineGroundedResponse(params);
       const latencyMs = Date.now() - startTime;
       const promptTokens = Math.ceil((params.systemPrompt.length + params.userMessage.length) / 4);
@@ -537,29 +694,77 @@ export class ModelRouter {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: targetModel,
-          messages: [
-            { role: 'system', content: params.systemPrompt },
-            { role: 'user', content: params.userMessage },
-          ],
-          temperature: params.temperature ?? 0.7,
-          max_tokens: params.maxTokens ?? 600,
-          stream: true,
-        }),
-      });
+      let response: Response;
+
+      if (activeProvider === 'gemini') {
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:streamGenerateContent?alt=sse&key=${geminiKey}`,
+          {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              systemInstruction: {
+                parts: [{ text: params.systemPrompt }],
+              },
+              contents: [
+                {
+                  role: 'user',
+                  parts: [{ text: params.userMessage }],
+                },
+              ],
+              generationConfig: {
+                temperature: params.temperature ?? 0.7,
+                maxOutputTokens: params.maxTokens ?? 600,
+              },
+            }),
+          },
+        );
+      } else if (activeProvider === 'openai') {
+        response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: targetModel,
+            messages: [
+              { role: 'system', content: params.systemPrompt },
+              { role: 'user', content: params.userMessage },
+            ],
+            temperature: params.temperature ?? 0.7,
+            max_tokens: params.maxTokens ?? 600,
+            stream: true,
+          }),
+        });
+      } else {
+        response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey!,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: targetModel,
+            max_tokens: params.maxTokens ?? 600,
+            temperature: params.temperature ?? 0.7,
+            system: params.systemPrompt,
+            messages: [{ role: 'user', content: params.userMessage }],
+            stream: true,
+          }),
+        });
+      }
 
       clearTimeout(timeout);
 
       if (!response.ok || !response.body) {
-        throw new Error(`OpenAI HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`${activeProvider} HTTP ${response.status}: ${response.statusText}`);
       }
 
       let fullText = '';
@@ -581,10 +786,21 @@ export class ModelRouter {
           if (dataStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(dataStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullText += content;
-              await onChunk(content);
+            let contentChunk: string | undefined;
+
+            if (activeProvider === 'gemini') {
+              contentChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+            } else if (activeProvider === 'openai') {
+              contentChunk = parsed.choices?.[0]?.delta?.content;
+            } else if (activeProvider === 'anthropic') {
+              if (parsed.type === 'content_block_delta') {
+                contentChunk = parsed.delta?.text;
+              }
+            }
+
+            if (contentChunk) {
+              fullText += contentChunk;
+              await onChunk(contentChunk);
             }
           } catch {
             // Ignore parse errors on partial chunks
@@ -594,7 +810,7 @@ export class ModelRouter {
 
       const promptTokens = Math.ceil((params.systemPrompt.length + params.userMessage.length) / 4);
       const completionTokens = Math.ceil(fullText.length / 4);
-      const rate = PRICING[targetModel];
+      const rate = PRICING[targetModel] || { prompt: 0.001, completion: 0.002 };
       const costUsd =
         (promptTokens / 1000) * rate.prompt +
         (completionTokens / 1000) * rate.completion;
@@ -611,13 +827,14 @@ export class ModelRouter {
           latencyMs,
           costUsd,
           maskedQuery: this.maskPii(params.userMessage),
+          provider: activeProvider,
         },
         'AI Model Router stream completed successfully',
       );
 
       return {
         text: fullText,
-        provider: 'openai',
+        provider: activeProvider,
         model: targetModel,
         tokens: {
           prompt: promptTokens,

@@ -13,14 +13,59 @@
   --color-text-muted: #64748b;
   --radius-xl: 0.75rem;
   --radius-full: 9999px;
+
+  /* Standard Tailwind Slate light mode default RGB values */
+  --color-slate-50: 248 250 252;
+  --color-slate-100: 241 245 249;
+  --color-slate-200: 226 232 240;
+  --color-slate-300: 203 213 225;
+  --color-slate-400: 148 163 184;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 71 85 105;
+  --color-slate-700: 51 65 85;
+  --color-slate-800: 30 41 59;
+  --color-slate-900: 15 23 42;
+  --color-slate-950: 2 6 23;
 }
 
 .dark {
-  --color-bg: #0b1120;
-  --color-surface: #1e293b;
-  --color-border: #334155;
-  --color-text: #f8fafc;
-  --color-text-muted: #94a3b8;
+  /* Cue Theme Design Tokens */
+  --color-bg: #141414;
+  --color-surface: #1c1c1c;
+  --color-surface-subtle: #1a1a1a;
+  --color-border: #2a2a2a;
+  --color-border-edge: #262626;
+  --color-text: #e6e6e6;
+  --color-text-muted: #8a8a8a;
+  --color-text-secondary: #a3a3a3;
+  color-scheme: dark;
+
+  /*
+   * Cue Dark Slate Token Mapping:
+   * slate-950 = #141414 (App canvas background)
+   * slate-900 = #1c1c1c (Card background, containers)
+   * slate-850 = #1f1f1f (Pills, inputs, sub-containers)
+   * slate-800 = #2a2a2a (Card borders, dividers, subtle button bg)
+   * slate-700 = #333333 (Secondary borders, hover states)
+   * slate-600 = #404040
+   * slate-500 = #8a8a8a (Muted text, sub-labels)
+   * slate-400 = #a3a3a3 (Secondary text, labels)
+   * slate-300 = #c4c4c4 (Semi-bright text)
+   * slate-200 = #e6e6e6 (Primary text, values)
+   * slate-100 = #f2f2f2 (High-contrast text, headers)
+   * slate-50  = #fafafa
+   */
+  --color-slate-950: 20 20 20;
+  --color-slate-900: 28 28 28;
+  --color-slate-800: 42 42 42;
+  --color-slate-700: 51 51 51;
+  --color-slate-600: 64 64 64;
+  --color-slate-500: 138 138 138;
+  --color-slate-400: 163 163 163;
+  --color-slate-300: 196 196 196;
+  --color-slate-200: 230 230 230;
+  --color-slate-100: 242 242 242;
+  --color-slate-50: 250 250 250;
 }
 
 * {
@@ -60,3 +105,49 @@ body {
   color: #60a5fa;
   border-color: rgba(96, 165, 250, 0.3);
 }
+
+/* Cue Flat Aesthetic: Zero diffuse shadows in dark mode */
+.dark .card,
+.dark .shadow-xs,
+.dark .shadow-sm,
+.dark .shadow,
+.dark .shadow-md,
+.dark .shadow-lg {
+  box-shadow: none !important;
+}
+
+.dark .shadow-xl,
+.dark .shadow-2xl {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Cue Sleek Scrollbars */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #141414;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #282828;
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #383838;
+}
+
+/* Cue Clean Form Controls in Dark Mode */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+  background-color: #1c1c1c;
+  border-color: #2a2a2a;
+  color: #e6e6e6;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #8a8a8a;
+}
+

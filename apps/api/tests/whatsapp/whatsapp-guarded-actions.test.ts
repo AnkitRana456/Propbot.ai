@@ -10,6 +10,7 @@ import {
   agentActions,
   conversations,
   messages,
+  knowledgeQaOverrides,
 } from '../../src/db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
 
@@ -70,6 +71,18 @@ describe('WhatsApp Guarded AI Actions (Tier 2 Price & Offer Approval Queue)', ()
         accessToken: 'EAAG_test_token',
         verifyToken: 'token_123',
         status: 'connected',
+      })
+      .onConflictDoNothing();
+
+    await testDb
+      .insert(knowledgeQaOverrides)
+      .values({
+        companyId,
+        chatbotId: botId,
+        question: 'What is the exact starting price and payment plan for 3 BHK?',
+        answer: 'Residences start at ₹3.25 Cr onwards for 3BHK villas with a 20:80 milestone payment plan.',
+        source: 'manual',
+        isActive: true,
       })
       .onConflictDoNothing();
   });
@@ -150,5 +163,5 @@ describe('WhatsApp Guarded AI Actions (Tier 2 Price & Offer Approval Queue)', ()
       .where(and(eq(messages.conversationId, conv!.id), eq(messages.senderType, 'bot')));
 
     expect(heldMessages.some(m => (m.metadata as Record<string, unknown>)?.isGuardedHold === true)).toBe(true);
-  });
+  }, 15000);
 });

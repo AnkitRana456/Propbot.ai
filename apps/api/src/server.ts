@@ -32,11 +32,20 @@ import { growthRouter } from './routes/growth.routes.js';
 import { voiceRouter } from './routes/voice.routes.js';
 import { mcpRouter } from './routes/mcp.routes.js';
 import { enterpriseRouter, statusRouter } from './routes/enterprise.routes.js';
+import { publicChatRouter } from './routes/public-chat.routes.js';
 import { authRateLimiter } from './middlewares/rate-limiter.js';
+import { validateEnv, getMaskedConfigSummary } from './config/env.js';
+
+// Validate environment variables at startup
+validateEnv();
 
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? 'info',
 });
+
+if (process.env.NODE_ENV !== 'test') {
+  logger.info({ config: getMaskedConfigSummary() }, 'PropBot Pro environment configuration validated');
+}
 
 export function createApp(): Express {
   const app = express();
@@ -69,6 +78,8 @@ export function createApp(): Express {
 
   // Routes
   app.use('/healthz', healthzRouter);
+  app.use('/api/public/chat', publicChatRouter);
+  app.use('/public', publicChatRouter);
   app.use('/api/auth', authRateLimiter.middleware(), authRouter);
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/chatbots/playbooks', playbooksRouter);

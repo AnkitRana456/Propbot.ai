@@ -61,16 +61,61 @@ export class ParserService {
   }
 
   /**
-   * Extracts text from uploaded files (TXT, CSV, JSON, Markdown, or readable binary/PDF streams)
+   * Extracts text from PDF files using pdf-parse
    */
-  parseFileBuffer(buffer: Buffer, mimeType?: string, fileName?: string): string {
-    const nameLower = (fileName || '').toLowerCase();
+  async parsePdf(buffer: Buffer): Promise<string> {
+    try {
+      const pdfModule = await import('pdf-parse');
+      const moduleRecord = pdfModule as Record<string, unknown>;
+      if ('PDFParse' in moduleRecord && typeof moduleRecord.PDFParse === 'function') {
+        const PDFParseClass = moduleRecord.PDFParse as new (data: Uint8Array) => { getText: () => Promise<{ text: string }> };
+        const parser = new PDFParseClass(new Uint8Array(buffer));
+        const result = await parser.getText();
+        return result?.text || '';
+      }
+      if (typeof moduleRecord.default === 'function') {
+        const defaultFn = moduleRecord.default as (buf: Buffer) => Promise<{ text: string }>;
+        const result = await defaultFn(buffer);
+        return result?.text || '';
+      }
+      return buffer.toString('utf-8');
+    } catch {
+      return buffer.toString('utf-8');
+    }
+  }
 
-    if (nameLower.endsWith('.csv') || mimeType === 'text/csv') {
+  /**
+   * Extracts text from DOCX files using mammoth
+   */
+  async parseDocx(buffer: Buffer): Promise<string> {
+    const mammoth = await import('mammoth');
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  }
+
+  /**
+   * Extracts text from uploaded files (PDF, DOCX, TXT, CSV, JSON, Markdown, or readable binary/PDF streams)
+   */
+  async parseFileBuffer(buffer: Buffer, mimeType?: string, fileName?: string): Promise<string> {
+    const nameLower = (fileName || '').toLowerCase();
+    const mimeLower = (mimeType || '').toLowerCase();
+
+    if (nameLower.endsWith('.pdf') || mimeLower === 'application/pdf') {
+      return this.parsePdf(buffer);
+    }
+
+    if (
+      nameLower.endsWith('.docx') ||
+      mimeLower === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+      return this.parseDocx(buffer);
+    }
+
+    if (nameLower.endsWith('.csv') || mimeLower === 'text/csv') {
       return this.parseCsv(buffer.toString('utf-8'));
     }
 
-    if (nameLower.endsWith('.json') || mimeType === 'application/json') {
+    if (nameLower.endsWith('.json') || mimeLower === 'application/json') {
       try {
         const parsed = JSON.parse(buffer.toString('utf-8'));
         return JSON.stringify(parsed, null, 2);

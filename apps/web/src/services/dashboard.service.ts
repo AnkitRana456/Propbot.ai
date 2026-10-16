@@ -13,6 +13,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
       convertedLeads: 12,
       activeChatbots: 3,
       todayVisits: 5,
+      aiConnected: false,
     };
   }
 }

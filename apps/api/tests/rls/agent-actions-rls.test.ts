@@ -59,6 +59,7 @@ describe('agent_actions Guarded Actions RLS Tests (PDF Requirement)', () => {
 
   it('restricts raw query on agent_actions to only the current tenant', async () => {
     await testDb.transaction(async tx => {
+      await tx.execute(sql`SET LOCAL ROLE propbot`);
       await tx.execute(sql`SELECT set_config('app.company_id', ${companyAId}, true)`);
 
       // Raw query without WHERE company_id = ...
@@ -81,6 +82,7 @@ describe('agent_actions Guarded Actions RLS Tests (PDF Requirement)', () => {
 
   it('prohibits Company A from approving or modifying Company B guarded actions', async () => {
     await testDb.transaction(async tx => {
+      await tx.execute(sql`SET LOCAL ROLE propbot`);
       await tx.execute(sql`SELECT set_config('app.company_id', ${companyAId}, true)`);
 
       // Company A attempts to maliciously approve Company B's action
@@ -94,6 +96,7 @@ describe('agent_actions Guarded Actions RLS Tests (PDF Requirement)', () => {
 
     // Verify in Company B's context that the action is still 'proposed'
     await testDb.transaction(async tx => {
+      await tx.execute(sql`SET LOCAL ROLE propbot`);
       await tx.execute(sql`SELECT set_config('app.company_id', ${companyBId}, true)`);
       const bActions = (await tx.execute(
         sql`SELECT id, status FROM agent_actions WHERE id = ${actionBId}`,

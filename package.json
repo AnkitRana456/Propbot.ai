@@ -21,6 +21,9 @@
     "test:coverage": "vitest run --coverage",
     "test:load": "tsx apps/api/tests/load/chat-load-test.ts",
     "seed:demo": "pnpm --filter @propbot/api seed:demo",
+    "doctor": "tsx apps/api/src/scripts/doctor.ts",
+    "smoke:chat": "tsx apps/api/src/scripts/smoke-chat.ts",
+    "setup:keys": "tsx apps/api/src/scripts/setup-keys.ts",
     "eval": "pnpm --filter @propbot/api eval",
     "prepare": "husky"
   },

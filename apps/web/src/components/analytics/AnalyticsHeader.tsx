@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, TrendingUp, Compass, Bot } from 'lucide-react';
+import { Download, TrendingUp, Compass, Bot, BarChart2 } from 'lucide-react';
 import type { AnalyticsFilter } from '@propbot/shared';
 
 interface AnalyticsHeaderProps {
@@ -93,6 +93,17 @@ export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
           <Compass className="w-3.5 h-3.5" />
           Attribution Models
         </button>
+
+        <a
+          href="/analytics-dashboard"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-black text-white dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-700 transition-colors shadow-xs"
+          title="Open Dark Sales Analytics Dashboard"
+        >
+          <BarChart2 className="w-3.5 h-3.5 text-blue-400" />
+          Dark Sales View
+        </a>
 
         <button
           onClick={onExportCsv}

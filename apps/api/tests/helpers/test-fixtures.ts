@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import type { UserRole, UserStatus } from '@propbot/shared';
+import { sql } from 'drizzle-orm';
 import { testDb } from './test-db.js';
 import { companies, companyAiSettings, users } from '../../src/db/schema/index.js';
 import { hashPassword, signAccessToken } from '../../src/modules/auth/auth.utils.js';
@@ -29,29 +30,33 @@ export async function createTestCompany(
   const name = overrides.name ?? `Test Realty ${rand}`;
   const slug = overrides.slug ?? `test-realty-${rand}`;
 
-  const [company] = await testDb
-    .insert(companies)
-    .values({
-      name,
-      slug,
-      plan: overrides.plan ?? 'growth',
-      status: overrides.status ?? 'active',
-      ...overrides,
-    })
-    .returning();
+  return await testDb.transaction(async tx => {
+    await tx.execute(sql`SET LOCAL ROLE postgres`);
 
-  if (!company) {
-    throw new Error('Failed to insert test company');
-  }
+    const [company] = await tx
+      .insert(companies)
+      .values({
+        name,
+        slug,
+        plan: overrides.plan ?? 'growth',
+        status: overrides.status ?? 'active',
+        ...overrides,
+      })
+      .returning();
 
-  await testDb.insert(companyAiSettings).values({
-    companyId: company.id,
-    killSwitch: false,
-    allowedTiers: ['T0', 'T1'],
-    dailyActionCap: 100,
+    if (!company) {
+      throw new Error('Failed to insert test company');
+    }
+
+    await tx.insert(companyAiSettings).values({
+      companyId: company.id,
+      killSwitch: false,
+      allowedTiers: ['T0', 'T1'],
+      dailyActionCap: 100,
+    });
+
+    return company;
   });
-
-  return company;
 }
 
 export async function createTestUser(

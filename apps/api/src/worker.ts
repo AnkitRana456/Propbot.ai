@@ -8,6 +8,9 @@ import { scheduledJobsService } from './jobs/scheduled-jobs.service.js';
 import { rollupService } from './modules/analytics/rollup.service.js';
 import { db } from './db/index.js';
 import { companies } from './db/schema/index.js';
+import { validateEnv } from './config/env.js';
+
+validateEnv();
 
 export const workerLogger = pino({
   level: process.env.LOG_LEVEL ?? 'info',

@@ -265,28 +265,18 @@ function LineChart({ a, b, showB, labels, yMax, fmt, h = 200, dates }: { a: numb
         {labels.map((l, i) => <text key={l + i} x={L + (i + .5) * (iw / labels.length)} y={h - 6} textAnchor="middle">{l}</text>)}
         {showB && <path d={path(b)} fill="none" stroke="#2f5f9e" strokeWidth="1.3" />}
         <path d={path(a)} fill="none" stroke="#4a8fe7" strokeWidth="1.5" strokeLinejoin="round" />
-        {hi != null && (() => {
-          const ahi = a[hi] ?? 0;
-          const bhi = b[hi] ?? 0;
-          return (
-            <g>
-              <line x1={x(hi, a.length)} x2={x(hi, a.length)} y1={T} y2={T + ih} stroke="#3a3a3a" strokeDasharray="3 3" />
-              {showB && <circle cx={x(hi, b.length)} cy={y(bhi)} r="3.5" fill="#2f5f9e" stroke="#1c1c1c" strokeWidth="2" />}
-              <circle cx={x(hi, a.length)} cy={y(ahi)} r="4" fill="#4a8fe7" stroke="#1c1c1c" strokeWidth="2" />
-            </g>
-          );
-        })()}
+        {hi != null && <g>
+          <line x1={x(hi, a.length)} x2={x(hi, a.length)} y1={T} y2={T + ih} stroke="#3a3a3a" strokeDasharray="3 3" />
+          {showB && <circle cx={x(hi, b.length)} cy={y(b[hi]!)} r="3.5" fill="#2f5f9e" stroke="#1c1c1c" strokeWidth="2" />}
+          <circle cx={x(hi, a.length)} cy={y(a[hi]!)} r="4" fill="#4a8fe7" stroke="#1c1c1c" strokeWidth="2" />
+        </g>}
       </svg>
-      {hi != null && (() => {
-        const ahi = a[hi] ?? 0;
-        const bhi = b[hi] ?? 0;
-        return (
-          <div className="ad-tip" style={{ left: Math.min(Math.max(x(hi, a.length), 90), w - 90), top: Math.min(y(ahi), showB ? y(bhi) : 1e9) - 10 }}>
-            <div className="r"><i style={{ background: '#4a8fe7' }} />{da}<b>{fmt(ahi)}</b></div>
-            {showB && <div className="r"><i style={{ background: '#2f5f9e' }} />{db}<b>{fmt(bhi)}</b></div>}
-          </div>
-        );
-      })()}
+      {hi != null && (
+        <div className="ad-tip" style={{ left: Math.min(Math.max(x(hi, a.length), 90), w - 90), top: Math.min(y(a[hi]!), showB ? y(b[hi]!) : 1e9) - 10 }}>
+          <div className="r"><i style={{ background: '#4a8fe7' }} />{da}<b>{fmt(a[hi]!)}</b></div>
+          {showB && <div className="r"><i style={{ background: '#2f5f9e' }} />{db}<b>{fmt(b[hi]!)}</b></div>}
+        </div>
+      )}
     </div>
   );
 }

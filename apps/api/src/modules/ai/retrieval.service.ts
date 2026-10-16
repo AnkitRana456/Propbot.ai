@@ -14,6 +14,23 @@ import { modelRouter, TaskTier } from './router.js';
 import { languageDetectorService } from './language-detector.service.js';
 
 export class RetrievalService {
+  private pgvectorAvailable: boolean | null = null;
+
+  private computeCosineSimilarity(a: number[], b: number[]): number {
+    if (!a || !b || a.length === 0 || b.length === 0) return 0;
+    const len = Math.min(a.length, b.length);
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < len; i++) {
+      dot += a[i]! * b[i]!;
+      normA += a[i]! * a[i]!;
+      normB += b[i]! * b[i]!;
+    }
+    const denom = Math.sqrt(normA) * Math.sqrt(normB);
+    if (denom === 0) return 0;
+    return dot / denom;
+  }
   /**
    * Builds the system prompt injecting bot persona, company guardrails, and retrieved chunks.
    */
@@ -140,32 +157,154 @@ ${contextText}
     const queryVectorStr = `[${queryEmbedding.join(',')}]`;
     const topK = input.topK || 4;
 
-    const matchedRows = await db
-      .select({
-        chunkId: knowledgeChunks.id,
-        sourceId: knowledgeChunks.sourceId,
-        content: knowledgeChunks.content,
-        metadata: knowledgeChunks.metadata,
-        sourceTitle: knowledgeSources.title,
-        sourceType: knowledgeSources.type,
-        cosineScore: sql<number>`1 - (${knowledgeChunks.embedding} <=> ${queryVectorStr}::vector)`,
-        textRank: sql<number>`coalesce(ts_rank_cd(${knowledgeChunks.tsv}, plainto_tsquery('english', ${query})), 0)`,
-      })
-      .from(knowledgeChunks)
-      .innerJoin(knowledgeSources, eq(knowledgeChunks.sourceId, knowledgeSources.id))
-      .where(
-        and(
-          eq(knowledgeChunks.companyId, companyId),
-          eq(knowledgeChunks.chatbotId, chatbotId),
-          sql`${knowledgeSources.status} = 'ready'`,
-        ),
-      )
-      .orderBy(
-        desc(
-          sql`((0.7 * (1 - (${knowledgeChunks.embedding} <=> ${queryVectorStr}::vector))) + (0.3 * coalesce(ts_rank_cd(${knowledgeChunks.tsv}, plainto_tsquery('english', ${query})), 0)))`,
-        ),
-      )
-      .limit(topK);
+    interface MatchedRow {
+      chunkId: string;
+      sourceId: string;
+      content: string;
+      metadata: unknown;
+      sourceTitle: string;
+      sourceType: string;
+      cosineScore: number;
+      textRank: number;
+    }
+
+    let matchedRows: MatchedRow[] = [];
+
+    if (this.pgvectorAvailable !== false) {
+      try {
+        matchedRows = await db
+          .select({
+            chunkId: knowledgeChunks.id,
+            sourceId: knowledgeChunks.sourceId,
+            content: knowledgeChunks.content,
+            metadata: knowledgeChunks.metadata,
+            sourceTitle: knowledgeSources.title,
+            sourceType: knowledgeSources.type,
+            cosineScore: sql<number>`1 - (${knowledgeChunks.embedding} <=> ${queryVectorStr}::vector)`,
+            textRank: sql<number>`coalesce(ts_rank_cd(${knowledgeChunks.tsv}, plainto_tsquery('english', ${query})), 0)`,
+          })
+          .from(knowledgeChunks)
+          .innerJoin(knowledgeSources, eq(knowledgeChunks.sourceId, knowledgeSources.id))
+          .where(
+            and(
+              eq(knowledgeChunks.companyId, companyId),
+              eq(knowledgeChunks.chatbotId, chatbotId),
+              sql`${knowledgeSources.status} = 'ready'`,
+            ),
+          )
+          .orderBy(
+            desc(
+              sql`((0.7 * (1 - (${knowledgeChunks.embedding} <=> ${queryVectorStr}::vector))) + (0.3 * coalesce(ts_rank_cd(${knowledgeChunks.tsv}, plainto_tsquery('english', ${query})), 0)))`,
+            ),
+          )
+          .limit(topK);
+
+        this.pgvectorAvailable = true;
+      } catch {
+        // Log and fall back to resilient text search + in-memory cosine ranking
+        this.pgvectorAvailable = false;
+      }
+    }
+
+    if (this.pgvectorAvailable === false) {
+      // Fallback for missing pgvector <=> operator: Query chunks using full-text search
+      let candidateRows = await db
+        .select({
+          chunkId: knowledgeChunks.id,
+          sourceId: knowledgeChunks.sourceId,
+          content: knowledgeChunks.content,
+          metadata: knowledgeChunks.metadata,
+          embedding: knowledgeChunks.embedding,
+          sourceTitle: knowledgeSources.title,
+          sourceType: knowledgeSources.type,
+          textRank: sql<number>`coalesce(ts_rank_cd(${knowledgeChunks.tsv}, plainto_tsquery('english', ${query})), 0)`,
+        })
+        .from(knowledgeChunks)
+        .innerJoin(knowledgeSources, eq(knowledgeChunks.sourceId, knowledgeSources.id))
+        .where(
+          and(
+            eq(knowledgeChunks.companyId, companyId),
+            eq(knowledgeChunks.chatbotId, chatbotId),
+            sql`${knowledgeSources.status} = 'ready'`,
+          ),
+        )
+        .orderBy(
+          desc(sql`coalesce(ts_rank_cd(${knowledgeChunks.tsv}, plainto_tsquery('english', ${query})), 0)`),
+        )
+        .limit(Math.max(topK * 4, 20));
+
+      if (candidateRows.length === 0) {
+        candidateRows = await db
+          .select({
+            chunkId: knowledgeChunks.id,
+            sourceId: knowledgeChunks.sourceId,
+            content: knowledgeChunks.content,
+            metadata: knowledgeChunks.metadata,
+            embedding: knowledgeChunks.embedding,
+            sourceTitle: knowledgeSources.title,
+            sourceType: knowledgeSources.type,
+            textRank: sql<number>`0`,
+          })
+          .from(knowledgeChunks)
+          .innerJoin(knowledgeSources, eq(knowledgeChunks.sourceId, knowledgeSources.id))
+          .where(
+            and(
+              eq(knowledgeChunks.companyId, companyId),
+              eq(knowledgeChunks.chatbotId, chatbotId),
+              sql`${knowledgeSources.status} = 'ready'`,
+            ),
+          )
+          .limit(Math.max(topK * 4, 20));
+      }
+
+      // Compute cosine similarity in TypeScript
+      const scoredCandidates = await Promise.all(
+        candidateRows.map(async row => {
+          let chunkVec = row.embedding;
+          if (typeof chunkVec === 'string') {
+            try {
+              chunkVec = JSON.parse(chunkVec);
+            } catch {
+              chunkVec = null;
+            }
+          }
+          if (!Array.isArray(chunkVec) || chunkVec.length === 0) {
+            chunkVec = await embeddingsService.generateEmbedding(row.content);
+          }
+          const cosine = this.computeCosineSimilarity(queryEmbedding, chunkVec);
+          return {
+            chunkId: row.chunkId,
+            sourceId: row.sourceId,
+            content: row.content,
+            metadata: row.metadata,
+            sourceTitle: row.sourceTitle,
+            sourceType: row.sourceType,
+            cosineScore: Number.isFinite(cosine) ? cosine : 0,
+            textRank: Number(row.textRank) || 0,
+          };
+        }),
+      );
+
+      // Combine scores with RRF (Reciprocal Rank Fusion) and return top-K
+      const rrfK = 60;
+      const byTextRank = [...scoredCandidates].sort((a, b) => b.textRank - a.textRank);
+      const textRankIndex = new Map<string, number>();
+      byTextRank.forEach((item, index) => textRankIndex.set(item.chunkId, index + 1));
+
+      const byCosineRank = [...scoredCandidates].sort((a, b) => b.cosineScore - a.cosineScore);
+      const cosineRankIndex = new Map<string, number>();
+      byCosineRank.forEach((item, index) => cosineRankIndex.set(item.chunkId, index + 1));
+
+      const rrfScored = scoredCandidates.map(item => {
+        const rankT = textRankIndex.get(item.chunkId) ?? scoredCandidates.length;
+        const rankC = cosineRankIndex.get(item.chunkId) ?? scoredCandidates.length;
+        const rrfScore = (1 / (rrfK + rankT)) + (1 / (rrfK + rankC));
+        return { ...item, rrfScore };
+      });
+
+      rrfScored.sort((a, b) => b.rrfScore - a.rrfScore);
+      matchedRows = rrfScored.slice(0, topK);
+    }
 
     // Format citations
     const citations: RagCitation[] = matchedRows.map(row => {

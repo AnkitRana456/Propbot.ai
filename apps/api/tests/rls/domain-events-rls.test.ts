@@ -53,6 +53,7 @@ describe('domain_events Outbox Table RLS Tests (PDF Requirement)', () => {
 
   it('restricts raw query on domain_events to only the current tenant', async () => {
     await testDb.transaction(async tx => {
+      await tx.execute(sql`SET LOCAL ROLE propbot`);
       await tx.execute(sql`SELECT set_config('app.company_id', ${companyAId}, true)`);
 
       // Raw query without WHERE company_id = ...
@@ -72,6 +73,7 @@ describe('domain_events Outbox Table RLS Tests (PDF Requirement)', () => {
 
   it('prevents Company A from modifying or deleting Company B domain events', async () => {
     await testDb.transaction(async tx => {
+      await tx.execute(sql`SET LOCAL ROLE propbot`);
       await tx.execute(sql`SELECT set_config('app.company_id', ${companyAId}, true)`);
 
       // Attempt update targeting Company B's event ID
@@ -92,6 +94,7 @@ describe('domain_events Outbox Table RLS Tests (PDF Requirement)', () => {
 
     // Verify in Company B's context that the event was not altered
     await testDb.transaction(async tx => {
+      await tx.execute(sql`SET LOCAL ROLE propbot`);
       await tx.execute(sql`SELECT set_config('app.company_id', ${companyBId}, true)`);
       const bEvents = (await tx.execute(
         sql`SELECT id, processed_at FROM domain_events WHERE id = ${eventBId}`,

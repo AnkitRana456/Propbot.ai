@@ -7,6 +7,7 @@ export const dashboardStatsSchema = z.object({
   convertedLeads: z.number().int().nonnegative(),
   activeChatbots: z.number().int().nonnegative(),
   todayVisits: z.number().int().nonnegative(),
+  aiConnected: z.boolean().optional().default(false),
 });
 
 export const recentLeadItemSchema = z.object({

@@ -1,6 +1,7 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
+import { RefreshCw, AlertCircle, AlertTriangle, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext.js';
 import { fetchDashboardStats, fetchRecentLeads } from '../services/dashboard.service.js';
 import { KpiGrid } from '../components/dashboard/KpiGrid.js';
@@ -34,9 +35,31 @@ export const DashboardPage: React.FC = () => {
   });
 
   const hasError = isStatsError || isLeadsError;
+  const isAiConnected = Boolean(stats?.aiConnected);
 
   return (
     <div className="space-y-6">
+      {/* AI Not Connected Alert Banner */}
+      {!isStatsLoading && !isAiConnected && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <p className="text-sm font-semibold">AI Assistant Not Connected</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                LLM and embedding API keys are not configured. Chatbot answers and RAG grounding are offline until keys are set.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/settings"
+            className="flex-shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition"
+          >
+            Configure in Settings &rarr;
+          </Link>
+        </div>
+      )}
+
       {/* Top Greeting & Header Banner */}
       <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center">
         <div>
@@ -44,10 +67,17 @@ export const DashboardPage: React.FC = () => {
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Welcome back, {user?.name?.split(' ')[0] || 'Advisor'}
             </h1>
-            <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
-              <Sparkles className="h-3 w-3 text-blue-500" />
-              <span>AI Engine Active</span>
-            </span>
+            {isAiConnected ? (
+              <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
+                <Sparkles className="h-3 w-3 text-blue-500" />
+                <span>AI Engine Active</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
+                <AlertTriangle className="h-3 w-3 text-amber-500" />
+                <span>AI Offline (Keys Missing)</span>
+              </span>
+            )}
           </div>
           <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             {company?.name || 'Prestige Realty Group'} &bull; Real-time AI conversion pipeline &

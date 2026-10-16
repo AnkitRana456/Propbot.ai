@@ -1095,13 +1095,20 @@ Public webhook endpoint for receiving lead inquiries from external real estate p
 ### Native Integrations & Conversion Tracking
 
 #### `GET /api/integrations`
-Lists configured integration adapters (Google Sheets, HubSpot, Zoho CRM, Meta CAPI, Google Ads):
+Lists configured integration adapters (Google Sheets, HubSpot, Zoho CRM, Meta CAPI, Google Ads) with masked secrets:
 - **Requires**: `view_webhooks` or `manage_settings` permission.
+- **Security**: Sensitive tokens and passwords are fully masked (`••••••••last4`).
+
+#### `GET /api/integrations/platform`
+Lists platform-level foundation integrations and status (OpenAI, Anthropic, Gemini, WhatsApp, R2 Storage, SMTP):
+- **Requires**: `super_admin` role.
+- **Security**: Key values are strictly masked.
 
 #### `PUT /api/integrations/:provider`
 Configures integration settings and credentials:
-- **Providers**: `google_sheets`, `hubspot`, `zoho`, `generic_rest`, `meta_capi`, `google_ads`.
-- **Body**: `{ "config": { "spreadsheetId": "..." }, "credentials": { "apiKey": "..." }, "enabled": true }`
+- **Providers**: `google_sheets`, `hubspot`, `zoho`, `generic_rest`, `meta_pixel`, `google_ads`.
+- **Security**: All API keys, secrets, tokens, and passwords are automatically encrypted at rest using AES-256-GCM (`vault:v1:iv:tag:ciphertext`).
+- **Body**: `{ "config": { "spreadsheetId": "..." }, "status": "active", "events": ["lead.created"] }`
 - **Requires**: `manage_webhooks` or `manage_settings` permission.
 
 #### `POST /api/integrations/:provider/test`

@@ -226,7 +226,7 @@ export class KnowledgeService {
     fileName: string,
     mimeType?: string,
   ): Promise<KnowledgeSourceResponse> {
-    const rawText = parserService.parseFileBuffer(buffer, mimeType, fileName);
+    const rawText = await parserService.parseFileBuffer(buffer, mimeType, fileName);
     const byteSize = buffer.length;
 
     const [created] = await db

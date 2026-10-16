@@ -27,13 +27,35 @@ export class IntegrationsController {
     }
   }
 
+  async getPlatformIntegrations(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = integrationsService.getPlatformIntegrations();
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async updateIntegration(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const companyId = this.getCompanyId(req);
       const provider = integrationProviderSchema.parse(req.params.provider);
       const parsed = updateIntegrationSchema.parse(req.body);
-      const data = await integrationsService.updateIntegration(companyId, provider, parsed);
+      const userId = req.user?.id;
+      const data = await integrationsService.updateIntegration(companyId, provider, parsed, userId);
       res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async disconnectIntegration(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = this.getCompanyId(req);
+      const provider = integrationProviderSchema.parse(req.params.provider);
+      const userId = req.user?.id;
+      await integrationsService.disconnectIntegration(companyId, provider, userId);
+      res.json({ success: true, message: `Disconnected ${provider} integration` });
     } catch (err) {
       next(err);
     }

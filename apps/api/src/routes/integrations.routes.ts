@@ -1,13 +1,23 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/authenticate.js';
 import { tenantGuard } from '../middlewares/tenant-guard.js';
-import { requirePermission } from '../middlewares/rbac.js';
+import { requirePermission, requireRole } from '../middlewares/rbac.js';
 import { integrationsController } from '../modules/integrations/integrations.controller.js';
 
 export const integrationsRouter: Router = Router();
 
 integrationsRouter.use(authenticate, tenantGuard);
 
+// Platform integration status (super_admin)
+integrationsRouter.get(
+  '/platform',
+  requireRole('super_admin'),
+  (req, res, next) => {
+    integrationsController.getPlatformIntegrations(req, res, next);
+  },
+);
+
+// List company integrations
 integrationsRouter.get(
   '/',
   requirePermission('view_webhooks'),
@@ -16,6 +26,7 @@ integrationsRouter.get(
   },
 );
 
+// Update/create company integration (AES-256 encrypted)
 integrationsRouter.put(
   '/:provider',
   requirePermission('manage_webhooks'),
@@ -24,6 +35,16 @@ integrationsRouter.put(
   },
 );
 
+// Disconnect company integration
+integrationsRouter.delete(
+  '/:provider',
+  requirePermission('manage_webhooks'),
+  (req, res, next) => {
+    integrationsController.disconnectIntegration(req, res, next);
+  },
+);
+
+// Test company integration sync
 integrationsRouter.post(
   '/:provider/test',
   requirePermission('manage_webhooks'),
@@ -32,6 +53,7 @@ integrationsRouter.post(
   },
 );
 
+// Track conversion pixel events
 integrationsRouter.post(
   '/pixel/track',
   (req, res, next) => {
