@@ -6,6 +6,7 @@ export const Skeleton: React.FC<{
 }> = ({ className = '', style }) => {
   return (
     <div
+      aria-hidden="true"
       className={`animate-pulse rounded bg-slate-200 dark:bg-slate-700/60 ${className}`}
       style={style}
     />

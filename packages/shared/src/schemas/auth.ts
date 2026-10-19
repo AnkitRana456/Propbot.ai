@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const userRoleSchema = z.enum([
-  'super_admin',
+  'ps-owner',
   'company_admin',
   'sales_manager',
   'agent',
@@ -82,7 +82,7 @@ export const ROLE_PERMISSIONS: Record<
   z.infer<typeof userRoleSchema>,
   readonly z.infer<typeof permissionSchema>[]
 > = {
-  super_admin: [
+  'ps-owner': [
     'manage_company',
     'manage_users',
     'approve_users',

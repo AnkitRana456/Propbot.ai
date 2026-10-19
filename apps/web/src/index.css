@@ -1,163 +1,314 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-:root {
-  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Plus Jakarta Sans', 'Sora', 'Inter', sans-serif;
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-bg: #f8fafc;
-  --color-surface: #ffffff;
-  --color-border: #e2e8f0;
-  --color-text: #0b1b3a;
-  --color-text-muted: #64748b;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1.25rem;
-  --radius-full: 9999px;
-
-  /* Aurora Estate Brand Colors */
-  --aurora-navy: #0B1B3A;
-  --aurora-blue: #2563EB;
-  --aurora-mint: #14B8A6;
-  --aurora-sand: #F6F1E7;
-  --aurora-gold: #F5B942;
-  --aurora-rose: #E11D48;
-
-  /* Standard Slate light mode RGB values */
-  --color-slate-50: 248 250 252;
-  --color-slate-100: 241 245 249;
-  --color-slate-200: 226 232 240;
-  --color-slate-300: 203 213 225;
-  --color-slate-400: 148 163 184;
-  --color-slate-500: 100 116 139;
-  --color-slate-600: 71 85 105;
-  --color-slate-700: 51 65 85;
-  --color-slate-800: 30 41 59;
-  --color-slate-900: 15 23 42;
-  --color-slate-950: 2 6 23;
-}
-
-.dark {
-  /* Aurora Estate Midnight Navy Theme Tokens */
-  --color-bg: #070F1E;
-  --color-surface: #0B1B3A;
-  --color-surface-subtle: #102246;
-  --color-border: #182F5D;
-  --color-border-edge: #142850;
-  --color-text: #F8FAFC;
-  --color-text-muted: #94A3B8;
-  --color-text-secondary: #CBD5E1;
-  color-scheme: dark;
-
-  /*
-   * Aurora Estate Midnight Navy Dark Slate Token Mapping:
-   * slate-950 = #070F1E (Deepest Midnight App Canvas)
-   * slate-900 = #0B1B3A (Midnight Navy Card & Container Surface)
-   * slate-850 = #102246 (Elevated Pills, Inputs, Sub-containers)
-   * slate-800 = #182F5D (Subtle Indigo-Navy Borders, Dividers)
-   * slate-700 = #243F75 (Secondary Borders, Hover States)
-   * slate-600 = #4F7EC0 (Muted Accents)
-   * slate-500 = #83A6D6 (Secondary Text, Sub-labels)
-   * slate-400 = #94A3B8 (Readable Slate Text)
-   * slate-300 = #CBD5E1 (Light Slate Body)
-   * slate-200 = #E2E8F0 (High Contrast Text)
-   * slate-100 = #F1F5F9 (Headers, Values)
-   * slate-50  = #FFFFFF
-   */
-  --color-slate-950: 7 15 30;
-  --color-slate-900: 11 27 58;
-  --color-slate-800: 24 47 93;
-  --color-slate-700: 36 63 117;
-  --color-slate-600: 79 126 192;
-  --color-slate-500: 131 166 214;
-  --color-slate-400: 148 163 184;
-  --color-slate-300: 203 213 225;
-  --color-slate-200: 226 232 240;
-  --color-slate-100: 241 245 249;
-  --color-slate-50: 255 255 255;
-}
 
 * {
   box-sizing: border-box;
 }
 
 body {
-  font-family: var(--font-inter);
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+::selection {
+  background-color: var(--accent-soft);
+  color: var(--accent);
 }
 
-.pill-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.625rem;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: #eff6ff;
-  color: var(--color-primary);
-  border: 1px solid #bfdbfe;
+h1, h2, h3, h4, .font-serif {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.015em;
 }
 
-.dark .pill-badge {
-  background: rgba(37, 99, 235, 0.15);
-  color: #60a5fa;
-  border-color: rgba(96, 165, 250, 0.3);
+.font-mono, .tabular-nums {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Cue Flat Aesthetic: Zero diffuse shadows in dark mode */
-.dark .card,
-.dark .shadow-xs,
-.dark .shadow-sm,
-.dark .shadow,
-.dark .shadow-md,
-.dark .shadow-lg {
-  box-shadow: none !important;
+/* ─────────────── 3D Card System ─────────────── */
+
+.card, .editorial-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow), var(--shadow-inner-glow);
+  transition: all 300ms var(--ease-out-expo);
+  will-change: transform, box-shadow;
 }
 
-.dark .shadow-xl,
-.dark .shadow-2xl {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
+.card:hover, .editorial-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+  border-color: var(--border-subtle);
 }
 
-/* Cue Sleek Scrollbars */
-.dark ::-webkit-scrollbar {
+/* 3D Elevated Card variant */
+.card-elevated {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md), var(--shadow-inner-glow);
+  transition: all 300ms var(--ease-out-expo);
+}
+.card-elevated:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-3px) scale(1.005);
+}
+
+/* Glass Card */
+.card-glass {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--surface) 85%, transparent),
+    color-mix(in srgb, var(--surface-2) 70%, transparent)
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm), var(--shadow-inner-glow);
+}
+
+/* ─────────────── Table Rows ─────────────── */
+
+tr {
+  transition: all 200ms var(--ease-smooth);
+}
+tr:hover td {
+  background-color: var(--surface-2);
+}
+
+/* ─────────────── Form Inputs ─────────────── */
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-input);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  box-shadow: var(--shadow-xs), var(--shadow-inner-glow);
+  transition: all 200ms var(--ease-out-expo);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow-sm);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-faint);
+}
+
+/* ─────────────── Premium Scrollbars ─────────────── */
+
+::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-.dark ::-webkit-scrollbar-track {
-  background: #141414;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: #282828;
+::-webkit-scrollbar-thumb {
+  background: var(--border);
   border-radius: 3px;
+  transition: background 200ms;
 }
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #383838;
-}
-
-/* Cue Clean Form Controls in Dark Mode */
-.dark input:not([type="checkbox"]):not([type="radio"]),
-.dark select,
-.dark textarea {
-  background-color: #1c1c1c;
-  border-color: #2a2a2a;
-  color: #e6e6e6;
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: #8a8a8a;
+/* ─────────────── Skeletons ─────────────── */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    var(--surface-3) 50%,
+    var(--surface-2) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-input);
+  animation: shimmer 1.8s infinite;
 }
 
+/* ─────────────── Stat Number 3D Effect ─────────────── */
+
+.stat-number {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  background: linear-gradient(to bottom, var(--text), var(--text-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─────────────── Progress Bar 3D ─────────────── */
+
+.progress-bar-3d {
+  position: relative;
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+}
+.progress-bar-3d .bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: width 800ms var(--ease-out-expo);
+}
+
+/* ─────────────── Nav Item Glow ─────────────── */
+
+.nav-item-active {
+  position: relative;
+  background: linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--accent-soft) 50%, transparent));
+  box-shadow: var(--shadow-xs);
+}
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(to bottom, var(--accent), var(--accent-hover));
+  box-shadow: 2px 0 8px var(--accent-glow);
+}
+
+/* ─────────────── Dropdown Depth ─────────────── */
+
+.dropdown-elevated {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  box-shadow: var(--shadow-xl), 0 0 0 1px var(--border);
+  animation: fadeInDown 200ms var(--ease-out-expo) both;
+}
+
+/* ─────────────── Sidebar Premium ─────────────── */
+
+.sidebar-premium {
+  background: linear-gradient(to bottom, var(--surface), color-mix(in srgb, var(--surface-2) 30%, var(--surface)));
+  box-shadow: var(--shadow-md);
+}
+
+/* ─────────────── TopBar Premium ─────────────── */
+
+.topbar-premium {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow: 0 1px 0 var(--border), var(--shadow-xs);
+}
+
+/* ─────────────── Metric Counter Animation ─────────────── */
+
+.metric-container {
+  position: relative;
+  overflow: hidden;
+}
+.metric-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--accent-glow-strong), transparent);
+  opacity: 0;
+  transition: opacity 400ms;
+}
+.metric-container:hover::after {
+  opacity: 1;
+}
+
+/* ─────────────── Divider with Depth ─────────────── */
+
+.divider-depth {
+  height: 1px;
+  background: linear-gradient(to right, transparent 0%, var(--border) 15%, var(--border) 85%, transparent 100%);
+}
+
+/* ─────────────── Notification Dot Pulse ─────────────── */
+
+.notif-dot {
+  position: relative;
+}
+.notif-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* ─────────────── Page Header with Gradient ─────────────── */
+
+.page-header-gradient {
+  position: relative;
+}
+.page-header-gradient::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, var(--accent), var(--brass), var(--accent));
+  opacity: 0.3;
+}
+
+/* ─────────────── Accessibility & motion polish ─────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .card:hover,
+  .editorial-card:hover {
+    transform: none;
+  }
+}

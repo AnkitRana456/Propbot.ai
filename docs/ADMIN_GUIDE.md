@@ -10,7 +10,7 @@ PropBot Pro enforces strict role-based access control (RBAC):
 
 | Role | Scope | Key Capabilities |
 |---|---|---|
-| `super_admin` | Platform Wide | Tenant provisioning, billing tiers, global feature flags, cross-tenant system metrics |
+| `ps-owner` | Platform Wide | Tenant provisioning, billing tiers, global feature flags, cross-tenant system metrics |
 | `company_admin` | Company | Chatbot creation, knowledge ingestion, team invites, AI kill switch, integration keys, billing |
 | `sales_manager` | Company | Lead assignment rules, CRM pipeline stages, AI action approvals (T2), analytics reports |
 | `agent` | Assigned Leads | View assigned leads, chat live with buyers, update stages, manage calendar site visits |

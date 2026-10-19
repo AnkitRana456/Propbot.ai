@@ -175,7 +175,7 @@ export class IntegrationsService {
   }
 
   /**
-   * Returns platform-level integration status for super_admin users.
+   * Returns platform-level integration status for ps-owner users.
    */
   getPlatformIntegrations() {
     return {

@@ -8,10 +8,10 @@ export const integrationsRouter: Router = Router();
 
 integrationsRouter.use(authenticate, tenantGuard);
 
-// Platform integration status (super_admin)
+// Platform integration status (ps-owner)
 integrationsRouter.get(
   '/platform',
-  requireRole('super_admin'),
+  requireRole('ps-owner'),
   (req, res, next) => {
     integrationsController.getPlatformIntegrations(req, res, next);
   },

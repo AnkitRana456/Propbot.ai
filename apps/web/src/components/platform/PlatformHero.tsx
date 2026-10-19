@@ -1,201 +1,394 @@
-import React from 'react';
-import {
-  Sparkles,
-  ArrowRight,
-  Calendar,
-  CheckCircle2,
-  Building,
-  Flame,
-  Bot,
-  User,
-  ExternalLink,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Compass, ArrowRight, PhoneCall, MessageSquare, Sparkles, Bot, Activity, TrendingUp } from 'lucide-react';
 
 export const PlatformHero: React.FC = () => {
+  const [activeQuery, setActiveQuery] = useState('Show high-value 3BHK leads in Bandra & Pune');
+  const [activeVoiceLanguage, setActiveVoiceLanguage] = useState<'Hindi' | 'Marathi' | 'English'>('Hindi');
+
   return (
-    <section id="hero" className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
-      {/* Background Subtle Gradient Blobs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-1/3 right-10 w-[400px] h-[400px] bg-indigo-500/10 dark:bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+    <section id="hero" className="relative pt-28 pb-20 lg:pt-36 lg:pb-28 overflow-hidden blueprint-grid border-b border-[var(--border)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        {/* Eyebrow Architectural Tag */}
+        <div className="flex items-center gap-2 mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--accent)] shadow-none">
+            <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+            <span className="blueprint-label text-[11px] font-mono tracking-wider font-semibold">
+              PropBot Copilot &bull; Architectural Real Estate Intelligence
+            </span>
+          </div>
+        </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          {/* Left Column: Storytelling & CTAs */}
-          <div className="lg:col-span-6 flex flex-col items-start text-left">
-            {/* Eyebrow Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 mb-6 shadow-sm">
-              <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
-                The AI Platform for Real Estate
-              </span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] mb-6">
-              Turn Every Property Conversation Into Your{' '}
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 bg-clip-text text-transparent">
-                Next Opportunity.
-              </span>
+        {/* Hero Title & Story */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-14">
+          <div className="lg:col-span-8">
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-[var(--text)] tracking-tight font-normal leading-[1.12] mb-6">
+              Your real estate AI team that <em className="italic text-[var(--accent)] font-serif">never sleeps.</em>
             </h1>
-
-            {/* Supporting Copy */}
-            <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 leading-relaxed mb-8 max-w-xl">
-              Meet <strong className="font-semibold text-slate-900 dark:text-white">PropBot Pro</strong> — an AI-powered platform that helps real-estate teams engage buyers, understand their requirements, recommend relevant properties, and move qualified leads toward a site visit.
+            <p className="text-base sm:text-lg text-[var(--text-muted)] leading-relaxed max-w-2xl font-sans mb-8">
+              PropBot qualifies property buyers, coaches your sales advisors in real time, and sequences exactly what to do next. Your brokerage does less administrative work and closes more inventory.
             </p>
 
-            {/* CTA Group */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto mb-10">
+            {/* CTAs adhering to Terracotta & Ink standards */}
+            <div className="flex flex-wrap items-center gap-3.5">
+              <Link
+                to="/dashboard"
+                className="btn-terracotta inline-flex items-center justify-center gap-2.5 px-6 py-3 text-sm tracking-wide"
+              >
+                <Compass className="w-4 h-4 stroke-[1.75]" />
+                <span>See Copilot Live</span>
+                <ArrowRight className="w-4 h-4 stroke-[1.75]" />
+              </Link>
               <a
                 href="#demo"
-                className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:-translate-y-0.5"
+                className="btn-ink-outline inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium"
               >
-                <Sparkles className="w-4 h-4" />
-                Explore the Platform
-                <ArrowRight className="w-4 h-4" />
+                <span>Explore Architectural Workflows</span>
               </a>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all hover:-translate-y-0.5"
+              <Link
+                to="/login"
+                className="btn-ghost-editorial inline-flex items-center gap-1.5 px-4 py-3 text-sm"
               >
-                See How It Works
-              </a>
-            </div>
-
-            {/* Trust Highlights */}
-            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 dark:border-slate-800 w-full max-w-lg">
-              <div>
-                <div className="text-2xl font-bold text-slate-900 dark:text-white">0%</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Price Hallucination</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24/7</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Instant WhatsApp SLA</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">100%</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">RERA-Compliant Data</div>
-              </div>
+                <span>Sign In to CRM &rarr;</span>
+              </Link>
             </div>
           </div>
 
-          {/* Right Column: Visual Product Mockup Preview */}
-          <div className="lg:col-span-6 relative">
-            {/* Backdrop glow */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 via-indigo-500/20 to-purple-500/10 rounded-3xl blur-2xl -z-10" />
+          {/* Quick Ledger Stats separated by hairlines */}
+          <div className="lg:col-span-4 bg-[var(--surface)] border border-[var(--border)] rounded-[10px] p-5 space-y-4">
+            <div className="blueprint-label pb-2 border-b border-[var(--border)]">
+              Real-Time Platform Ledger
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-[var(--text-muted)]">Verified Buyers</div>
+                <div className="font-serif text-2xl text-[var(--text)] font-medium">14,280+</div>
+                <div className="font-mono text-[11px] text-[var(--success)]">+22.4% MoM</div>
+              </div>
+              <div>
+                <div className="text-xs text-[var(--text-muted)]">Avg First Response</div>
+                <div className="font-serif text-2xl text-[var(--text)] font-medium">18s</div>
+                <div className="font-mono text-[11px] text-[var(--brass)]">WhatsApp & Web</div>
+              </div>
+              <div>
+                <div className="text-xs text-[var(--text-muted)]">Pipeline Value</div>
+                <div className="font-serif text-2xl text-[var(--text)] font-medium">₹482 Cr</div>
+                <div className="font-mono text-[11px] text-[var(--text-muted)]">Ledger Total</div>
+              </div>
+              <div>
+                <div className="text-xs text-[var(--text-muted)]">Hallucination SLA</div>
+                <div className="font-serif text-2xl text-[var(--success)] font-medium">0.00%</div>
+                <div className="font-mono text-[11px] text-[var(--success)]">RERA Guarded</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            {/* Composite Glassmorphic Showcase Stack */}
-            <div className="relative rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 shadow-2xl p-5 sm:p-6 backdrop-blur-xl space-y-4">
-              {/* Header Bar */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        {/* LIVE COPILOT DASHBOARD SHOWCASE (Sell.do style hero recreated in Terracotta & Ink) */}
+        <div className="relative border border-[var(--border)] rounded-[10px] bg-[var(--surface)] shadow-[0_8px_30px_rgba(28,26,22,0.06)] overflow-hidden">
+          {/* Mockup Window Titlebar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--surface-2)]">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#D9645C] border border-[#A3302A]/30" />
+              <span className="w-3 h-3 rounded-full bg-[#E0A53A] border-[#C58A1B]/30" />
+              <span className="w-3 h-3 rounded-full bg-[#6FA593] border-[#2F5D50]/30" />
+              <span className="ml-3 font-mono text-[11px] text-[var(--text-muted)]">
+                app.propbot.pro/copilot
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="blueprint-label">Status: Active AI Dispatch</span>
+              <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
+            </div>
+          </div>
+
+          {/* Copilot Core Grid Layout */}
+          <div className="p-5 lg:p-7 space-y-6">
+            {/* Copilot Top Sub-header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
+              <div>
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                    PB
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      Prestige Lakeside Concierge
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    </div>
-                    <div className="text-[10px] text-slate-400">RERA Verified AI Assistant</div>
-                  </div>
-                </div>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  Live Inquiry
-                </span>
-              </div>
-
-              {/* Chat Dialogue Snippet */}
-              <div className="space-y-2.5 text-xs">
-                {/* User Bubble */}
-                <div className="flex gap-2.5 items-start justify-end">
-                  <div className="bg-blue-600 text-white px-3.5 py-2.5 rounded-2xl rounded-tr-sm max-w-[85%] shadow-sm leading-relaxed">
-                    Looking for a lake-facing 3BHK in Whitefield around ₹2.2 Cr. Are units ready to move?
-                  </div>
-                  <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0">
-                    <User className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-
-                {/* Bot Bubble */}
-                <div className="flex gap-2.5 items-start">
-                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-                    <Bot className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3.5 py-2.5 rounded-2xl rounded-tl-sm max-w-[90%] leading-relaxed space-y-2">
-                    <p>
-                      Yes! In Tower B, <strong>Unit B-802</strong> (3BHK Lake View) is 1,850 sq.ft. carpet area at ₹2.10 Cr. All OC clearances received with zero GST.
-                    </p>
-                    <div className="pt-1 flex items-center gap-2 text-[11px] font-medium text-blue-600 dark:text-blue-400">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      RERA: PRM/KA/RERA/1251/446/PR/171015/000452
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Nested Cards Grid: Buyer DNA + Property Shortlist + Site Visit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                {/* Card 1: Live Buyer DNA */}
-                <div className="rounded-xl border border-blue-200/70 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/30 p-3 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
-                      Live Buyer DNA
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">
-                      <Flame className="w-3 h-3 text-red-500" /> 94% Hot Lead
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <div className="text-slate-900 dark:text-white font-semibold truncate">Amit Patel (Verified Phone)</div>
-                    <div className="text-slate-500 dark:text-slate-400 text-[11px]">Budget: ₹2.10 Cr – ₹2.50 Cr</div>
-                    <div className="text-slate-500 dark:text-slate-400 text-[11px]">Pref: 3BHK / Lake Facing / Whitefield</div>
-                  </div>
-                </div>
-
-                {/* Card 2: Site Visit Scheduled */}
-                <div className="rounded-xl border border-emerald-200/70 dark:border-emerald-900/60 bg-emerald-50/50 dark:bg-emerald-950/30 p-3 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                      VIP Site Visit Confirmed
-                    </span>
-                    <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <div className="text-slate-900 dark:text-white font-semibold truncate">Saturday, 11:00 AM</div>
-                    <div className="text-slate-500 dark:text-slate-400 text-[11px] truncate">Prestige Lakeside Clubhouse</div>
-                    <div className="text-emerald-600 dark:text-emerald-400 font-medium text-[11px]">Assigned: Rahul Sharma</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Quick Pill: Shortlist Room Trigger */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-2.5 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    Smart Shortlist Room #PR-99
+                  <h2 className="font-serif text-2xl text-[var(--text)] font-medium">
+                    Jarvis Copilot &bull; Real Estate Revenue Engine
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-mono text-[10px] font-semibold">
+                    Always On
                   </span>
-                  <span className="text-[10px] text-slate-500 hidden sm:inline">• 3 Units Matched</span>
                 </div>
-                <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1">
-                  Private Link Dispatched <ExternalLink className="w-3 h-3" />
-                </span>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  Autonomous lead triage, voice coaching, and predictive inventory matching.
+                </p>
+              </div>
+
+              <Link
+                to="/dashboard"
+                className="btn-terracotta px-3.5 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Open in App</span>
+              </Link>
+            </div>
+
+            {/* Natural Language Prompt & Next Best Action Box */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              <div className="lg:col-span-8 space-y-4">
+                {/* Natural Language Search Input */}
+                <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-[6px] p-3.5">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-muted)] mb-2 font-mono">
+                    <span className="flex items-center gap-1.5">
+                      <Bot className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      Ask Copilot (Plain Language)
+                    </span>
+                    <span className="text-[10px]">Natural Language RAG</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--border)] rounded-[6px] px-3.5 py-2.5">
+                    <span className="text-xs font-mono text-[var(--text)]">
+                      &ldquo;{activeQuery}&rdquo;
+                    </span>
+                    <button
+                      onClick={() =>
+                        setActiveQuery(
+                          activeQuery.includes('Bandra')
+                            ? 'Rank top 5 ready-to-move penthouses under ₹4.5 Cr'
+                            : 'Show high-value 3BHK leads in Bandra & Pune'
+                        )
+                      }
+                      className="text-[11px] font-mono text-[var(--accent)] hover:underline whitespace-nowrap"
+                    >
+                      Cycle Query
+                    </button>
+                  </div>
+
+                  {/* Query Result Card */}
+                  <div className="mt-3 bg-[var(--surface)] border border-[var(--border)] rounded-[6px] p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-mono font-medium text-[var(--text)]">
+                        3 high-priority leads over ₹2.1 Cr &bull; Idle 4+ days
+                      </span>
+                      <span className="blueprint-label">Triage Priority</span>
+                    </div>
+                    <div className="space-y-1 text-xs text-[var(--text-muted)] font-mono">
+                      <div className="flex justify-between py-0.5 border-b border-[var(--border)]/60">
+                        <span>&bull; Sana Kapoor (3BHK Lakeview, Bandra West)</span>
+                        <span className="text-[var(--text)]">₹2.8 Cr &bull; Idle 5d</span>
+                      </div>
+                      <div className="flex justify-between py-0.5 border-b border-[var(--border)]/60">
+                        <span>&bull; Rohit Malhotra (4BHK Duplex, Koregaon Park)</span>
+                        <span className="text-[var(--text)]">₹3.4 Cr &bull; Idle 4d</span>
+                      </div>
+                      <div className="flex justify-between py-0.5">
+                        <span>&bull; Iqbal Siddiqui (Commercial Office, BKC)</span>
+                        <span className="text-[var(--text)]">₹5.2 Cr &bull; Idle 6d</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[var(--accent-soft)] text-[var(--accent)] font-mono text-[11px] font-medium">
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        Next best action: Call Sana Kapoor now — 94% Intent, viewed floorplan 3x
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Voice Agent Preview with Live Audio Waveform */}
+                <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-[6px] p-3.5 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <PhoneCall className="w-4 h-4 text-[var(--success)]" />
+                      <span className="font-mono font-medium text-[var(--text)]">
+                        Autonomous AI Voice Agent
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-[#6FA593]/20 text-[var(--success)] font-mono text-[10px]">
+                        Live Call 00:42
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] font-mono">
+                      {(['Hindi', 'Marathi', 'English'] as const).map((lang) => (
+                        <button
+                          key={lang}
+                          onClick={() => setActiveVoiceLanguage(lang)}
+                          className={`px-2 py-0.5 rounded-[4px] transition-colors ${
+                            activeVoiceLanguage === lang
+                              ? 'bg-[var(--accent)] text-[var(--surface)]'
+                              : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                          }`}
+                        >
+                          {lang}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[6px] p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[var(--danger)] animate-ping" />
+                        <span className="font-serif font-medium text-[var(--text)]">Calling Rohit M.</span>
+                        <span className="blueprint-label">
+                          {activeVoiceLanguage} &bull; Auto-detected
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-mono text-[var(--success)]">Positive Sentiment</span>
+                    </div>
+
+                    {/* Simulated Audio Waveform Bar Spectrum */}
+                    <div className="flex items-center gap-1 h-6 py-1">
+                      {[12, 24, 18, 30, 16, 28, 22, 34, 18, 26, 32, 14, 28, 20, 30, 24, 16, 22, 18, 28, 32, 20, 14].map(
+                        (h, i) => (
+                          <div
+                            key={i}
+                            style={{ height: `${h}px` }}
+                            className={`w-1 rounded-full ${
+                              i % 2 === 0 ? 'bg-[var(--accent)]' : 'bg-[var(--brass)]'
+                            } transition-all duration-300`}
+                          />
+                        )
+                      )}
+                    </div>
+
+                    <div className="text-xs font-mono text-[var(--text-muted)] bg-[var(--surface-2)] p-2 rounded-[4px]">
+                      &ldquo;Haan ji, budget ₹2.2 Cr tak theek rahega. Kya Saturday morning 11 baje site visit confirm ho sakti hai?&rdquo;
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side Column: Lead Score Dial + Call Coaching Matrix */}
+              <div className="lg:col-span-4 space-y-4">
+                {/* AI Lead Score Card */}
+                <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-[6px] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="blueprint-label">AI Lead Score</span>
+                    <span className="font-mono text-[10px] text-[var(--success)] font-semibold">
+                      HIGH CONVERSION
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4 bg-[var(--surface)] border border-[var(--border)] rounded-[6px] p-3">
+                    <div className="w-16 h-16 rounded-full border-4 border-[var(--success)] flex flex-col items-center justify-center shrink-0">
+                      <span className="font-serif text-xl font-medium text-[var(--text)]">92</span>
+                      <span className="text-[9px] font-mono text-[var(--success)] uppercase font-bold">
+                        HOT
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="font-serif font-medium text-sm text-[var(--text)]">
+                        Sana Kapoor
+                      </div>
+                      <div className="font-mono text-xs text-[var(--text-muted)]">
+                        ₹2.1 Cr &bull; 3 BHK &bull; Baner
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Why Hot Ledger Breakdown */}
+                  <div className="space-y-1.5 text-[11px] font-mono text-[var(--text-muted)]">
+                    <div className="text-[10px] uppercase tracking-wider text-[var(--text)] font-semibold">
+                      Conversion Evidence:
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
+                      <span>Opened cost sheet 3x in 24 hours</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
+                      <span>Spent 3m 40s in Shortlist Room</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
+                      <span>Replied on WhatsApp within 90 seconds</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Call Coaching & Speech Analytics Card */}
+                <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-[6px] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="blueprint-label">Call Analysis &amp; Coaching</span>
+                    <Activity className="w-3.5 h-3.5 text-[var(--brass)]" />
+                  </div>
+
+                  <div className="space-y-2 font-mono text-xs">
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-[var(--text)]">Rohan K. (Objection Handling)</span>
+                        <span className="text-[var(--success)]">88%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-[var(--surface)] rounded-full overflow-hidden">
+                        <div className="h-full bg-[var(--success)] w-[88%]" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-[var(--text)]">Aarti D. (Value Pitching)</span>
+                        <span className="text-[var(--brass)]">72%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-[var(--surface)] rounded-full overflow-hidden">
+                        <div className="h-full bg-[var(--brass)] w-[72%]" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-[var(--text)]">Vikram P. (Closing Urgency)</span>
+                        <span className="text-[var(--accent)]">64%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-[var(--surface)] rounded-full overflow-hidden">
+                        <div className="h-full bg-[var(--accent)] w-[64%]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] font-mono text-[var(--text-muted)] pt-1 border-t border-[var(--border)]">
+                    Recommendation: Coach Vikram on payment milestone disclosures.
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Floating Mini Badge */}
-            <div className="absolute -bottom-4 -left-4 sm:-bottom-5 sm:-left-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-xl flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center font-bold text-sm shadow-md">
-                ✓
+            {/* Night Log Banner (Copilot worked overnight) */}
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-[6px] p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+                <span className="font-semibold text-[var(--text)]">Copilot Worked Overnight:</span>
+                <span className="text-[var(--text-muted)]">
+                  Scored 100% of yesterday’s inbound chats, re-ranked pipeline by purchase intent, and queued 12 next-best actions before 8:00 AM.
+                </span>
               </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Enterprise Tier RLS</div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400">Zero Cross-Tenant Leakage</div>
-              </div>
+              <Link
+                to="/dashboard"
+                className="text-[var(--accent)] hover:underline whitespace-nowrap font-medium"
+              >
+                Review Night Triage &rarr;
+              </Link>
             </div>
           </div>
+        </div>
+
+        {/* Floating Quick Action Buttons on Bottom Right (Terracotta & Pine styling) */}
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2.5">
+          <a
+            href="https://wa.me/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Connect on WhatsApp"
+            className="w-12 h-12 rounded-full bg-[#2F5D50] hover:bg-[#254b40] text-white flex items-center justify-center shadow-[0_4px_14px_rgba(47,93,80,0.35)] transition-transform hover:scale-105 border border-[#6FA593]/40"
+          >
+            <MessageSquare className="w-5 h-5 stroke-[1.75]" />
+          </a>
+          <Link
+            to="/appointments"
+            title="Book Site Visit or Call"
+            className="w-12 h-12 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white flex items-center justify-center shadow-[0_4px_14px_rgba(184,74,34,0.35)] transition-transform hover:scale-105 border border-[var(--surface)]/20"
+          >
+            <PhoneCall className="w-5 h-5 stroke-[1.75]" />
+          </Link>
         </div>
       </div>
     </section>
   );
 };
+
+export default PlatformHero;

@@ -196,9 +196,9 @@ export const ChatbotSettingsPage: React.FC = () => {
       </div>
 
       {/* Main Settings Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Navigation Tabs (3 cols) */}
-        <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900 shadow-xs space-y-1">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Left Navigation Tabs (2 cols on xl, 3 on lg) */}
+        <div className="lg:col-span-3 xl:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-xs space-y-1">
           {SETTINGS_TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -207,21 +207,21 @@ export const ChatbotSettingsPage: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
-                } ${tab.id === 'danger' ? 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30' : ''}`}
+                    ? 'bg-[var(--accent)] text-white shadow-xs'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]'
+                } ${tab.id === 'danger' ? 'text-rose-600 hover:bg-rose-500/10' : ''}`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
-                <span>{tab.label}</span>
+                <Icon className={`h-4 w-4 ${isActive ? 'text-white' : ''}`} />
+                <span className="truncate">{tab.label}</span>
               </button>
             );
           })}
         </div>
 
         {/* Center Tab Form (5 cols) */}
-        <div className="lg:col-span-5 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-xs min-h-[560px]">
+        <div className="lg:col-span-4 xl:col-span-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs min-h-[560px]">
           {/* TAB 1: GENERAL */}
           {activeTab === 'general' && (
             <div className="space-y-5">
@@ -423,8 +423,8 @@ export const ChatbotSettingsPage: React.FC = () => {
           )}
         </div>
 
-        {/* Right Sticky Preview (4 cols) */}
-        <div className="lg:col-span-4 sticky top-20 h-[580px]">
+        {/* Right Sticky Preview (5 cols on lg & xl) */}
+        <div className="lg:col-span-5 xl:col-span-5 sticky top-16 h-[660px] min-h-[580px]">
           <LiveWidgetPreview name={name} type={type} config={config} />
         </div>
       </div>

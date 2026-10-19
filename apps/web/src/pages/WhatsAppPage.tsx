@@ -27,17 +27,17 @@ export function WhatsAppPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2.5">
-            <h1 className="text-xl font-bold text-gray-900">WhatsApp AI Bot & Shared Inbox</h1>
+            <h1 className="text-xl font-serif font-bold text-[var(--text-primary)]">WhatsApp AI Bot & Shared Inbox</h1>
             <span
               className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                isConnected ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                isConnected ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-[var(--surface-muted)] text-[var(--text-muted)] border border-[var(--border)]'
               }`}
             >
-              <Radio className={`h-3 w-3 mr-1 ${isConnected ? 'text-emerald-500 animate-pulse' : 'text-gray-400'}`} />
-              {isConnected ? 'Meta Connected' : 'Disconnected'}
+              <Radio className={`h-3 w-3 mr-1 ${isConnected ? 'text-emerald-500 animate-pulse' : 'text-[var(--text-muted)]'}`} />
+              {isConnected ? 'Meta Connected' : 'Test Simulator Mode'}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-[var(--text-muted)] mt-1">
             24/7 AI-driven property conversations with instant human handoff and lead qualification.
           </p>
         </div>
@@ -46,29 +46,29 @@ export function WhatsAppPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setIsSimulateOpen(true)}
-            className="inline-flex items-center px-3.5 py-2 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 rounded-xl transition shadow-xs"
+            className="inline-flex items-center px-3.5 py-2 text-xs font-semibold bg-[var(--accent)] text-white hover:brightness-110 rounded-xl transition shadow-xs"
           >
-            <Radio className="h-3.5 w-3.5 mr-1.5 text-emerald-600 animate-pulse" />
+            <Radio className="h-3.5 w-3.5 mr-1.5 text-white animate-pulse" />
             Simulate Inbound Message
           </button>
           <button
             onClick={() => setIsBroadcastOpen(true)}
-            className="inline-flex items-center px-3.5 py-2 text-xs font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition shadow-xs"
+            className="inline-flex items-center px-3.5 py-2 text-xs font-semibold bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-muted)] rounded-xl transition shadow-xs"
           >
-            <Send className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
+            <Send className="h-3.5 w-3.5 mr-1.5 text-[var(--accent)]" />
             New Broadcast
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 space-x-6">
+      <div className="flex border-b border-[var(--border)] space-x-6">
         <button
           onClick={() => setActiveTab('inbox')}
           className={`pb-3 text-xs font-bold flex items-center space-x-1.5 transition border-b-2 -mb-px ${
             activeTab === 'inbox'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-800'
+              ? 'border-[var(--accent)] text-[var(--accent)]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
         >
           <MessageSquare className="h-4 w-4" />
@@ -79,8 +79,8 @@ export function WhatsAppPage() {
           onClick={() => setActiveTab('overview')}
           className={`pb-3 text-xs font-bold flex items-center space-x-1.5 transition border-b-2 -mb-px ${
             activeTab === 'overview'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-800'
+              ? 'border-[var(--accent)] text-[var(--accent)]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
         >
           <LayoutDashboard className="h-4 w-4" />
@@ -91,8 +91,8 @@ export function WhatsAppPage() {
           onClick={() => setActiveTab('config')}
           className={`pb-3 text-xs font-bold flex items-center space-x-1.5 transition border-b-2 -mb-px ${
             activeTab === 'config'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-800'
+              ? 'border-[var(--accent)] text-[var(--accent)]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
         >
           <Settings className="h-4 w-4" />

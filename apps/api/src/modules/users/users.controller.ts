@@ -14,7 +14,7 @@ export class UsersController {
   async getUsers(req: Request, res: Response, next: NextFunction) {
     try {
       const companyId = req.user!.companyId;
-      const isSuperAdmin = req.user!.role === 'super_admin';
+      const isSuperAdmin = req.user!.role === 'ps-owner';
       const filter = userFilterSchema.parse(req.query);
 
       const result = await usersService.getUsers(companyId, isSuperAdmin, filter);
@@ -27,7 +27,7 @@ export class UsersController {
   async getKpis(req: Request, res: Response, next: NextFunction) {
     try {
       const companyId = req.user!.companyId;
-      const isSuperAdmin = req.user!.role === 'super_admin';
+      const isSuperAdmin = req.user!.role === 'ps-owner';
 
       const data = await usersService.getKpis(companyId, isSuperAdmin);
       res.json({ success: true, data });
@@ -40,7 +40,7 @@ export class UsersController {
     try {
       const companyId = req.user!.companyId;
       const actorId = req.user!.id;
-      const isSuperAdmin = req.user!.role === 'super_admin';
+      const isSuperAdmin = req.user!.role === 'ps-owner';
       const targetUserId = req.params.id!;
       const input = updateUserSchema.parse(req.body);
 
@@ -61,7 +61,7 @@ export class UsersController {
     try {
       const companyId = req.user!.companyId;
       const actorId = req.user!.id;
-      const isSuperAdmin = req.user!.role === 'super_admin';
+      const isSuperAdmin = req.user!.role === 'ps-owner';
       const targetUserId = req.params.id!;
 
       await usersService.deleteUser(companyId, targetUserId, actorId, isSuperAdmin);

@@ -881,12 +881,12 @@ Phase 7 introduces complete inventory management for real estate developers and 
 - **Status:** [x] Done
 - **Scope Completed:**
   - **KPI Metric Cards (`UsersKpiCards.tsx`)**: 4 KPI counters (Total Users, Active Users, Pending Approval, Companies Count).
-  - **User Directory Table (`UsersTable.tsx`)**: Displays users with avatars, names, emails, role badges (`super_admin`, `company_admin`, `sales_manager`, `agent`, `viewer`), company name, and joined date.
+  - **User Directory Table (`UsersTable.tsx`)**: Displays users with avatars, names, emails, role badges (`ps-owner`, `company_admin`, `sales_manager`, `agent`, `viewer`), company name, and joined date.
   - **User Manage Drawer (`UserManageDrawer.tsx`)**: Role selection, team assignment, configurable working hours (`days`, `start`, `end`, `timezone`), lead capacity (max open leads), chatbot assignment checklist, and Two-Factor Authentication reset.
   - **Tokenized Invitation Lifecycle (`invitations.service.ts` & `InviteUserModal.tsx`)**: 32-byte hex crypto token generated with SHA-256 hash stored at rest, 7-day expiration timer, mock email dispatch stub, and secure acceptance route (`POST /api/users/accept-invite`) verifying tokens and creating active authenticated user sessions.
   - **Pending Approvals Queue**: Company admins can review, approve (`POST /api/auth/users/:id/approve`), or reject self-registered user accounts.
   - **Centralized Audit Logging (`audit.service.ts` & `AuditLogsTab.tsx`)**: Logs sensitive administrative actions (`user_invited`, `role_changed`, `user_deactivated`, `api_key_created`, `api_key_revoked`, `totp_enabled`, `totp_reset`, `plan_upgraded`, etc.) with actor ID, IP address, user-agent, target type, and payload details.
-  - **Last Admin Protection Guard**: System prevents demoting, disabling, or deleting the last active `company_admin` or `super_admin` in a company.
+  - **Last Admin Protection Guard**: System prevents demoting, disabling, or deleting the last active `company_admin` or `ps-owner` in a company.
 
 ---
 
@@ -1127,7 +1127,7 @@ Phase 7 introduces complete inventory management for real estate developers and 
   - Database schema: `event_consumer_checkpoints` table with unique constraint on `(event_id, consumer_name)` and `is_dead` flag on `domain_events`.
   - Migration `0012_platform_safety_actions.sql` generated and applied cleanly.
   - `OutboxDispatcherService`: Implemented batch claiming via `SELECT ... FOR UPDATE SKIP LOCKED` inside an atomic transaction.
-  - Multi-consumer fan-out: `webhooks`, `notifications`, and `next-best-action`.
+  - Multi-consumer fan-out: `webhooks`, `notifications`, `workflows`, `voice_callback`, `next_best_action`, and `analytics_rollups`.
   - Checkpoint-based idempotency preventing duplicate consumer execution on retry.
   - Dead-letter parking after 5 failed attempts (`is_dead = true`).
   - Admin inspection (`GET /api/events`) and event replay (`POST /api/events/:id/replay`).
@@ -1147,7 +1147,7 @@ Phase 7 introduces complete inventory management for real estate developers and 
 ### 15A.3 Next Best Action (NBA) Engine
 - **Status:** [x] Done
 - **Scope Completed:**
-  - Rule-based Next Best Action engine listening to outbox domain events (`lead_hot`, `visit_booked`, `room_viewed`, `intent_changed`, `message_received`).
+  - Rule-based Next Best Action engine listening to outbox domain events (`lead_hot`, `visit_booked`, `room_viewed`, `intent_changed`, `message_received`, `lead_status_changed`).
   - Contextual recommendations grounded in Buyer DNA and intent score.
   - Persisted directly to `leads.next_best_action` column.
   - Interactive Next Best Action Banner mounted inside `LeadDetailDrawer.tsx` with 1-click execution (`POST /api/crm/leads/:id/next-best-action/execute`).
@@ -1159,7 +1159,8 @@ Phase 7 introduces complete inventory management for real estate developers and 
     - `decayIdleLeadScores()`: Nightly intent score decay for idle leads (inactive > 3 days), score history logging, and `intent_changed` event publication.
     - `expireStaleApprovals()`: Automated sweep expiring unapproved T2 actions past 48h.
     - `cleanupOldEvents()`: Retention purge for processed domain events beyond 30 days.
-  - Background worker (`apps/api/src/worker.ts`): Integrated outbox poller (5s interval), approval expiry (60s interval), and nightly intent decay (30m interval).
+    - `checkThirdPartyTokenHealth()`: Hourly inspection of configured integrations (OAuth/access tokens for Meta WhatsApp, Google Sheets, CRM) warning administrators before expiration (< 24h).
+  - Background worker (`apps/api/src/worker.ts`): Integrated outbox poller (5s interval), reminder sweep (60s), approval expiry (60s interval), nightly intent decay (30m interval), daily analytics rollups (10m), and token health check (60m).
 
 ### 15A.5 Quality Gates, Evals & Test Suites
 - **Status:** [x] Done
@@ -1167,25 +1168,56 @@ Phase 7 introduces complete inventory management for real estate developers and 
   - `apps/api/tests/security/ai-guarded-actions-full.test.ts` (9 tests passing): T0-T3 tiers, kill switch, daily caps, approval parameter edits, and rejection.
   - `apps/api/tests/events/outbox-fanout-resilience.test.ts` (6 tests passing): `SKIP LOCKED` batch claiming, consumer fan-out, checkpoint idempotency, dead-letter parking, and replay.
   - `apps/api/tests/crm/next-best-action.test.ts` (7 tests passing): recommendation rules, outbox integration, and execution endpoint.
-  - `apps/api/tests/jobs/scheduled-nightly-decay.test.ts` (3 tests passing): idle score decay, stale approval expiry, and event cleanup.
+  - `apps/api/tests/jobs/scheduled-nightly-decay.test.ts` (4 tests passing): idle score decay, stale approval expiry, event cleanup, and token health monitoring.
+  - `apps/api/tests/security/pii-trace-sanitization.test.ts` (4 tests passing): PII masking across traces and logs.
   - Full quality verification:
     - `pnpm typecheck`: 0 errors across all workspaces.
-    - `pnpm lint`: 0 errors, 0 warnings across all workspaces.
+    - `pnpm lint`: 0 errors, 0 warnings across all workspaces (`--max-warnings 0`).
     - `pnpm eval`: 100/100 RAG benchmarks passing (100% grounded accuracy rate, 0% hallucination rate).
-    - `pnpm build`: all 4 monorepo packages compiled cleanly.
-    - `pnpm test`: **93 test files, 390 automated tests passing** (100% green).
+    - `pnpm test`: **104 test suites, 469 automated tests passing** (100% green).
 
 ---
 
 ## Phase 15A Acceptance Criteria Checklist (PDF Section 15A, Page 21)
-- [x] Transactional outbox with `SELECT ... FOR UPDATE SKIP LOCKED` batch claiming and consumer fan-out (`webhooks`, `notifications`, `next-best-action`).
+- [x] Transactional outbox with `SELECT ... FOR UPDATE SKIP LOCKED` batch claiming and consumer fan-out (`webhooks`, `notifications`, `workflows`, `voice_callback`, `next_best_action`, `analytics_rollups`).
 - [x] Consumer idempotency checkpoints (`event_consumer_checkpoints`) preventing duplicate processing.
 - [x] Dead-letter parking after 5 failed attempts (`is_dead = true`) and admin replay endpoint.
 - [x] Four-tier AI Guarded Action Framework (`T0`–`T3`), emergency Kill Switch, daily action caps, and per-lead rate limits.
 - [x] Human Approval Queue (`/api/approvals`, `/approvals` UI with realtime sidebar badge).
 - [x] Next Best Action (NBA) engine generating recommendations from events and executing through guarded actions.
-- [x] Repeatable scheduled background jobs (nightly intent score decay, stale approval expiry, retention cleanup).
-- [x] 100% passing tests (390/390), 100% passing evals (100/100), 0 typecheck errors, 0 lint warnings.
+- [x] Repeatable scheduled background jobs (nightly intent score decay, stale approval expiry, retention cleanup, token health refresh monitoring).
+- [x] 100% passing tests (469/469), 100% passing evals (100/100), 0 typecheck errors, 0 lint warnings.
+
+---
+
+## Phase 15B: Growth Layer (Workflow Builder, Segments & Campaigns, Ask-Your-Pipeline, Payments)
+
+### 15B.1 Visual Workflow Builder (15.6)
+- **Status:** [x] Done
+- **Scope Completed:**
+  - React Flow visual workflow canvas (`/workflows`, `apps/web/src/pages/WorkflowsPage.tsx`).
+  - Validated JSON schemas in `@propbot/shared` (`packages/shared/src/schemas/workflows.ts`).
+  - Node types: Trigger (domain events), Condition (intent, status, Buyer DNA), Action (WhatsApp, email, SMS, assign, task, webhook), Branch, End.
+  - Execution engine in `apps/api/src/modules/workflows/workflow-engine.service.ts` backed by BullMQ delayed jobs with step logs and loop guards.
+  - Pre-built templates: "Welcome + qualify new lead", "Hot lead alert", "No reply in 24h", "Post-visit survey", "Dormant lead re-engagement".
+
+### 15B.2 Segments & Multi-Channel Campaigns (15.7)
+- **Status:** [x] Done
+- **Scope Completed:**
+  - Dynamic segmentation engine (`apps/api/src/modules/growth/segments.service.ts`) filtering by intent, Buyer DNA, status, and last activity.
+  - Multi-channel campaign builder (`apps/web/src/pages/CampaignsPage.tsx`) across WhatsApp, Email, and SMS with frequency caps and opt-out checks.
+
+### 15B.3 Safe "Ask Your Pipeline" (15.8)
+- **Status:** [x] Done
+- **Scope Completed:**
+  - Natural-language query interface in dashboard (`apps/web/src/components/growth/AskPipelineWidget.tsx`).
+  - Fixed parameterized SQL tool registry in `apps/api/src/modules/growth/ask-pipeline.service.ts` running strictly under PostgreSQL RLS (no model-written SQL).
+
+### 15B.4 Token Booking Payments & RERA Compliance (15.9, 15.10)
+- **Status:** [x] Done
+- **Scope Completed:**
+  - Razorpay/Stripe token booking payment links (`booking-payments.service.ts`) emitting `payment_received` and moving stage to `booked` upon payment webhook.
+  - RERA copy compliance assistant (`rera-copy.service.ts`) enforcing mandatory RERA registration numbers and blocking unverifiable guarantees.
 
 ---
 

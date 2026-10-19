@@ -155,7 +155,7 @@ export const NAVIGATION_ITEMS: NavItemConfig[] = [
 ];
 
 export function isNavVisible(role: UserRole, item: NavItemConfig): boolean {
-  if (role === 'super_admin') {
+  if (role === 'ps-owner') {
     return true;
   }
   if (!item.requiredPermission) {

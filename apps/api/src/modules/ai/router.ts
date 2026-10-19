@@ -106,61 +106,115 @@ export class ModelRouter {
     const userQuery = params.userMessage.toLowerCase();
     const systemPrompt = params.systemPrompt;
 
-    // Copilot JSON prompt simulation
-    if (params.promptName === 'copilot_call_script') {
-      return JSON.stringify({
-        callGoal: 'Qualify buyer intent, confirm financing readiness, and secure site visit reservation.',
-        suggestedOpener: 'Hi, I noticed you were exploring our luxury residences online. I wanted to follow up personally regarding the 3BHK villa floor plans.',
-        qualifyingQuestions: [
-          'What possession timeline best fits your family relocation plans?',
-          'Are you looking for self-use residence or rental yield investment?',
-        ],
-        talkingPoints: [
-          'Prestige Sanctuary features 45,000 sq ft clubhouse with temperature-controlled indoor pool.',
-          'Flexible 20:80 milestone construction payment schedule available this month.',
-        ],
-        objectionPreemptions: [
-          {
-            anticipatedObjection: 'Price is above my initial budget',
-            rebuttal: 'We have flexible 20:80 milestone schedules where only 20% is required upfront, reducing immediate cash flow pressure.',
-          },
-        ],
-        closingHook: 'We have exclusive preview slots open this Saturday at 11:00 AM. May I reserve a priority slot for you?',
-      });
-    }
+    // Copilot JSON prompt simulation - extract dynamic lead details from prompt
+    if (
+      params.promptName === 'copilot_call_script' ||
+      params.promptName === 'copilot_summary' ||
+      params.promptName === 'copilot_suggest_reply'
+    ) {
+      const msg = params.userMessage;
+      const nameMatch = msg.match(/buyer\s+([A-Za-z0-9\s]+?)(?::|\.|\n|,|DNA)/i);
+      const buyerName = nameMatch?.[1]?.trim() || 'Prospect';
+      const firstName = buyerName.split(' ')[0] || 'there';
 
-    if (params.promptName === 'copilot_summary') {
-      return JSON.stringify({
-        summary: 'High-intent buyer actively evaluating luxury residences with verified interest in 3BHK configurations.',
-        keyRequirements: ['3BHK villa', 'Ready within 2 years', 'Budget up to ₹3.5 Cr'],
-        statedObjections: ['Evaluating construction progress vs possession dates'],
-        recommendedAction: 'Call within 5 minutes to confirm private weekend site visit preview.',
-      });
-    }
+      const bhkMatch = msg.match(/(\d\s*BHK|Villa|Penthouse)/i);
+      const bhk = bhkMatch?.[1] ?? 'residences';
 
-    if (params.promptName === 'copilot_suggest_reply') {
-      return JSON.stringify({
-        suggestions: [
-          {
-            id: 'sug-1',
-            title: 'Confirm Viewing Visit',
-            text: 'I would be delighted to host you for a private walkthrough this weekend! We have open slots on Saturday at 11:00 AM or 3:00 PM. Which timing suits you best?',
-            strategy: 'Proactive visit booking',
-          },
-          {
-            id: 'sug-2',
-            title: 'Share Milestone Payment Plan',
-            text: 'We offer an attractive 20:80 construction-linked milestone plan, requiring only 20% during booking. Would you like me to send the complete cost sheet?',
-            strategy: 'Overcome budget hesitation',
-          },
-          {
-            id: 'sug-3',
-            title: 'Highlight Amenities & Clubhouse',
-            text: 'The project features a 45,000 sq ft clubhouse, heated indoor pool, and private EV charging. Let me know if you would like the master layout brochure!',
-            strategy: 'Value highlight',
-          },
-        ],
-      });
+      let locality = 'prime city locality';
+      const locMatch = msg.match(/(?:in|locality:?)\s+([A-Za-z0-9\s,/]+?)(?:,|\.|\n|budget)/i);
+      if (locMatch?.[1]?.trim()) {
+        locality = locMatch[1].trim();
+      }
+
+      let budget = 'target budget';
+      const budgetMatch = msg.match(/budget:?\s*(₹[\d.]+\s*(?:Cr|Lakh|lakh|cr)?)/i);
+      if (budgetMatch?.[1]?.trim()) {
+        budget = budgetMatch[1].trim();
+      } else {
+        const rawBudgetMatch = msg.match(/"budgetMax":\s*(\d+)/);
+        if (rawBudgetMatch?.[1]) {
+          const num = parseInt(rawBudgetMatch[1], 10);
+          budget = `₹${(num / 10000000).toFixed(2)} Cr`;
+        }
+      }
+
+      const lastMsgMatch = msg.match(/(?:Last (?:visitor|buyer) message(?:\/question)?:?|recent question(?:\/inquiry)?:?)\s*"([^"]+)"/i);
+      const lastVisitorMsg = lastMsgMatch?.[1]?.trim() ?? '';
+
+      if (params.promptName === 'copilot_call_script') {
+        const opener = lastVisitorMsg
+          ? `Hi ${firstName}, this is Rohan from Property Advisors. I saw your recent inquiry regarding "${lastVisitorMsg.slice(0, 45)}" for our ${bhk} in ${locality}, and wanted to follow up with the exact details.`
+          : `Hi ${firstName}, this is Rohan from Property Advisors. I noticed your interest in our ${bhk} residences in ${locality} with a budget of ${budget}, and wanted to personally share the updated floor plans.`;
+
+        return JSON.stringify({
+          callGoal: `Qualify purchase timeline for ${locality} ${bhk} (${budget}) and schedule private site visit preview.`,
+          suggestedOpener: opener,
+          qualifyingQuestions: [
+            `What possession timeline best fits your family relocation plans for ${locality}?`,
+            `Are you looking for a self-use residence or rental yield investment?`,
+            `Have you explored pre-approved home loan rates with our banking partners?`,
+          ],
+          talkingPoints: [
+            `Exclusive ${bhk} residences in ${locality} aligned with your budget range (${budget})`,
+            `Modern clubhouse with temperature-controlled indoor pool, private EV charging, and fitness lounge`,
+            `Flexible 20:80 milestone construction payment schedule available this month`,
+          ],
+          objectionPreemptions: [
+            {
+              anticipatedObjection: 'Price is above my initial target budget',
+              rebuttal: `We have flexible 20:80 milestone schedules where only 20% is required upfront, reducing immediate cash flow pressure.`,
+            },
+            {
+              anticipatedObjection: 'Need to review physical floor plan first',
+              rebuttal: `I can send you the high-resolution architectural layout over WhatsApp right now, or reserve an exclusive sample walkthrough.`,
+            },
+          ],
+          closingHook: `We have exclusive designer preview slots open this Saturday at 11:00 AM. May I reserve a priority slot for you, ${firstName}?`,
+        });
+      }
+
+      if (params.promptName === 'copilot_summary') {
+        return JSON.stringify({
+          summary: `${buyerName} is actively evaluating ${bhk} residences in ${locality} with a stated budget of ${budget}.${lastVisitorMsg ? ` Inquired about: "${lastVisitorMsg}".` : ''} High purchase readiness with verified contact details.`,
+          keyRequirements: [
+            `${bhk} configuration in ${locality}`,
+            `Budget target: ${budget}`,
+            `Engagement: Active conversational inquiry`,
+          ],
+          statedObjections: ['Evaluating construction progress vs possession schedule'],
+          recommendedAction: `Call within 5 minutes to follow up on ${lastVisitorMsg ? `"${lastVisitorMsg.slice(0, 30)}"` : `${bhk} in ${locality}`} and confirm weekend preview.`,
+        });
+      }
+
+      if (params.promptName === 'copilot_suggest_reply') {
+        const isPriceQuery = /price|cost|rate|budget|cr|lakh/i.test(lastVisitorMsg);
+        const isVisitQuery = /visit|tour|walkthrough|weekend|see/i.test(lastVisitorMsg);
+
+        return JSON.stringify({
+          suggestions: [
+            {
+              id: 'sug-1',
+              title: isVisitQuery ? 'Confirm Private Walkthrough' : 'Invite for Private Preview',
+              text: `Hi ${firstName}, I would be delighted to host you for a private walkthrough of our ${bhk} sample residences in ${locality} this Saturday at 11:00 AM or 3:00 PM. Would either timing suit you?`,
+              strategy: 'Proactive visit booking',
+            },
+            {
+              id: 'sug-2',
+              title: isPriceQuery ? 'Share Pricing & Payment Breakdown' : 'Share Milestone Payment Plan',
+              text: isPriceQuery
+                ? `Hi ${firstName}, for our ${bhk} residences in ${locality}, prices start at ${budget} with our 20:80 milestone payment schedule. Would you like me to share the complete price sheet on WhatsApp?`
+                : `We have a flexible 20:80 milestone construction payment schedule available this month for ${locality}, keeping your upfront payment to just 20%. Would you like to review the milestone schedule?`,
+              strategy: 'Overcome budget hesitation',
+            },
+            {
+              id: 'sug-3',
+              title: 'Share Master Brochure & Plans',
+              text: `I have the complete architectural floor plans and 45,000 sq ft clubhouse layout ready for ${locality}. Should I share them over WhatsApp or email?`,
+              strategy: 'Asset delivery',
+            },
+          ],
+        });
+      }
     }
 
     const isHindi =

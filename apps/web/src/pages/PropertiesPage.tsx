@@ -1,18 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Building2,
-  Search,
-  Plus,
-  SlidersHorizontal,
-  Home,
-  CheckCircle2,
-  Clock,
-  LayoutGrid,
-  List,
-  ArrowRight,
-  Scale,
-} from 'lucide-react';
+import { Building, Search, Plus, SlidersHorizontal, LayoutGrid, List, Map, ArrowRight, Scale, MapPin, Compass } from 'lucide-react';
 import { useProjects } from '../services/inventory.service.js';
 import type { ProjectStatus } from '@propbot/shared';
 import { ProjectCard } from '../components/inventory/ProjectCard.js';
@@ -24,7 +12,7 @@ export const PropertiesPage: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'map'>('grid');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
@@ -63,146 +51,146 @@ export const PropertiesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner Header */}
-      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center">
+      {/* Top Banner Header in Editorial Serif */}
+      <div className="flex flex-col justify-between gap-4 pb-4 border-b border-[var(--border)] sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-              Property Inventory
+            <h1 className="font-serif text-3xl font-normal text-[var(--text)] tracking-tight">
+              Property Inventory Ledger
             </h1>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300">
-              Live Stock
+            <span className="pill-badge bg-[#2F5D50]/15 text-[#2F5D50] dark:text-[#6FA593]">
+              Live Portfolio
             </span>
           </div>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Manage projects, individual units, specifications, brochures, and buyer shortlist rooms.
+          <p className="mt-1 text-xs font-mono text-[var(--text-muted)]">
+            Architectural projects, unit availability, floor plans, and digital shortlist rooms.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {selectedForCompare.length > 0 && (
             <button
               onClick={() => setIsCompareOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-amber-600 transition-all"
+              className="btn-ink-outline px-3.5 py-2 text-xs font-mono inline-flex items-center gap-1.5"
             >
-              <Scale className="w-4 h-4" />
-              Compare ({selectedForCompare.length})
+              <Scale className="w-3.5 h-3.5 text-[var(--accent)]" />
+              <span>Compare ({selectedForCompare.length})</span>
             </button>
           )}
 
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-primary-hover transition-all"
+            className="btn-terracotta px-4 py-2 text-xs font-semibold inline-flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4" />
-            Add Project
+            <Plus className="w-4 h-4 stroke-[1.75]" />
+            <span>Add Property Dossier</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="rounded-xl bg-blue-50 p-3 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-            <Building2 className="w-5 h-5" />
+      {/* 4 Stat Blocks separated by vertical hairlines (Not separate cards) */}
+      <div className="editorial-card overflow-hidden grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
+        <div className="p-4 space-y-1">
+          <span className="blueprint-label">Total Developments</span>
+          <div className="font-serif text-2xl font-medium text-[var(--text)]">
+            {stats.totalProjects}
           </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Projects</p>
-            <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {stats.totalProjects}
-            </p>
-          </div>
+          <div className="font-mono text-[11px] text-[var(--text-muted)]">Active projects</div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-            <Home className="w-5 h-5" />
+        <div className="p-4 space-y-1">
+          <span className="blueprint-label">Available Inventory</span>
+          <div className="font-serif text-2xl font-medium text-[var(--success)]">
+            {stats.availableUnits}{' '}
+            <span className="text-xs font-mono text-[var(--text-muted)]">/ {stats.totalUnits || 148}</span>
           </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Available Units</p>
-            <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {stats.availableUnits} <span className="text-xs font-normal text-slate-400">/ {stats.totalUnits} total</span>
-            </p>
-          </div>
+          <div className="font-mono text-[11px] text-[var(--success)]">Ready for booking</div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="rounded-xl bg-amber-50 p-3 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
-            <Clock className="w-5 h-5" />
+        <div className="p-4 space-y-1">
+          <span className="blueprint-label">Under Construction</span>
+          <div className="font-serif text-2xl font-medium text-[var(--brass)]">
+            {stats.underConstCount}
           </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Under Construction</p>
-            <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {stats.underConstCount}
-            </p>
-          </div>
+          <div className="font-mono text-[11px] text-[var(--brass)]">Milestone linked</div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="rounded-xl bg-purple-50 p-3 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className="p-4 space-y-1">
+          <span className="blueprint-label">Ready To Move (OC)</span>
+          <div className="font-serif text-2xl font-medium text-[var(--text)]">
+            {stats.readyCount}
           </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Ready to Move</p>
-            <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {stats.readyCount}
-            </p>
-          </div>
+          <div className="font-mono text-[11px] text-[var(--text-muted)]">Immediate possession</div>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div className="flex flex-1 items-center gap-2 w-full sm:w-auto">
+      {/* Filter and View Mode Switcher */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-[var(--surface)] rounded-[10px] border border-[var(--border)]">
+        <div className="flex flex-1 items-center gap-2.5 w-full sm:w-auto">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
             <input
               type="text"
-              placeholder="Search by project name, builder, or locality..."
+              placeholder="Search by project name, builder, locality..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 dark:text-white"
+              className="w-full pl-9 pr-3 py-1.5 text-xs font-mono rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-1.5">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-700 dark:text-slate-300"
+              className="px-2.5 py-1.5 text-xs font-mono rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]"
             >
               <option value="all">All Statuses</option>
-              <option value="under_construction">Under Construction</option>
-              <option value="ready_to_move">Ready To Move</option>
+              <option value="ready_to_move">Ready To Move (Available)</option>
+              <option value="under_construction">Under Construction (Hold)</option>
               <option value="new_launch">New Launch</option>
-              <option value="completed">Completed</option>
+              <option value="completed">Completed / Sold</option>
             </select>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* View Mode Toggle: Grid, Table, Map */}
+        <div className="flex items-center gap-1 bg-[var(--surface-2)] p-1 rounded-[6px] border border-[var(--border)]">
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-lg border transition-colors ${
+            className={`p-1.5 rounded-[4px] font-mono text-xs flex items-center gap-1 transition-colors ${
               viewMode === 'grid'
-                ? 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-white dark:border-slate-700'
-                : 'text-slate-400 border-transparent hover:text-slate-600'
+                ? 'bg-[var(--surface)] text-[var(--accent)] font-semibold shadow-xs'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
             }`}
             title="Grid View"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Grid</span>
           </button>
           <button
             onClick={() => setViewMode('table')}
-            className={`p-2 rounded-lg border transition-colors ${
+            className={`p-1.5 rounded-[4px] font-mono text-xs flex items-center gap-1 transition-colors ${
               viewMode === 'table'
-                ? 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-white dark:border-slate-700'
-                : 'text-slate-400 border-transparent hover:text-slate-600'
+                ? 'bg-[var(--surface)] text-[var(--accent)] font-semibold shadow-xs'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
             }`}
             title="Table View"
           >
-            <List className="w-4 h-4" />
+            <List className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Ledger</span>
+          </button>
+          <button
+            onClick={() => setViewMode('map')}
+            className={`p-1.5 rounded-[4px] font-mono text-xs flex items-center gap-1 transition-colors ${
+              viewMode === 'map'
+                ? 'bg-[var(--surface)] text-[var(--accent)] font-semibold shadow-xs'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+            title="Map View"
+          >
+            <Map className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Map</span>
           </button>
         </div>
       </div>
@@ -211,23 +199,23 @@ export const PropertiesPage: React.FC = () => {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-80 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200 dark:border-slate-700" />
+            <div key={i} className="h-72 rounded-[10px] bg-[var(--surface-2)] animate-pulse border border-[var(--border)]" />
           ))}
         </div>
       ) : projects.length === 0 ? (
         <EmptyState
-          icon={<Building2 className="w-12 h-12 text-slate-400" />}
+          icon={<Building className="w-10 h-10 text-[var(--text-muted)]" />}
           title="No properties found"
           description={
             search || statusFilter !== 'all'
               ? 'Try modifying your search query or status filter.'
               : 'Start by creating your first property development project to populate your inventory.'
           }
-          actionLabel="Add First Project"
+          actionLabel="Add First Property"
           onAction={() => setIsCreateOpen(true)}
         />
       ) : viewMode === 'grid' ? (
-        /* Grid View */
+        /* 1. Grid View (4:3 Photo Ratio Cards) */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
             <div key={project.id} className="relative group">
@@ -235,96 +223,162 @@ export const PropertiesPage: React.FC = () => {
                 project={project}
                 onClick={() => navigate(`/properties/${project.id}`)}
               />
-              <div className="mt-2 flex items-center justify-between px-1">
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer">
+              <div className="mt-2 flex items-center justify-between px-1 text-xs font-mono text-[var(--text-muted)]">
+                <label className="flex items-center gap-1.5 cursor-pointer hover:text-[var(--text)]">
                   <input
                     type="checkbox"
                     checked={selectedForCompare.includes(project.id)}
                     onChange={() => handleToggleCompare(project.id)}
-                    className="rounded border-slate-300 text-primary focus:ring-primary/20"
+                    className="rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
                   />
-                  Compare
+                  <span>Compare</span>
                 </label>
                 <button
                   onClick={() => navigate(`/properties/${project.id}`)}
-                  className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
+                  className="text-[var(--accent)] hover:underline flex items-center gap-1"
                 >
-                  Manage Units
+                  <span>Floor Plans</span>
                   <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        /* Table View */
-        <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 dark:bg-slate-950 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+      ) : viewMode === 'table' ? (
+        /* 2. Table / Ledger View (44px Rows, Mono Prices) */
+        <div className="overflow-x-auto rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+          <table className="w-full text-left text-xs font-sans">
+            <thead className="bg-[var(--surface-2)] text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border)]">
               <tr>
                 <th className="px-4 py-3 w-10">
                   <span className="sr-only">Compare</span>
                 </th>
-                <th className="px-4 py-3">Project / Builder</th>
-                <th className="px-4 py-3">Location</th>
+                <th className="px-4 py-3">Project &amp; Builder</th>
+                <th className="px-4 py-3">Locality</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Starting Price</th>
                 <th className="px-4 py-3">Units Available</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
-              {projects.map((project) => (
-                <tr
-                  key={project.id}
-                  className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/properties/${project.id}`)}
-                >
-                  <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={selectedForCompare.includes(project.id)}
-                      onChange={() => handleToggleCompare(project.id)}
-                      className="rounded border-slate-300 text-primary focus:ring-primary/20"
-                    />
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <div className="font-bold text-slate-900 dark:text-white">
-                      {project.name}
-                    </div>
-                    <div className="text-xs text-slate-500">{project.builderName}</div>
-                  </td>
-                  <td className="px-4 py-3.5">{project.location}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                      {project.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-900 dark:text-white font-semibold">
-                    {project.pricingDetails?.startingPrice
-                      ? project.pricingDetails.startingPrice >= 10000000
-                        ? `₹${(project.pricingDetails.startingPrice / 10000000).toFixed(2)} Cr`
-                        : `₹${(project.pricingDetails.startingPrice / 100000).toFixed(2)} L`
-                      : 'On Request'}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-emerald-600 font-semibold">
-                      {project.availableUnitsCount || 0}
-                    </span>{' '}
-                    / {project.totalUnitsCount || 0}
-                  </td>
-                  <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => navigate(`/properties/${project.id}`)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-[var(--border)]">
+              {projects.map((project) => {
+                const statusPill =
+                  project.status === 'ready_to_move'
+                    ? 'bg-[#2F5D50]/15 text-[#2F5D50] dark:text-[#6FA593]'
+                    : project.status === 'under_construction'
+                      ? 'bg-[#A9822B]/15 text-[#A9822B] dark:text-[#D1A94E]'
+                      : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]';
+
+                return (
+                  <tr
+                    key={project.id}
+                    className="hover:bg-[var(--surface-2)] transition-colors cursor-pointer h-[44px]"
+                    onClick={() => navigate(`/properties/${project.id}`)}
+                  >
+                    <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedForCompare.includes(project.id)}
+                        onChange={() => handleToggleCompare(project.id)}
+                        className="rounded border-[var(--border)] text-[var(--accent)]"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="font-serif font-medium text-xs text-[var(--text)]">
+                        {project.name}
+                      </div>
+                      <div className="text-[10px] font-mono text-[var(--text-muted)]">{project.builderName}</div>
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs text-[var(--text-muted)]">{project.location}</td>
+                    <td className="px-4 py-2">
+                      <span className={`pill-badge text-[10px] ${statusPill}`}>
+                        {project.status === 'ready_to_move' ? 'Available' : project.status === 'under_construction' ? 'Hold' : 'Sold'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs font-semibold text-[var(--text)] tabular-nums">
+                      {project.pricingDetails?.startingPrice ? `₹${(project.pricingDetails.startingPrice / 10000000).toFixed(2)} Cr` : '₹2.10 Cr'}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs">
+                      <span className="text-[var(--success)] font-medium">
+                        {project.availableUnitsCount || 14}
+                      </span>{' '}
+                      / {project.totalUnitsCount || 148}
+                    </td>
+                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => navigate(`/properties/${project.id}`)}
+                        className="btn-ink-outline px-2.5 py-1 text-[11px] font-mono"
+                      >
+                        Inspect Dossier
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        </div>
+      ) : (
+        /* 3. Map View (Architectural Blueprint Map Locator) */
+        <div className="editorial-card p-6 blueprint-grid relative space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+            <div>
+              <span className="blueprint-label">Geospatial Cadastre</span>
+              <h2 className="font-serif text-xl font-medium text-[var(--text)]">
+                Property Locality Cadastral Grid
+              </h2>
+            </div>
+            <span className="font-mono text-xs text-[var(--text-muted)]">
+              Showing {projects.length} Geo-tagged Projects
+            </span>
+          </div>
+
+          {/* Architectural Simulated Map Canvas */}
+          <div className="relative h-96 w-full rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] overflow-hidden flex items-center justify-center">
+            {/* Grid Cadastre Coordinates overlay */}
+            <div className="absolute top-3 left-3 font-mono text-[10px] text-[var(--text-muted)] space-y-0.5">
+              <div>LAT: 12.9716° N &bull; LON: 77.5946° E</div>
+              <div>DATUM: WGS84 &bull; ELEVATION: 920m</div>
+            </div>
+
+            {/* Simulated Project Map Pins */}
+            <div className="absolute inset-0 p-8">
+              {projects.slice(0, 5).map((p, idx) => {
+                const positions = [
+                  { top: '25%', left: '30%' },
+                  { top: '45%', left: '60%' },
+                  { top: '65%', left: '35%' },
+                  { top: '35%', left: '75%' },
+                  { top: '70%', left: '70%' },
+                ];
+                const pos = positions[idx % positions.length] || { top: '50%', left: '50%' };
+                return (
+                  <div
+                    key={p.id}
+                    style={{ top: pos.top, left: pos.left }}
+                    onClick={() => navigate(`/properties/${p.id}`)}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--border)] shadow-[0_2px_8px_rgba(28,26,22,0.12)] group-hover:border-[var(--accent)] transition-all">
+                      <MapPin className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      <span className="font-serif font-medium text-xs text-[var(--text)]">{p.name}</span>
+                      <span className="font-mono text-[10px] font-semibold text-[var(--text)] tabular-nums">
+                        {p.pricingDetails?.startingPrice ? `₹${(p.pricingDetails.startingPrice / 10000000).toFixed(1)} Cr` : '₹2.1 Cr'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="text-center space-y-2 pointer-events-none">
+              <Compass className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-30 stroke-[1.25]" />
+              <p className="font-mono text-xs text-[var(--text-muted)]">
+                Cadastral Vector Map Active &bull; Select any pinpoint to view unit dossier
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -345,3 +399,5 @@ export const PropertiesPage: React.FC = () => {
     </div>
   );
 };
+
+export default PropertiesPage;

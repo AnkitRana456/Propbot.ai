@@ -18,7 +18,7 @@ You are a senior staff engineer and product architect. You will build a producti
 ## TENANCY AND ROLES
 
 - Multi-tenant: every table carries company_id. Enforce isolation twice: (1) tenant-guard middleware sets company_id from the JWT on every request; (2) PostgreSQL Row-Level Security policies on every tenant table using a per-transaction setting (SET LOCAL app.company_id). Add tests proving cross-tenant reads and writes are impossible even if application code forgets a filter.
-- Roles: super_admin (platform owner), company_admin, sales_manager, agent, viewer. Permission matrix lives in packages/shared.
+- Roles: ps-owner (platform owner), company_admin, sales_manager, agent, viewer. Permission matrix lives in packages/shared.
 
 ## TECH STACK (do not change without asking)
 

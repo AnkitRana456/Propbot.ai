@@ -13,7 +13,7 @@ export function requireRole(...roles: UserRole[]) {
       return;
     }
 
-    if (req.user.role === 'super_admin') {
+    if (req.user.role === 'ps-owner') {
       next();
       return;
     }
@@ -44,7 +44,7 @@ export function requirePermission(...permissions: Permission[]) {
       return;
     }
 
-    if (req.user.role === 'super_admin') {
+    if (req.user.role === 'ps-owner') {
       next();
       return;
     }

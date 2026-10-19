@@ -27,7 +27,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
 }) => {
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case 'super_admin':
+      case 'ps-owner':
         return 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800';
       case 'company_admin':
         return 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800';

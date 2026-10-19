@@ -167,8 +167,8 @@ export class AnalyticsController {
 
   async getSuperAdminOverview(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (req.user?.role !== 'super_admin') {
-        res.status(403).json({ error: { message: 'Access denied: super_admin required' } });
+      if (req.user?.role !== 'ps-owner') {
+        res.status(403).json({ error: { message: 'Access denied: ps-owner required' } });
         return;
       }
       const result = await analyticsService.getSuperAdminOverview();

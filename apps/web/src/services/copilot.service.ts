@@ -23,14 +23,15 @@ interface ApiResponse<T> {
 export function useCopilotSuggestReply(leadId: string) {
   return useMutation<CopilotSuggestReplyResponse, Error, CopilotSuggestReplyInput | undefined>({
     mutationFn: async (input = { tone: 'warm' }) => {
-      const res = await apiRequest<ApiResponse<CopilotSuggestReplyResponse>>(
+      const payload = input || { tone: 'warm' };
+      const res = await apiRequest<{ data?: unknown } | null>(
         `/api/crm/leads/${leadId}/copilot/suggest-reply`,
         {
           method: 'POST',
-          body: JSON.stringify(input),
+          body: JSON.stringify(payload),
         },
       );
-      return res.data;
+      return (res?.data ?? res) as CopilotSuggestReplyResponse;
     },
   });
 }
@@ -38,14 +39,14 @@ export function useCopilotSuggestReply(leadId: string) {
 export function useCopilotSummary(leadId: string) {
   return useMutation<CopilotSummaryResponse, Error, void>({
     mutationFn: async () => {
-      const res = await apiRequest<ApiResponse<CopilotSummaryResponse>>(
+      const res = await apiRequest<{ data?: unknown } | null>(
         `/api/crm/leads/${leadId}/copilot/summary`,
         {
           method: 'POST',
           body: JSON.stringify({}),
         },
       );
-      return res.data;
+      return (res?.data ?? res) as CopilotSummaryResponse;
     },
   });
 }
@@ -53,29 +54,29 @@ export function useCopilotSummary(leadId: string) {
 export function useCopilotCallScript(leadId: string) {
   return useMutation<CopilotCallScriptResponse, Error, void>({
     mutationFn: async () => {
-      const res = await apiRequest<ApiResponse<CopilotCallScriptResponse>>(
+      const res = await apiRequest<{ data?: unknown } | null>(
         `/api/crm/leads/${leadId}/copilot/call-script`,
         {
           method: 'POST',
           body: JSON.stringify({}),
         },
       );
-      return res.data;
+      return (res?.data ?? res) as CopilotCallScriptResponse;
     },
   });
 }
 
-export function useCopilotObjectionRebuttal() {
+export function useCopilotObjectionRebuttal(leadId: string = 'general') {
   return useMutation<CopilotObjectionRebuttalResponse, Error, CopilotObjectionRebuttalInput>({
     mutationFn: async input => {
-      const res = await apiRequest<ApiResponse<CopilotObjectionRebuttalResponse>>(
-        '/api/crm/leads/dummy/copilot/rebuttal',
+      const res = await apiRequest<{ data?: unknown } | null>(
+        `/api/crm/leads/${leadId}/copilot/rebuttal`,
         {
           method: 'POST',
           body: JSON.stringify(input),
         },
       );
-      return res.data;
+      return (res?.data ?? res) as CopilotObjectionRebuttalResponse;
     },
   });
 }

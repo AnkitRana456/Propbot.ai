@@ -11,12 +11,12 @@ import { PlatformFooter } from '../components/platform/PlatformFooter.js';
 
 export const PlatformPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-blue-600 selection:text-white transition-colors duration-200">
-      {/* 1. Sticky Glassmorphism Header Nav */}
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-200 font-sans">
+      {/* 1. Architectural Header Nav with Login Option */}
       <PlatformNav />
 
       <main>
-        {/* 2. Hero Section */}
+        {/* 2. Hero Section with Live AI Copilot Dashboard */}
         <PlatformHero />
 
         {/* 3. Developer & Brokerage Showcase & Metrics */}

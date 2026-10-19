@@ -1,6 +1,6 @@
 import { eq, and, sql, lte, isNull, notInArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { leads, agentActions, domainEvents } from '../db/schema/index.js';
+import { leads, agentActions, domainEvents, integrations } from '../db/schema/index.js';
 import { pino } from 'pino';
 
 export const jobsLogger = pino({
@@ -143,6 +143,50 @@ export class ScheduledJobsService {
       .returning({ id: domainEvents.id });
 
     return { purgedCount: deleted.length };
+  }
+
+  /**
+   * Token Health & Refresh Monitoring:
+   * Inspects configured integrations to ensure OAuth tokens or API credentials
+   * remain valid, warning administrators if tokens are near expiration (< 24h).
+   */
+  async checkThirdPartyTokenHealth(): Promise<{ checkedCount: number; expiringCount: number }> {
+    const activeIntegrations = await db
+      .select({
+        id: integrations.id,
+        companyId: integrations.companyId,
+        provider: integrations.provider,
+        config: integrations.config,
+      })
+      .from(integrations)
+      .where(eq(integrations.status, 'active'));
+
+    let expiringCount = 0;
+    const now = Date.now();
+    const twentyFourHours = 24 * 3600 * 1000;
+
+    for (const item of activeIntegrations) {
+      const config = (item.config as Record<string, unknown>) || {};
+      const expiry = config.expiresAt || config.tokenExpiresAt || config.expires_at;
+
+      if (expiry) {
+        const expiryTime = new Date(expiry as string | number).getTime();
+        if (!isNaN(expiryTime) && expiryTime - now < twentyFourHours) {
+          expiringCount++;
+          jobsLogger.warn(
+            {
+              integrationId: item.id,
+              companyId: item.companyId,
+              provider: item.provider,
+              expiresAt: new Date(expiryTime).toISOString(),
+            },
+            'Third-party integration OAuth token expiring soon or expired',
+          );
+        }
+      }
+    }
+
+    return { checkedCount: activeIntegrations.length, expiringCount };
   }
 }
 

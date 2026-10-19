@@ -1,0 +1,376 @@
+/**
+ * Terracotta & Ink Design Tokens — Premium Edition
+ * Architectural, editorial, warm property brochure & blueprint theme.
+ * Light mode: "Limestone" | Dark mode: "Walnut"
+ * Enhanced with 3D depth layers, ambient glow, and micro-animations.
+ */
+
+:root {
+  /* Color Palette — Light Mode ("Limestone") */
+  --bg: #F5F0E6;
+  --surface: #FBF8F2;
+  --surface-2: #EFE8DA;
+  --surface-3: #E8DFC9;
+  --border: #DDD3BF;
+  --border-subtle: #E8E0CE;
+  --text: #1C1A16;
+  --text-muted: #6B6355;
+  --text-faint: #9A9080;
+  --accent: #B84A22;
+  --accent-hover: #9C3C19;
+  --accent-soft: #F0D9CC;
+  --accent-glow: rgba(184, 74, 34, 0.12);
+  --accent-glow-strong: rgba(184, 74, 34, 0.22);
+  --brass: #A9822B;
+  --brass-glow: rgba(169, 130, 43, 0.1);
+  --success: #2F5D50;
+  --success-soft: rgba(47, 93, 80, 0.08);
+  --warning: #C58A1B;
+  --danger: #A3302A;
+
+  /* Typography */
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+
+  /* Radii */
+  --radius-input: 8px;
+  --radius-card: 12px;
+  --radius-pill: 9999px;
+
+  /* 3D Elevation System */
+  --shadow-xs: 0 1px 2px rgba(28, 26, 22, 0.04);
+  --shadow-sm: 0 1px 3px rgba(28, 26, 22, 0.06), 0 1px 2px rgba(28, 26, 22, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(28, 26, 22, 0.06), 0 2px 4px -2px rgba(28, 26, 22, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(28, 26, 22, 0.06), 0 4px 6px -4px rgba(28, 26, 22, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(28, 26, 22, 0.08), 0 8px 10px -6px rgba(28, 26, 22, 0.04);
+  --shadow-float: 0 25px 50px -12px rgba(28, 26, 22, 0.12);
+  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-accent-glow: 0 0 20px rgba(184, 74, 34, 0.15), 0 0 40px rgba(184, 74, 34, 0.05);
+
+  /* 3D Card Depth */
+  --card-shadow: var(--shadow-sm);
+  --card-shadow-hover: var(--shadow-lg);
+  --card-border: 1px solid var(--border);
+  --card-border-hover: 1px solid var(--accent-soft);
+
+  /* Transition Easings */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* Backward Compatibility Aliases */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+}
+
+.dark {
+  /* Color Palette — Dark Mode ("Walnut") */
+  --bg: #0F0D0A;
+  --surface: #1A1612;
+  --surface-2: #241F19;
+  --surface-3: #302922;
+  --border: #3A332B;
+  --border-subtle: #2E2821;
+  --text: #EFE8D8;
+  --text-muted: #A39A88;
+  --text-faint: #6B6355;
+  --accent: #E07A4C;
+  --accent-hover: #EB906A;
+  --accent-soft: #3A241A;
+  --accent-glow: rgba(224, 122, 76, 0.15);
+  --accent-glow-strong: rgba(224, 122, 76, 0.25);
+  --brass: #D1A94E;
+  --brass-glow: rgba(209, 169, 78, 0.1);
+  --success: #6FA593;
+  --success-soft: rgba(111, 165, 147, 0.08);
+  --warning: #E0A53A;
+  --danger: #D9645C;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  --shadow-float: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-accent-glow: 0 0 20px rgba(224, 122, 76, 0.2), 0 0 40px rgba(224, 122, 76, 0.08);
+
+  --card-shadow: var(--shadow-sm);
+  --card-shadow-hover: var(--shadow-xl);
+
+  color-scheme: dark;
+
+  /* Backward Compatibility Aliases in Dark */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+}
+
+/* Blueprint Grid Pattern — now with subtle parallax depth feel */
+.blueprint-grid {
+  background-image: 
+    linear-gradient(to right, rgba(28, 26, 22, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(28, 26, 22, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.dark .blueprint-grid {
+  background-image: 
+    linear-gradient(to right, rgba(239, 232, 216, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(239, 232, 216, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Smooth Theme Transitions */
+html, body {
+  transition: background-color 300ms var(--ease-smooth), color 300ms var(--ease-smooth);
+}
+
+/* Tabular Numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────── Premium Button System ─────────────── */
+
+.btn-terracotta {
+  position: relative;
+  background: linear-gradient(to bottom, var(--accent), var(--accent-hover));
+  color: #FBF8F2;
+  border: none;
+  border-radius: var(--radius-input);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: all 200ms var(--ease-out-expo);
+  cursor: pointer;
+}
+.btn-terracotta:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md), 0 0 20px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.btn-terracotta:active {
+  transform: translateY(0.5px);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-ink-outline {
+  position: relative;
+  background-color: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  box-shadow: var(--shadow-xs), var(--shadow-inner-glow);
+  transition: all 200ms var(--ease-out-expo);
+  cursor: pointer;
+}
+.btn-ink-outline:hover {
+  background-color: var(--surface-2);
+  border-color: var(--text-faint);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-0.5px);
+}
+
+.btn-ghost-editorial {
+  background-color: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: var(--radius-input);
+  font-family: var(--font-sans);
+  transition: all 200ms var(--ease-out-expo);
+  cursor: pointer;
+}
+.btn-ghost-editorial:hover {
+  color: var(--text);
+  background-color: var(--surface-2);
+}
+
+/* ─────────────── 3D Editorial Card ─────────────── */
+
+.editorial-card {
+  position: relative;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow), var(--shadow-inner-glow);
+  transition: all 300ms var(--ease-out-expo);
+}
+.editorial-card:hover {
+  border-color: var(--border-subtle);
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Small Uppercase Blueprint Labels */
+.blueprint-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ─────────────── Keyframe Animations ─────────────── */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes progressFill {
+  from { width: 0; }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: var(--border); }
+  50% { border-color: var(--accent-soft); }
+}
+
+/* ─────────────── Animation Utility Classes ─────────────── */
+
+.animate-fade-in-up {
+  animation: fadeInUp 500ms var(--ease-out-expo) both;
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 400ms var(--ease-out-expo) both;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 400ms var(--ease-out-expo) both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 500ms var(--ease-out-expo) both;
+}
+
+.animate-float-soft {
+  animation: floatSoft 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-glow) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.animate-progress-fill {
+  animation: progressFill 800ms var(--ease-out-expo) both;
+}
+
+.animate-count-up {
+  animation: countUp 600ms var(--ease-out-expo) both;
+}
+
+/* Stagger children animations */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 360ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 420ms; }
+
+/* ─────────────── 3D Tilt Card Effect ─────────────── */
+
+.tilt-card {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+.tilt-card-inner {
+  transition: transform 400ms var(--ease-out-expo);
+  transform-style: preserve-3d;
+}
+.tilt-card:hover .tilt-card-inner {
+  transform: rotateX(-2deg) rotateY(2deg) translateZ(4px);
+}
+
+/* ─────────────── Ambient Glow Backdrop ─────────────── */
+
+.ambient-glow {
+  position: relative;
+}
+.ambient-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--accent-glow), transparent 40%, transparent 60%, var(--brass-glow));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-smooth);
+}
+.ambient-glow:hover::before {
+  opacity: 1;
+}
+
+/* ─────────────── Status Pills ─────────────── */
+
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-xs);
+}

@@ -16,7 +16,7 @@ copilotRouter.use(authenticate, tenantGuard);
 // 1. Suggest Reply
 copilotRouter.post(
   '/leads/:leadId/copilot/suggest-reply',
-  requirePermission('edit_leads'),
+  requirePermission('view_leads'),
   async (req, res, next) => {
     try {
       const companyId = req.companyId!;

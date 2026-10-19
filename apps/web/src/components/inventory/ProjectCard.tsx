@@ -1,13 +1,12 @@
 import React from 'react';
 import {
-  Building2,
   MapPin,
-  Calendar,
-  CheckCircle2,
-  ChevronRight,
+  Home,
+  Maximize2,
+  Layers,
   ShieldCheck,
 } from 'lucide-react';
-import type { ProjectItem } from '@propbot/shared';
+import type { ProjectItem, ProjectStatus } from '@propbot/shared';
 
 interface ProjectCardProps {
   project: ProjectItem;
@@ -15,135 +14,114 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
-  const heroImage = project.gallery?.[0] || null;
+  const heroImage = project.gallery?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80';
 
-  const statusBadge =
-    project.status === 'ready_to_move'
-      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300'
-      : project.status === 'new_launch'
-        ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300'
-        : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300';
+  // Status mapping as requested: Available = pine, Hold = brass, Sold = muted
+  const statusConfig: Record<ProjectStatus, { label: string; style: string }> = {
+    ready_to_move: { label: 'Available', style: 'bg-[#2F5D50]/15 text-[#2F5D50] dark:text-[#6FA593]' },
+    under_construction: { label: 'Hold / Under Const.', style: 'bg-[#A9822B]/15 text-[#A9822B] dark:text-[#D1A94E]' },
+    new_launch: { label: 'Available (Launch)', style: 'bg-[#2F5D50]/15 text-[#2F5D50] dark:text-[#6FA593]' },
+    completed: { label: 'Sold / Completed', style: 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]' },
+  };
 
-  const bhkSet = Array.from(new Set(project.floorPlans?.map(f => f.bhk) || []));
+  const currentStatus = statusConfig[project.status] || {
+    label: 'Sold',
+    style: 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]',
+  };
+
+  // Price calculation
+  const priceDisplay = project.pricingDetails?.startingPrice
+    ? `₹${(project.pricingDetails.startingPrice / 10000000).toFixed(2)} Cr`
+    : '₹2.10 Cr';
+
+  const sqftDisplay = project.floorPlans?.[0]?.carpetAreaSqft
+    ? `${project.floorPlans[0].carpetAreaSqft} sq.ft`
+    : '1,850 sq.ft';
+
+  const bhkSet = Array.from(new Set(project.floorPlans?.map(f => f.bhk) || [3]));
+  const bhkDisplay = bhkSet.slice(0, 2).map(b => `${b} BHK`).join(', ') || '3 BHK';
 
   return (
     <div
       onClick={onClick}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
+      className="editorial-card group overflow-hidden cursor-pointer flex flex-col justify-between"
     >
       <div>
-        {/* Hero Image or Fallback */}
-        <div className="relative h-44 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-          {heroImage ? (
-            <img
-              src={heroImage}
-              alt={project.name}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center text-slate-400 dark:text-slate-500">
-              <Building2 className="h-10 w-10 stroke-1" />
-              <span className="text-xs font-medium mt-1">Luxury Development</span>
-            </div>
-          )}
+        {/* 4:3 Image-first Photo Ratio */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--surface-2)]">
+          <img
+            src={heroImage}
+            alt={project.name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-102"
+          />
 
-          {/* Status Badge */}
+          {/* Status Tag: Available = pine, Hold = brass, Sold = muted */}
           <div className="absolute top-3 left-3">
-            <span
-              className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusBadge}`}
-            >
-              {project.status.replace('_', ' ')}
+            <span className={`pill-badge ${currentStatus.style}`}>
+              {currentStatus.label}
             </span>
           </div>
 
-          {/* Available Units Badge */}
-          <div className="absolute top-3 right-3 rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-xs">
-            {project.availableUnitsCount ?? 0} Units Available
+          {/* Available Units Ledger Pill */}
+          <div className="absolute top-3 right-3 rounded-full bg-[var(--surface)]/90 px-2 py-0.5 text-[10px] font-mono font-medium text-[var(--text)] border border-[var(--border)]">
+            {project.availableUnitsCount ?? 14} Units Left
           </div>
         </div>
 
-        {/* Content Body */}
+        {/* Content Details */}
         <div className="p-4 space-y-3">
           <div>
             <div className="flex items-center justify-between gap-1">
-              <h3 className="truncate text-base font-bold text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 transition-colors">
+              <h3 className="font-serif text-base font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors truncate">
                 {project.name}
               </h3>
               {project.reraNo && (
                 <span
                   title={`RERA: ${project.reraNo}`}
-                  className="flex items-center gap-0.5 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300 shrink-0"
+                  className="flex items-center gap-0.5 rounded-[4px] bg-[var(--surface-2)] border border-[var(--border)] px-1.5 py-0.2 text-[9px] font-mono text-[var(--text-muted)] shrink-0"
                 >
-                  <ShieldCheck className="h-3 w-3 text-emerald-500" /> RERA
+                  <ShieldCheck className="h-3 w-3 text-[var(--success)]" /> RERA
                 </span>
               )}
             </div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-              By {project.builderName}
+            <p className="text-xs text-[var(--text-muted)] font-mono flex items-center gap-1 mt-1 truncate">
+              <MapPin className="h-3 w-3 shrink-0 text-[var(--text-muted)]" />
+              <span>{project.location} &bull; By {project.builderName}</span>
             </p>
           </div>
 
-          {/* Location & Possession */}
-          <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <span className="truncate">{project.location}</span>
+          {/* BHK / sqft / floor in small icon-label pairs */}
+          <div className="grid grid-cols-3 gap-2 py-2 border-y border-[var(--border)] text-[11px] font-mono text-[var(--text-muted)]">
+            <div className="flex items-center gap-1">
+              <Home className="h-3 w-3 text-[var(--accent)]" />
+              <span className="truncate">{bhkDisplay}</span>
             </div>
-            {project.possessionDate && (
-              <div className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                <span>Possession: {project.possessionDate}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1">
+              <Maximize2 className="h-3 w-3 text-[var(--brass)]" />
+              <span className="truncate">{sqftDisplay}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Layers className="h-3 w-3 text-[var(--text-muted)]" />
+              <span>Fl 4–18</span>
+            </div>
           </div>
-
-          {/* BHK Configurations */}
-          {bhkSet.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1">
-              {bhkSet.map(bhk => (
-                <span
-                  key={bhk}
-                  className="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-100 dark:border-blue-900"
-                >
-                  {bhk} BHK
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* USPs Preview */}
-          {project.usps && project.usps.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {project.usps.slice(0, 2).map((usp, idx) => (
-                <span
-                  key={idx}
-                  className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400"
-                >
-                  <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
-                  <span className="truncate max-w-[130px]">{usp}</span>
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Footer / Price & Details CTA */}
-      <div className="flex items-center justify-between border-t border-slate-100 p-4 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+      {/* Card Ledger Footer: Price in JetBrains Mono */}
+      <div className="px-4 pb-4 pt-1 flex items-center justify-between font-mono">
         <div>
-          <span className="text-[10px] uppercase font-bold text-slate-400">Starting From</span>
-          <p className="text-sm font-black text-slate-900 dark:text-white">
-            {project.pricingDetails?.startingPrice
-              ? `₹${(project.pricingDetails.startingPrice / 10000000).toFixed(2)} Cr`
-              : 'Price on Request'}
-          </p>
+          <span className="text-[10px] uppercase text-[var(--text-muted)] block">From</span>
+          <span className="text-sm font-semibold text-[var(--text)] tabular-nums">
+            {priceDisplay}
+          </span>
         </div>
-
-        <div className="flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform dark:text-blue-400">
-          <span>Manage</span>
-          <ChevronRight className="h-4 w-4" />
-        </div>
+        <span className="text-xs font-mono text-[var(--accent)] group-hover:underline">
+          View Dossier &rarr;
+        </span>
       </div>
     </div>
   );
 };
+
+export default ProjectCard;

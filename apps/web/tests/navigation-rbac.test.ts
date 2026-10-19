@@ -28,8 +28,8 @@ describe('Navigation & RBAC Filtering', () => {
     expect(visible).toHaveLength(16);
   });
 
-  it('allows super_admin to see all navigation items', () => {
-    const visible = NAVIGATION_ITEMS.filter(item => isNavVisible('super_admin', item));
+  it('allows ps-owner to see all navigation items', () => {
+    const visible = NAVIGATION_ITEMS.filter(item => isNavVisible('ps-owner', item));
     expect(visible).toHaveLength(16);
   });
 

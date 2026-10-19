@@ -6,6 +6,7 @@ import {
   scoringConfigSchema,
 } from '@propbot/shared';
 import { leadsService } from './leads.service.js';
+import { assignmentService } from '../crm/assignment.service.js';
 
 export class LeadsController {
   async capture(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -21,8 +22,18 @@ export class LeadsController {
       }
 
       const result = await leadsService.captureOrUpdateLead(companyId, parsed);
+
+      let finalLead = result.lead;
+      if (!result.isDuplicate && !finalLead.assignedAgentId) {
+        try {
+          finalLead = await assignmentService.roundRobinAssign(companyId, finalLead.id);
+        } catch {
+          // Graceful fallback if no agent is currently active/eligible
+        }
+      }
+
       res.status(result.isDuplicate ? 200 : 201).json({
-        data: result.lead,
+        data: finalLead,
         isDuplicate: result.isDuplicate,
       });
     } catch (err) {

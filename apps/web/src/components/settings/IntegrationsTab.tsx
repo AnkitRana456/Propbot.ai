@@ -27,7 +27,7 @@ interface IntegrationData {
 export const IntegrationsTab: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'ps-owner';
 
   const [isWaWizardOpen, setIsWaWizardOpen] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export const IntegrationsTab: React.FC = () => {
     queryFn: () => apiRequest<IntegrationData[]>('/api/integrations'),
   });
 
-  // 2. Fetch Platform Integrations (super_admin)
+  // 2. Fetch Platform Integrations (ps-owner)
   const { data: platformData } = useQuery({
     queryKey: ['platform-integrations'],
     queryFn: () =>
@@ -159,7 +159,7 @@ export const IntegrationsTab: React.FC = () => {
         </div>
       )}
 
-      {/* PLATFORM SCOPE (super_admin only) */}
+      {/* PLATFORM SCOPE (ps-owner only) */}
       {isSuperAdmin && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">

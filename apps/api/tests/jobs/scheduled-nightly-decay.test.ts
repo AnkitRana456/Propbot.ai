@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { testDb, cleanupTestDatabase } from '../helpers/test-db.js';
-import { companies, contacts, leads, agentActions, domainEvents } from '../../src/db/schema/index.js';
+import { companies, contacts, leads, agentActions, domainEvents, integrations } from '../../src/db/schema/index.js';
 import { scheduledJobsService } from '../../src/jobs/scheduled-jobs.service.js';
 import { eq } from 'drizzle-orm';
 
@@ -196,5 +196,35 @@ describe('Phase 15A: Scheduled Jobs — Nightly Intent Decay & Stale Approvals E
       .where(eq(domainEvents.id, oldEvent!.id));
 
     expect(deleted).toBeUndefined();
+  });
+
+  it('4. Third-party token health check detects expiring OAuth/access tokens', async () => {
+    // 1. Integration with token expiring in 2 hours
+    const expiringIn2h = new Date(Date.now() + 2 * 3600 * 1000).toISOString();
+    await testDb.insert(integrations).values({
+      companyId,
+      provider: 'google_sheets',
+      status: 'active',
+      config: {
+        spreadsheetId: 'sheet_123',
+        tokenExpiresAt: expiringIn2h,
+      },
+    });
+
+    // 2. Integration with token expiring in 10 days
+    const expiringIn10d = new Date(Date.now() + 10 * 86400000).toISOString();
+    await testDb.insert(integrations).values({
+      companyId,
+      provider: 'hubspot',
+      status: 'active',
+      config: {
+        portalId: 'hubspot_456',
+        tokenExpiresAt: expiringIn10d,
+      },
+    });
+
+    const { checkedCount, expiringCount } = await scheduledJobsService.checkThirdPartyTokenHealth();
+    expect(checkedCount).toBeGreaterThanOrEqual(2);
+    expect(expiringCount).toBeGreaterThanOrEqual(1);
   });
 });

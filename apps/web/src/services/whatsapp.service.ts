@@ -11,14 +11,19 @@ import type {
   BroadcastCampaignInput,
 } from '@propbot/shared';
 
+function unpack<T>(res: unknown, fallback?: T): T {
+  if (res === null || res === undefined) return fallback !== undefined ? fallback : ({} as T);
+  const wrapped = res as { data?: unknown };
+  if (wrapped.data !== undefined) return wrapped.data as T;
+  return res as T;
+}
+
 export function useWhatsappConfig() {
   return useQuery<WhatsappConfigResponse>({
     queryKey: ['whatsapp', 'config'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: WhatsappConfigResponse }>(
-        '/api/whatsapp/config',
-      );
-      return res.data;
+      const res = await apiRequest<unknown>('/api/whatsapp/config');
+      return unpack<WhatsappConfigResponse>(res);
     },
   });
 }
@@ -27,14 +32,11 @@ export function useUpdateWhatsappConfig() {
   const queryClient = useQueryClient();
   return useMutation<WhatsappConfigResponse, Error, UpdateWhatsappConfigInput>({
     mutationFn: async (input: UpdateWhatsappConfigInput) => {
-      const res = await apiRequest<{ success: boolean; data: WhatsappConfigResponse }>(
-        '/api/whatsapp/config',
-        {
-          method: 'PUT',
-          body: JSON.stringify(input),
-        },
-      );
-      return res.data;
+      const res = await apiRequest<unknown>('/api/whatsapp/config', {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      });
+      return unpack<WhatsappConfigResponse>(res);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'config'] });
@@ -46,11 +48,8 @@ export function useGenerateVerifyToken() {
   const queryClient = useQueryClient();
   return useMutation<{ verifyToken: string }, Error, void>({
     mutationFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: { verifyToken: string } }>(
-        '/api/whatsapp/config/generate-token',
-        { method: 'POST' },
-      );
-      return res.data;
+      const res = await apiRequest<unknown>('/api/whatsapp/config/generate-token', { method: 'POST' });
+      return unpack<{ verifyToken: string }>(res);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'config'] });
@@ -62,10 +61,8 @@ export function useWhatsappOverview() {
   return useQuery<WhatsappOverviewKpi>({
     queryKey: ['whatsapp', 'overview'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: WhatsappOverviewKpi }>(
-        '/api/whatsapp/overview',
-      );
-      return res.data;
+      const res = await apiRequest<unknown>('/api/whatsapp/overview');
+      return unpack<WhatsappOverviewKpi>(res);
     },
   });
 }
@@ -80,11 +77,8 @@ export function useWhatsappConversations(filters: Partial<WhatsappConversationFi
       if (filters.page) params.set('page', String(filters.page));
       if (filters.limit) params.set('limit', String(filters.limit));
 
-      const res = await apiRequest<{
-        success: boolean;
-        data: { items: WhatsAppConversationItem[]; total: number };
-      }>(`/api/whatsapp/conversations?${params.toString()}`);
-      return res.data;
+      const res = await apiRequest<unknown>(`/api/whatsapp/conversations?${params.toString()}`);
+      return unpack<{ items: WhatsAppConversationItem[]; total: number }>(res, { items: [], total: 0 });
     },
     refetchInterval: 5000,
   });
@@ -94,10 +88,8 @@ export function useWhatsappConversationDetail(id: string | null) {
   return useQuery<WhatsAppConversationDetail>({
     queryKey: ['whatsapp', 'conversation', id],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: WhatsAppConversationDetail }>(
-        `/api/whatsapp/conversations/${id}`,
-      );
-      return res.data;
+      const res = await apiRequest<unknown>(`/api/whatsapp/conversations/${id}`);
+      return unpack<WhatsAppConversationDetail>(res);
     },
     enabled: Boolean(id),
     refetchInterval: 3000,
@@ -112,14 +104,14 @@ export function useSendInboxMessage() {
     { conversationId: string; input: SendInboxMessageInput }
   >({
     mutationFn: async ({ conversationId, input }) => {
-      const res = await apiRequest<{ success: boolean; data: WhatsAppConversationDetail }>(
+      const res = await apiRequest<unknown>(
         `/api/whatsapp/conversations/${conversationId}/messages`,
         {
           method: 'POST',
           body: JSON.stringify(input),
         },
       );
-      return res.data;
+      return unpack<WhatsAppConversationDetail>(res);
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversation', vars.conversationId] });
@@ -133,11 +125,11 @@ export function useTakeoverConversation() {
   const queryClient = useQueryClient();
   return useMutation<WhatsAppConversationDetail, Error, string>({
     mutationFn: async (conversationId: string) => {
-      const res = await apiRequest<{ success: boolean; data: WhatsAppConversationDetail }>(
+      const res = await apiRequest<unknown>(
         `/api/whatsapp/conversations/${conversationId}/takeover`,
         { method: 'POST' },
       );
-      return res.data;
+      return unpack<WhatsAppConversationDetail>(res);
     },
     onSuccess: (_, conversationId) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversation', conversationId] });
@@ -150,11 +142,11 @@ export function useResumeAi() {
   const queryClient = useQueryClient();
   return useMutation<WhatsAppConversationDetail, Error, string>({
     mutationFn: async (conversationId: string) => {
-      const res = await apiRequest<{ success: boolean; data: WhatsAppConversationDetail }>(
+      const res = await apiRequest<unknown>(
         `/api/whatsapp/conversations/${conversationId}/resume-ai`,
         { method: 'POST' },
       );
-      return res.data;
+      return unpack<WhatsAppConversationDetail>(res);
     },
     onSuccess: (_, conversationId) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversation', conversationId] });
@@ -171,14 +163,14 @@ export function useAssignConversation() {
     { conversationId: string; agentId: string }
   >({
     mutationFn: async ({ conversationId, agentId }) => {
-      const res = await apiRequest<{ success: boolean; data: WhatsAppConversationDetail }>(
+      const res = await apiRequest<unknown>(
         `/api/whatsapp/conversations/${conversationId}/assign`,
         {
           method: 'POST',
           body: JSON.stringify({ agentId }),
         },
       );
-      return res.data;
+      return unpack<WhatsAppConversationDetail>(res);
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversation', vars.conversationId] });
@@ -191,11 +183,11 @@ export function useCloseConversation() {
   const queryClient = useQueryClient();
   return useMutation<WhatsAppConversationDetail, Error, string>({
     mutationFn: async (conversationId: string) => {
-      const res = await apiRequest<{ success: boolean; data: WhatsAppConversationDetail }>(
+      const res = await apiRequest<unknown>(
         `/api/whatsapp/conversations/${conversationId}/close`,
         { method: 'POST' },
       );
-      return res.data;
+      return unpack<WhatsAppConversationDetail>(res);
     },
     onSuccess: (_, conversationId) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversation', conversationId] });
@@ -212,14 +204,11 @@ export function useBroadcastCampaign() {
     BroadcastCampaignInput
   >({
     mutationFn: async (input: BroadcastCampaignInput) => {
-      const res = await apiRequest<{
-        success: boolean;
-        data: { campaignId: string; totalRecipients: number; sentCount: number };
-      }>('/api/whatsapp/campaigns/broadcast', {
+      const res = await apiRequest<unknown>('/api/whatsapp/campaigns/broadcast', {
         method: 'POST',
         body: JSON.stringify(input),
       });
-      return res.data;
+      return unpack<{ campaignId: string; totalRecipients: number; sentCount: number }>(res);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'overview'] });
@@ -231,11 +220,8 @@ export function useQuickConnectSandbox() {
   const queryClient = useQueryClient();
   return useMutation<WhatsappConfigResponse, Error, void>({
     mutationFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: WhatsappConfigResponse }>(
-        '/api/whatsapp/config/quick-connect',
-        { method: 'POST' },
-      );
-      return res.data;
+      const res = await apiRequest<unknown>('/api/whatsapp/config/quick-connect', { method: 'POST' });
+      return unpack<WhatsappConfigResponse>(res);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'config'] });
@@ -253,14 +239,11 @@ export function useSimulateInboundMessage() {
     { phone: string; name?: string; text: string; isVoiceNote?: boolean }
   >({
     mutationFn: async input => {
-      const res = await apiRequest<{
-        success: boolean;
-        data: { success: boolean; conversationId: string; responseSnippet?: string };
-      }>('/api/whatsapp/simulate-inbound', {
+      const res = await apiRequest<unknown>('/api/whatsapp/simulate-inbound', {
         method: 'POST',
         body: JSON.stringify(input),
       });
-      return res.data;
+      return unpack<{ success: boolean; conversationId: string; responseSnippet?: string }>(res);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });

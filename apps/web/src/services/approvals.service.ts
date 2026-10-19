@@ -58,8 +58,14 @@ export function usePendingApprovalsCount() {
   return useQuery({
     queryKey: ['approvals-count'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; count: number }>(`/api/approvals/count`);
-      return res.count;
+      try {
+        const res = await apiRequest<{ success: boolean; count: number }>(`/api/approvals/count`);
+        return (res as { count?: number; data?: { count?: number } })?.count ??
+          (res as { data?: { count?: number } })?.data?.count ??
+          0;
+      } catch {
+        return 0;
+      }
     },
     enabled: hasToken,
     refetchInterval: hasToken ? 15000 : false,

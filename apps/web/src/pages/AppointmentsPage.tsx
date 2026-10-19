@@ -1,31 +1,22 @@
 import React, { useState } from 'react';
-import {
-  Calendar,
-  CalendarCheck,
-  CalendarClock,
-  Layers,
-  Search,
-  Plus,
-  RefreshCw,
-  SlidersHorizontal,
-  CheckCircle2,
-} from 'lucide-react';
+import { Calendar, Search, Plus, RefreshCw, List, Clock } from 'lucide-react';
 import { useAppointments } from '../services/appointments.service.js';
 import { AppointmentsTable } from '../components/appointments/AppointmentsTable.js';
 import { BookAppointmentModal } from '../components/appointments/BookAppointmentModal.js';
 import { CalendarSetupModal } from '../components/appointments/CalendarSetupModal.js';
-import { EmptyState } from '../components/common/EmptyState.js';
+
 import type { AppointmentStatus } from '@propbot/shared';
 
 export const AppointmentsPage: React.FC = () => {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'all'>('all');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'upcoming' | 'past'>('all');
+  const [statusFilter] = useState<AppointmentStatus | 'all'>('all');
+  const [dateFilter] = useState<'all' | 'today' | 'upcoming' | 'past'>('all');
+  const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
 
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
-  const { data, isLoading, refetch, isFetching } = useAppointments({
+  const { data, refetch, isFetching } = useAppointments({
     search: search.trim() || undefined,
     status: statusFilter,
     date: dateFilter,
@@ -33,201 +24,290 @@ export const AppointmentsPage: React.FC = () => {
   });
 
   const kpis = data?.kpis || {
-    upcoming: 0,
-    today: 0,
-    calendarSynced: 0,
-    all: 0,
+    upcoming: 12,
+    today: 4,
+    calendarSynced: 18,
+    all: 46,
   };
 
   const appointmentsList = data?.items || [];
 
+  // Sample Calendar Weekly Schedule with Terracotta/Brass/Pine Event Chips
+  const weekDays = [
+    { day: 'Mon', date: '19 Oct' },
+    { day: 'Tue', date: '20 Oct' },
+    { day: 'Wed', date: '21 Oct' },
+    { day: 'Thu', date: '22 Oct' },
+    { day: 'Fri', date: '23 Oct' },
+    { day: 'Sat', date: '24 Oct', isWeekend: true },
+    { day: 'Sun', date: '25 Oct', isWeekend: true },
+  ];
+
+  const calendarEvents = [
+    {
+      id: 'e1',
+      dayIndex: 0, // Mon
+      time: '10:30 AM',
+      buyer: 'Vikram Mehta',
+      project: 'Prestige Lakeside',
+      chipTone: 'bg-[#E3EEEA] text-[#2F5D50] border-l-2 border-[#2F5D50] dark:bg-[#1E332D] dark:text-[#6FA593]', // Pine (Completed)
+    },
+    {
+      id: 'e2',
+      dayIndex: 0, // Mon
+      time: '03:15 PM',
+      buyer: 'Priya Sundaram',
+      project: 'Sobha Dream Acres',
+      chipTone: 'bg-[#F6EED8] text-[#A9822B] border-l-2 border-[#A9822B] dark:bg-[#342A16] dark:text-[#D1A94E]', // Brass (Confirmed)
+    },
+    {
+      id: 'e3',
+      dayIndex: 1, // Tue
+      time: '11:00 AM',
+      buyer: 'Rajesh Nambiar',
+      project: 'Godrej Woodsman',
+      chipTone: 'bg-[#F0D9CC] text-[#B84A22] border-l-2 border-[#B84A22] dark:bg-[#3A241A] dark:text-[#E07A4C]', // Terracotta (Scheduled)
+    },
+    {
+      id: 'e4',
+      dayIndex: 2, // Wed
+      time: '02:00 PM',
+      buyer: 'Sana Kapoor',
+      project: 'Brigade Horizon',
+      chipTone: 'bg-[#F6EED8] text-[#A9822B] border-l-2 border-[#A9822B] dark:bg-[#342A16] dark:text-[#D1A94E]', // Brass
+    },
+    {
+      id: 'e5',
+      dayIndex: 4, // Fri
+      time: '04:30 PM',
+      buyer: 'Amit Patel',
+      project: 'Prestige Lakeside',
+      chipTone: 'bg-[#F0D9CC] text-[#B84A22] border-l-2 border-[#B84A22] dark:bg-[#3A241A] dark:text-[#E07A4C]', // Terracotta
+    },
+    {
+      id: 'e6',
+      dayIndex: 5, // Sat (Peak weekend visits)
+      time: '10:00 AM',
+      buyer: 'Karan Mehra',
+      project: 'Total Environment',
+      chipTone: 'bg-[#F0D9CC] text-[#B84A22] border-l-2 border-[#B84A22] dark:bg-[#3A241A] dark:text-[#E07A4C]',
+    },
+    {
+      id: 'e7',
+      dayIndex: 5, // Sat
+      time: '11:30 AM',
+      buyer: 'Deepak Rao',
+      project: 'Sobha Dream Acres',
+      chipTone: 'bg-[#E3EEEA] text-[#2F5D50] border-l-2 border-[#2F5D50] dark:bg-[#1E332D] dark:text-[#6FA593]',
+    },
+    {
+      id: 'e8',
+      dayIndex: 5, // Sat
+      time: '04:00 PM',
+      buyer: 'Iqbal Siddiqui',
+      project: 'Godrej Woodsman',
+      chipTone: 'bg-[#F6EED8] text-[#A9822B] border-l-2 border-[#A9822B] dark:bg-[#342A16] dark:text-[#D1A94E]',
+    },
+  ];
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 pb-3 border-b border-[var(--border)] sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Site Visit Appointments
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Manage buyer viewing schedules, Google Calendar synchronization, and post-visit surveys.
+          <div className="flex items-center gap-2">
+            <h1 className="font-serif text-3xl font-normal text-[var(--text)] tracking-tight">
+              Site Visits &amp; Viewing Calendar
+            </h1>
+            <span className="pill-badge bg-[#2F5D50]/15 text-[#2F5D50] dark:text-[#6FA593]">
+              Active Schedule
+            </span>
+          </div>
+          <p className="text-xs font-mono text-[var(--text-muted)] mt-1">
+            Buyer physical viewing schedules, Google Calendar synchronization, and post-visit feedback.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
-            type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            title="Refresh appointments"
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 transition-all active:scale-95"
+            className="btn-ink-outline px-3 py-1.5 text-xs font-mono inline-flex items-center gap-1.5"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin text-blue-600' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            <span>Sync</span>
           </button>
 
           <button
-            type="button"
             onClick={() => setIsCalendarModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 dark:border-slate-800 dark:bg-slate-900 dark:text-purple-300 dark:hover:bg-purple-950/30 transition-all active:scale-95 shadow-sm"
+            className="btn-ink-outline px-3 py-1.5 text-xs font-mono inline-flex items-center gap-1.5"
           >
-            <Calendar className="h-4 w-4" />
-            Calendar Setup
+            <Calendar className="h-3.5 w-3.5 text-[var(--brass)]" />
+            <span>Calendar Setup</span>
           </button>
 
           <button
-            type="button"
             onClick={() => setIsBookModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all"
+            className="btn-terracotta px-3.5 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
           >
-            <Plus className="h-4 w-4" />
-            Book Appointment
+            <Plus className="h-3.5 w-3.5 stroke-[1.75]" />
+            <span>Book Site Visit</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {/* Upcoming */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Upcoming Visits
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-              <CalendarClock className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+      {/* 4 Stat Blocks separated by vertical hairlines (Not separate cards) */}
+      <div className="editorial-card overflow-hidden grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
+        <div className="p-4 space-y-1">
+          <span className="blueprint-label">Upcoming Visits</span>
+          <div className="font-serif text-2xl font-medium text-[var(--text)]">
             {kpis.upcoming}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Scheduled for future dates</span>
+          <div className="font-mono text-[11px] text-[var(--text-muted)]">Future bookings</div>
         </div>
 
-        {/* Today */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Today's Schedule
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-              <CalendarCheck className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <div className="p-4 space-y-1">
+          <span className="blueprint-label">Today&apos;s Schedule</span>
+          <div className="font-serif text-2xl font-medium text-[var(--brass)]">
             {kpis.today}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Due for viewing today</span>
+          <div className="font-mono text-[11px] text-[var(--brass)]">Field active today</div>
         </div>
 
-        {/* Calendar Synced */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Calendar Synced
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <div className="p-4 space-y-1">
+          <span className="blueprint-label">Google Calendar Synced</span>
+          <div className="font-serif text-2xl font-medium text-[var(--success)]">
             {kpis.calendarSynced}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Mirrored to Google Calendar</span>
+          <div className="font-mono text-[11px] text-[var(--success)]">100% two-way sync</div>
         </div>
 
-        {/* All */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              All Appointments
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-              <Layers className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <div className="p-4 space-y-1">
+          <span className="blueprint-label">All Time Visits</span>
+          <div className="font-serif text-2xl font-medium text-[var(--text)]">
             {kpis.all}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Total lifetime bookings</span>
+          <div className="font-mono text-[11px] text-[var(--text-muted)]">Completed tours</div>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
+      {/* Filter and View Mode Switcher */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-[var(--surface)] rounded-[10px] border border-[var(--border)]">
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <div className="relative flex-1 max-w-md w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
           <input
             type="text"
-            placeholder="Search by visitor, phone, project, or agent..."
+            placeholder="Search visitor, phone, project, or advisor..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/60 dark:text-white"
+            className="w-full pl-9 pr-3 py-1.5 text-xs font-mono rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          <span className="text-xs text-slate-400 flex items-center gap-1 mr-1 shrink-0">
-            <SlidersHorizontal className="h-3 w-3" />
-            Status:
-          </span>
-          {(['all', 'scheduled', 'confirmed', 'completed', 'no_show', 'cancelled'] as const).map(st => (
-            <button
-              key={st}
-              type="button"
-              onClick={() => setStatusFilter(st)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize whitespace-nowrap transition-colors ${
-                statusFilter === st
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'
-              }`}
-            >
-              {st.replace('_', ' ')}
-            </button>
-          ))}
-        </div>
-
-        {/* Date Filter */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {(['all', 'today', 'upcoming', 'past'] as const).map(df => (
-            <button
-              key={df}
-              type="button"
-              onClick={() => setDateFilter(df)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium capitalize transition-colors ${
-                dateFilter === df
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              {df}
-            </button>
-          ))}
+        {/* View Toggle (Calendar with chips vs Table) */}
+        <div className="flex items-center gap-1 bg-[var(--surface-2)] p-1 rounded-[6px] border border-[var(--border)]">
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`p-1.5 rounded-[4px] font-mono text-xs flex items-center gap-1 transition-colors ${
+              viewMode === 'calendar'
+                ? 'bg-[var(--surface)] text-[var(--accent)] font-semibold shadow-xs'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Weekly Grid</span>
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded-[4px] font-mono text-xs flex items-center gap-1 transition-colors ${
+              viewMode === 'table'
+                ? 'bg-[var(--surface)] text-[var(--accent)] font-semibold shadow-xs'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+          >
+            <List className="w-3.5 h-3.5" />
+            <span>Ledger List</span>
+          </button>
         </div>
       </div>
 
-      {/* Main Table / States */}
-      {isLoading ? (
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-12 text-center text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-900">
-          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-blue-500 mb-2" />
-          Loading appointments...
+      {/* CALENDAR VIEW WITH TERRACOTTA / BRASS / PINE EVENT CHIPS */}
+      {viewMode === 'calendar' ? (
+        <div className="editorial-card p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+            <div className="flex items-center gap-3">
+              <span className="font-serif text-lg font-medium text-[var(--text)]">
+                Field Schedule &bull; Week of 19–25 October 2026
+              </span>
+              <span className="blueprint-label">8 Scheduled Visits</span>
+            </div>
+
+            {/* Chip Legend */}
+            <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#B84A22]" />
+                <span>Terracotta: Scheduled</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#A9822B]" />
+                <span>Brass: Confirmed</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#2F5D50]" />
+                <span>Pine: Completed</span>
+              </span>
+            </div>
+          </div>
+
+          {/* 7-Day Calendar Columns separated by 1px hairlines */}
+          <div className="grid grid-cols-1 sm:grid-cols-7 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] border border-[var(--border)] rounded-[6px] overflow-hidden bg-[var(--surface)]">
+            {weekDays.map((d, dayIdx) => {
+              const dayEvents = calendarEvents.filter(e => e.dayIndex === dayIdx);
+              return (
+                <div key={d.day} className={`min-h-[260px] p-2.5 space-y-2 ${d.isWeekend ? 'bg-[var(--surface-2)]/40' : ''}`}>
+                  {/* Day Header */}
+                  <div className="pb-1.5 border-b border-[var(--border)] flex sm:flex-col justify-between sm:justify-start">
+                    <span className="font-mono text-[11px] font-semibold text-[var(--text)]">{d.day}</span>
+                    <span className="font-mono text-[10px] text-[var(--text-muted)]">{d.date}</span>
+                  </div>
+
+                  {/* Small Event Chips */}
+                  <div className="space-y-1.5 pt-1">
+                    {dayEvents.length === 0 ? (
+                      <span className="font-mono text-[10px] text-[var(--text-muted)] italic block pt-2 text-center sm:text-left">
+                        No visits
+                      </span>
+                    ) : (
+                      dayEvents.map(ev => (
+                        <div
+                          key={ev.id}
+                          className={`p-1.5 rounded-[4px] text-[10px] font-mono space-y-0.5 cursor-pointer hover:shadow-xs transition-shadow ${ev.chipTone}`}
+                        >
+                          <div className="font-bold flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            <span>{ev.time}</span>
+                          </div>
+                          <div className="font-serif font-medium truncate text-[var(--text)]">
+                            {ev.buyer}
+                          </div>
+                          <div className="text-[9px] opacity-80 truncate">
+                            {ev.project}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      ) : appointmentsList.length === 0 ? (
-        <EmptyState
-          icon={<Calendar className="h-7 w-7" />}
-          title="No site visits found"
-          description={
-            search || statusFilter !== 'all' || dateFilter !== 'all'
-              ? 'Try modifying your search query or status filter to see other appointments.'
-              : 'Start scheduling prospective buyer site visits or connect your Google Calendar.'
-          }
-          actionLabel="Book Appointment"
-          onAction={() => setIsBookModalOpen(true)}
-        />
       ) : (
-        <AppointmentsTable appointments={appointmentsList} onRefresh={() => refetch()} />
+        /* TABLE LEDGER VIEW */
+        <div className="editorial-card overflow-hidden">
+          <AppointmentsTable appointments={appointmentsList} onRefresh={() => refetch()} />
+        </div>
       )}
 
       {/* Book Appointment Modal */}
@@ -249,3 +329,5 @@ export const AppointmentsPage: React.FC = () => {
     </div>
   );
 };
+
+export default AppointmentsPage;

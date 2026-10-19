@@ -412,16 +412,23 @@ export class WhatsAppService {
     const token = String(query['hub.verify_token'] || '');
     if (!token) return null;
 
-    // Search across configs for matching token
+    // Search across configs for matching token or fallback to environment variables
     const config = await db.query.whatsappConfigs.findFirst({
       where: eq(whatsappConfigs.verifyToken, token),
     });
 
-    if (!config) {
+    const envVerifyToken =
+      process.env.META_WHATSAPP_WEBHOOK_VERIFY_TOKEN ||
+      process.env.WHATSAPP_VERIFY_TOKEN ||
+      '';
+
+    const matchedToken = config?.verifyToken || (token === envVerifyToken ? envVerifyToken : null);
+
+    if (!matchedToken) {
       return null;
     }
 
-    return whatsappAdapter.verifyWebhook(query, config.verifyToken);
+    return whatsappAdapter.verifyWebhook(query, matchedToken);
   }
 
   /**

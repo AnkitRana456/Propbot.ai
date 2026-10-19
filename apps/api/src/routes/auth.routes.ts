@@ -51,7 +51,7 @@ authRouter.get(
   '/users/pending',
   authenticate,
   tenantGuard,
-  requireRole('company_admin', 'super_admin'),
+  requireRole('company_admin', 'ps-owner'),
   (req, res, next) => {
     authController.getPendingUsers(req, res, next);
   },
@@ -61,7 +61,7 @@ authRouter.post(
   '/users/:id/approve',
   authenticate,
   tenantGuard,
-  requireRole('company_admin', 'super_admin'),
+  requireRole('company_admin', 'ps-owner'),
   (req, res, next) => {
     authController.approveUser(req, res, next);
   },
@@ -71,7 +71,7 @@ authRouter.post(
   '/users/:id/reject',
   authenticate,
   tenantGuard,
-  requireRole('company_admin', 'super_admin'),
+  requireRole('company_admin', 'ps-owner'),
   (req, res, next) => {
     authController.rejectUser(req, res, next);
   },

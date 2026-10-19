@@ -125,7 +125,7 @@ Returns the authenticated user's profile and active tenant context (`req.tenant`
 
 ### `GET /api/auth/users/pending`
 
-Lists all users with `pending_approval` status in the tenant. Protected by `requireRole('company_admin', 'super_admin')`.
+Lists all users with `pending_approval` status in the tenant. Protected by `requireRole('company_admin', 'ps-owner')`.
 
 ### `POST /api/auth/users/:id/approve`
 
@@ -1101,7 +1101,7 @@ Lists configured integration adapters (Google Sheets, HubSpot, Zoho CRM, Meta CA
 
 #### `GET /api/integrations/platform`
 Lists platform-level foundation integrations and status (OpenAI, Anthropic, Gemini, WhatsApp, R2 Storage, SMTP):
-- **Requires**: `super_admin` role.
+- **Requires**: `ps-owner` role.
 - **Security**: Key values are strictly masked.
 
 #### `PUT /api/integrations/:provider`
@@ -1280,7 +1280,7 @@ Streams a comprehensive CSV export containing daily rolled-up analytics metrics,
 #### `GET /api/analytics/admin/overview`
 Platform-wide multi-tenant benchmark overview for Super Administrators:
 - Aggregates cross-company totals (total companies, total conversations, total leads, average conversion rate, and average response time).
-- **Requires**: `super_admin` role.
+- **Requires**: `ps-owner` role.
 
 
 ---
@@ -1293,7 +1293,7 @@ All administrative endpoints enforce tenant isolation, Bearer JWT authentication
 
 #### `GET /api/users`
 Lists all team members and users in the tenant:
-- **Query Params**: `role` (`super_admin`, `admin`, `sales_manager`, `agent`, `marketing`, `analyst`), `status` (`active`, `pending`, `deactivated`), `team`, `search`, `page`, `limit`.
+- **Query Params**: `role` (`ps-owner`, `admin`, `sales_manager`, `agent`, `marketing`, `analyst`), `status` (`active`, `pending`, `deactivated`), `team`, `search`, `page`, `limit`.
 - Returns user items with avatar, role, team, working hours, lead capacity, assigned chatbots, and joined date.
 - **Requires**: `manage_users` or `view_analytics` permission.
 
@@ -1348,7 +1348,7 @@ Deactivates or removes a user from the tenant.
 #### `POST /api/users/:id/reset-2fa`
 Admin emergency action to reset a user's lost Two-Factor Authentication (TOTP) secret:
 - Logs security audit trail.
-- **Requires**: `manage_users` permission (`admin` or `super_admin`).
+- **Requires**: `manage_users` permission (`admin` or `ps-owner`).
 
 ---
 
@@ -1524,12 +1524,12 @@ Disables Two-Factor Authentication for the user.
 #### `PUT /api/settings/security/ip-allowlist`
 Configures IP address / CIDR allowlist for tenant dashboard access:
 - **Body**: `{ "ipAllowlist": ["192.168.1.0/24", "203.0.113.50"] }`
-- **Requires**: `manage_settings` permission (`admin` or `super_admin`).
+- **Requires**: `manage_settings` permission (`admin` or `ps-owner`).
 
 #### `GET /api/settings/data/export`
 Exports complete tenant data in structured JSON format for GDPR and DPDP compliance:
 - Packages company profile, team members, chatbots, leads, activities, conversations, appointments, and audit logs.
-- **Requires**: `manage_settings` permission (`admin` or `super_admin`).
+- **Requires**: `manage_settings` permission (`admin` or `ps-owner`).
 
 ---
 

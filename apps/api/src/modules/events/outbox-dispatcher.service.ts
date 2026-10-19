@@ -83,6 +83,32 @@ export class OutboxDispatcherService {
     this.registerConsumer('voice_callback', async (event) => {
       await voiceCallbackConsumer.handleEvent(event);
     });
+
+    // 5. Next Best Action consumer
+    this.registerConsumer('next_best_action', async (event) => {
+      const relevantTypes = [
+        'intent_changed',
+        'lead_hot',
+        'visit_booked',
+        'room_viewed',
+        'message_received',
+        'lead_status_changed',
+      ];
+      if (relevantTypes.includes(event.type)) {
+        const { nextBestActionService } = await import('../crm/next-best-action.service.js');
+        await nextBestActionService.handleEvent(event);
+      }
+    });
+
+    // 6. Analytics rollups consumer
+    this.registerConsumer('analytics_rollups', async (event) => {
+      const rollupEventTypes = ['lead_created', 'lead_status_changed', 'visit_booked', 'message_received'];
+      if (rollupEventTypes.includes(event.type)) {
+        const { rollupService } = await import('../analytics/rollup.service.js');
+        const todayStr = event.createdAt.toISOString().split('T')[0]!;
+        await rollupService.rollupDayForCompany(event.companyId, todayStr);
+      }
+    });
   }
 
   /**

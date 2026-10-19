@@ -19,7 +19,7 @@ export function tenantGuard(req: Request, res: Response, next: NextFunction): vo
   if (
     claimedCompanyId &&
     claimedCompanyId !== req.user.companyId &&
-    req.user.role !== 'super_admin'
+    req.user.role !== 'ps-owner'
   ) {
     res.status(403).json({
       error: {

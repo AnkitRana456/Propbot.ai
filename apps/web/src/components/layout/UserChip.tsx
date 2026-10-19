@@ -9,7 +9,7 @@ interface UserChipProps {
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
-  super_admin: 'Super Admin',
+  'ps-owner': 'Platform Owner',
   company_admin: 'Company Admin',
   sales_manager: 'Sales Manager',
   agent: 'Sales Agent',

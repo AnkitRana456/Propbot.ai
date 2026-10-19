@@ -17,7 +17,7 @@ export class NextBestActionService {
   }
 
   private registerOutboxConsumer(): void {
-    outboxDispatcherService.registerConsumer('next-best-action', async (event) => {
+    outboxDispatcherService.registerConsumer('next_best_action', async (event) => {
       const relevantTypes = [
         'intent_changed',
         'lead_hot',

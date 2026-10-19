@@ -35,8 +35,8 @@ describe('RBAC Middleware', () => {
       expect(next).toHaveBeenCalledTimes(1);
     });
 
-    it('always permits super_admin', () => {
-      const { req, res, next } = createMockContext('super_admin');
+    it('always permits ps-owner', () => {
+      const { req, res, next } = createMockContext('ps-owner');
       const middleware = requireRole('sales_manager');
 
       middleware(req, res, next);

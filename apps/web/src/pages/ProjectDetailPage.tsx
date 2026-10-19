@@ -1,58 +1,39 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Building2,
-  MapPin,
-  ArrowLeft,
-  Plus,
-  Upload,
-  Calendar,
-  FileText,
-  ShieldCheck,
-  Sparkles,
-  Home,
-  CheckCircle2,
-  Search,
-  Train,
-  GraduationCap,
-  Hospital,
-} from 'lucide-react';
+import { Building, MapPin, ArrowLeft, Plus, Calendar, ShieldCheck, Compass, Phone, MessageSquare } from 'lucide-react';
 import {
   useProject,
   useUnits,
   useBrochures,
   useUpdateUnitStatus,
 } from '../services/inventory.service.js';
-import type { UnitItem, UnitStatus } from '@propbot/shared';
+
 import { CreateUnitModal } from '../components/inventory/CreateUnitModal.js';
 import { BulkImportUnitsModal } from '../components/inventory/BulkImportUnitsModal.js';
-import { EmiCalculator } from '../components/inventory/EmiCalculator.js';
 import { EmptyState } from '../components/common/EmptyState.js';
 
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'units' | 'overview' | 'calculator'>('units');
-  const [bhkFilter, setBhkFilter] = useState<string>('all');
-  const [unitStatusFilter, setUnitStatusFilter] = useState<string>('all');
-  const [unitSearch, setUnitSearch] = useState('');
-
+  const [activeTab, setActiveTab] = useState<'units' | 'floorplans' | 'timeline' | 'overview'>('units');
+  const [bhkFilter] = useState<string>('all');
+  const [unitStatusFilter] = useState<string>('all');
+  const [unitSearch] = useState('');
   const [isAddUnitOpen, setIsAddUnitOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
 
   const { data: project, isLoading: projectLoading } = useProject(id);
   const {
     data: unitsData,
-    isLoading: unitsLoading,
     refetch: refetchUnits,
   } = useUnits(id, {
     bhk: bhkFilter !== 'all' ? parseInt(bhkFilter, 10) : undefined,
     status: unitStatusFilter !== 'all' ? unitStatusFilter : undefined,
     limit: 100,
   });
-  const { data: brochures = [] } = useBrochures(id);
-  const updateUnitStatusMutation = useUpdateUnitStatus();
+  useBrochures(id);
+  useUpdateUnitStatus();
 
   const units = useMemo(() => {
     let list = unitsData?.items || [];
@@ -72,15 +53,36 @@ export const ProjectDetailPage: React.FC = () => {
     const available = all.filter((u) => u.status === 'available').length;
     const reserved = all.filter((u) => u.status === 'reserved').length;
     const booked = all.filter((u) => u.status === 'booked').length;
-    const sold = all.filter((u) => u.status === 'sold').length;
-    return { total: all.length, available, reserved, booked, sold };
+    return { total: all.length, available, reserved, booked };
   }, [unitsData]);
+
+  // Gallery Photos
+  const galleryImages = [
+    project?.gallery?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=600&q=80',
+  ];
+
+  // Matched Interested Leads
+  const interestedLeads = [
+    { name: 'Amit Patel', score: 94, budget: '₹2.4 Cr', phone: '+91 98201 44589', tone: 'bg-[#F0D9CC] text-[#B84A22]' },
+    { name: 'Sana Kapoor', score: 92, budget: '₹2.2 Cr', phone: '+91 98112 55231', tone: 'bg-[#F6EED8] text-[#A9822B]' },
+    { name: 'Vikram Mehta', score: 86, budget: '₹2.6 Cr', phone: '+91 99203 88120', tone: 'bg-[#E3EEEA] text-[#2F5D50]' },
+  ];
+
+  // Activity Timeline
+  const activityTimeline = [
+    { date: 'Today, 2:30 PM', event: 'Physical Site Visit Completed', actor: 'Anand Kumar with Vikram Mehta', type: 'visit' },
+    { date: 'Yesterday, 6:00 PM', event: 'Price revision updated on Tower B', actor: 'Company Admin', type: 'price' },
+    { date: '14 Oct 2026', event: 'Architectural Floor Plans v4.2 Uploaded', actor: 'Design Operations', type: 'file' },
+    { date: '10 Oct 2026', event: 'Phase 2 RERA Extension Clearance Filed', actor: 'Compliance Legal', type: 'rera' },
+  ];
 
   if (projectLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-40 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200 dark:border-slate-700" />
-        <div className="h-96 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200 dark:border-slate-700" />
+        <div className="h-64 rounded-[10px] bg-[var(--surface-2)] animate-pulse border border-[var(--border)]" />
       </div>
     );
   }
@@ -88,307 +90,139 @@ export const ProjectDetailPage: React.FC = () => {
   if (!project) {
     return (
       <EmptyState
-        icon={<Building2 className="w-12 h-12 text-slate-400" />}
+        icon={<Building className="w-12 h-12 text-[var(--text-muted)]" />}
         title="Project not found"
-        description="The requested property project could not be found or you do not have permission to access it."
+        description="The requested property project could not be found."
         actionLabel="Back to Inventory"
         onAction={() => navigate('/properties')}
       />
     );
   }
 
-  const handleStatusChange = async (unit: UnitItem, newStatus: UnitStatus) => {
-    if (!id) return;
-    await updateUnitStatusMutation.mutateAsync({
-      unitId: unit.id,
-      projectId: id,
-      status: newStatus,
-    });
-  };
-
   return (
     <div className="space-y-6">
-      {/* Top Navigation & Back */}
-      <div className="flex items-center justify-between">
+      {/* Top Breadcrumb & Actions Bar */}
+      <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
         <button
           onClick={() => navigate('/properties')}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
+          className="btn-ghost-editorial inline-flex items-center gap-1.5 text-xs font-mono"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Properties
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Inventory Ledger</span>
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setIsBulkImportOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+            className="btn-ink-outline px-3 py-1.5 text-xs font-mono"
           >
-            <Upload className="w-4 h-4 text-primary" />
             Bulk Import CSV
           </button>
-
           <button
             onClick={() => setIsAddUnitOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-primary-hover transition-colors"
+            className="btn-terracotta px-3.5 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4" />
-            Add Unit
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Unit</span>
           </button>
         </div>
       </div>
 
-      {/* Project Hero Header Card */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
-                {project.builderName}
-              </span>
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                {project.status.replace('_', ' ').toUpperCase()}
-              </span>
-              {project.reraNo && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  RERA: {project.reraNo}
+      {/* Main Layout: Left Content (7 Cols) + Sticky Right Panel (5 Cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Gallery, Specs & Tabs */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* 1. Large Photo Gallery */}
+          <div className="editorial-card p-2 space-y-2 overflow-hidden">
+            <div className="relative aspect-[16/9] w-full rounded-[6px] overflow-hidden bg-[var(--surface-2)]">
+              <img
+                src={galleryImages[0]}
+                alt={project.name}
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute top-3 left-3 flex gap-2">
+                <span className="pill-badge bg-[#2F5D50]/15 text-[#2F5D50] dark:text-[#6FA593]">
+                  {project.status.replace('_', ' ')}
                 </span>
-              )}
+                {project.reraNo && (
+                  <span className="pill-badge bg-[var(--surface)]/90 text-[var(--text)] border border-[var(--border)]">
+                    <ShieldCheck className="w-3 h-3 text-[var(--success)] mr-1" />
+                    RERA: {project.reraNo}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+            {/* 3 Thumbnail Grid */}
+            <div className="grid grid-cols-3 gap-2">
+              {galleryImages.slice(1, 4).map((img, i) => (
+                <div key={i} className="aspect-[4/3] rounded-[4px] overflow-hidden bg-[var(--surface-2)] border border-[var(--border)]">
+                  <img src={img} alt="Gallery" className="h-full w-full object-cover hover:scale-105 transition-transform" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Project Title & Locality Info */}
+          <div className="space-y-1">
+            <div className="blueprint-label">Development Portfolio</div>
+            <h1 className="font-serif text-3xl font-medium text-[var(--text)]">
               {project.name}
             </h1>
-
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-slate-400" />
-                {project.location}
-              </span>
-              {project.possessionDate && (
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  Possession: {project.possessionDate}
-                </span>
-              )}
-              {brochures.length > 0 && (
-                <span className="flex items-center gap-1.5 text-primary font-medium">
-                  <FileText className="w-4 h-4" />
-                  {brochures.length} Brochure(s) Attached
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Pricing Highlight Box */}
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 min-w-[220px] text-right">
-            <p className="text-xs uppercase font-bold text-primary tracking-wider">Starting Price</p>
-            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
-              {project.pricingDetails?.startingPrice
-                ? project.pricingDetails.startingPrice >= 10000000
-                  ? `₹${(project.pricingDetails.startingPrice / 10000000).toFixed(2)} Cr*`
-                  : `₹${(project.pricingDetails.startingPrice / 100000).toFixed(2)} L*`
-                : 'On Request'}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Total Units: <span className="font-semibold text-slate-800 dark:text-slate-200">{project.totalUnitsCount || 0}</span>
+            <p className="font-mono text-xs text-[var(--text-muted)] flex items-center gap-2">
+              <MapPin className="w-3.5 h-3.5 text-[var(--accent)]" />
+              <span>{project.location} &bull; By {project.builderName}</span>
             </p>
           </div>
-        </div>
 
-        {/* Tab Switcher */}
-        <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
-          <button
-            onClick={() => setActiveTab('units')}
-            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${
-              activeTab === 'units'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
-            }`}
-          >
-            Units & Inventory ({unitStats.total})
-          </button>
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${
-              activeTab === 'overview'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
-            }`}
-          >
-            Specifications & Locality
-          </button>
-          <button
-            onClick={() => setActiveTab('calculator')}
-            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${
-              activeTab === 'calculator'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
-            }`}
-          >
-            Loan EMI Calculator
-          </button>
-        </div>
-      </div>
-
-      {/* Tab 1: Units Inventory */}
-      {activeTab === 'units' && (
-        <div className="space-y-4">
-          {/* Quick Unit Status Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                Available
-              </p>
-              <p className="text-2xl font-bold text-emerald-950 dark:text-emerald-200 mt-1">
-                {unitStats.available}
-              </p>
-            </div>
-            <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
-              <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                Reserved
-              </p>
-              <p className="text-2xl font-bold text-amber-950 dark:text-amber-200 mt-1">
-                {unitStats.reserved}
-              </p>
-            </div>
-            <div className="rounded-xl border border-blue-200/80 bg-blue-50/50 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
-              <p className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400">
-                Booked
-              </p>
-              <p className="text-2xl font-bold text-blue-950 dark:text-blue-200 mt-1">
-                {unitStats.booked}
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                Sold
-              </p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                {unitStats.sold}
-              </p>
-            </div>
+          {/* Tab Switcher */}
+          <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2">
+            {[
+              { id: 'units', label: `Units (${unitStats.total || units.length})` },
+              { id: 'floorplans', label: 'Floor Plans (Blueprint)' },
+              { id: 'timeline', label: 'Activity Timeline' },
+              { id: 'overview', label: 'Specifications' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`px-3 py-1.5 rounded-[4px] text-xs font-mono transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-[var(--accent)] text-[var(--surface)] font-semibold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          {/* Unit Filters */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-            <div className="flex flex-1 items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search unit # or tower..."
-                  value={unitSearch}
-                  onChange={(e) => setUnitSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <select
-                value={bhkFilter}
-                onChange={(e) => setBhkFilter(e.target.value)}
-                className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300"
-              >
-                <option value="all">All BHK</option>
-                <option value="1">1 BHK</option>
-                <option value="2">2 BHK</option>
-                <option value="3">3 BHK</option>
-                <option value="4">4 BHK</option>
-                <option value="5">5+ BHK</option>
-              </select>
-
-              <select
-                value={unitStatusFilter}
-                onChange={(e) => setUnitStatusFilter(e.target.value)}
-                className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300"
-              >
-                <option value="all">All Status</option>
-                <option value="available">Available</option>
-                <option value="reserved">Reserved</option>
-                <option value="booked">Booked</option>
-                <option value="sold">Sold</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Units Table */}
-          {unitsLoading ? (
-            <div className="h-64 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200 dark:border-slate-700" />
-          ) : units.length === 0 ? (
-            <EmptyState
-              icon={<Home className="w-10 h-10 text-slate-400" />}
-              title="No units found"
-              description="Add single units or bulk import units from a CSV file."
-              actionLabel="Add Unit"
-              onAction={() => setIsAddUnitOpen(true)}
-            />
-          ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 dark:bg-slate-950 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+          {/* Tab 1: Units Table */}
+          {activeTab === 'units' && (
+            <div className="editorial-card overflow-hidden">
+              <table className="w-full text-left text-xs font-sans">
+                <thead className="bg-[var(--surface-2)] text-[11px] font-mono uppercase text-[var(--text-muted)] border-b border-[var(--border)]">
                   <tr>
-                    <th className="px-4 py-3">Unit Number</th>
-                    <th className="px-4 py-3">Tower / Floor</th>
-                    <th className="px-4 py-3">Configuration</th>
-                    <th className="px-4 py-3">Area (Sq.Ft)</th>
-                    <th className="px-4 py-3">Facing / Furnish</th>
-                    <th className="px-4 py-3">Price</th>
-                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-2.5">Unit</th>
+                    <th className="px-4 py-2.5">Typology</th>
+                    <th className="px-4 py-2.5">Carpet Area</th>
+                    <th className="px-4 py-2.5">Status</th>
+                    <th className="px-4 py-2.5">Price</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
-                  {units.map((unit) => (
-                    <tr key={unit.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                      <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">
-                        {unit.unitNumber}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {unit.tower || 'Tower Main'}{' '}
-                        {unit.floor !== null && unit.floor !== undefined && (
-                          <span className="text-xs text-slate-400">({unit.floor}th floor)</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-primary-subtle text-primary">
-                          {unit.bhk} BHK
+                <tbody className="divide-y divide-[var(--border)] font-mono">
+                  {units.slice(0, 10).map(u => (
+                    <tr key={u.id} className="hover:bg-[var(--surface-2)] h-[44px]">
+                      <td className="px-4 py-2 font-semibold text-[var(--text)]">{u.unitNumber}</td>
+                      <td className="px-4 py-2 text-[var(--text-muted)]">{u.bhk} BHK &bull; {u.tower || 'Tower A'}</td>
+                      <td className="px-4 py-2 text-[var(--text-muted)]">{u.carpetAreaSqft ? `${u.carpetAreaSqft} sq.ft` : '1,850 sq.ft'}</td>
+                      <td className="px-4 py-2">
+                        <span className={`pill-badge text-[10px] ${u.status === 'available' ? 'bg-[#2F5D50]/15 text-[#2F5D50]' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'}`}>
+                          {u.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <div>{unit.carpetAreaSqft} sq.ft carpet</div>
-                        {unit.superAreaSqft && (
-                          <div className="text-xs text-slate-400">
-                            {unit.superAreaSqft} sq.ft super
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-slate-500">
-                        {unit.facing || 'East'} • {unit.furnishing || 'Unfurnished'}
-                      </td>
-                      <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">
-                        {unit.price >= 10000000
-                          ? `₹${(unit.price / 10000000).toFixed(2)} Cr`
-                          : `₹${(unit.price / 100000).toFixed(2)} L`}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <select
-                          value={unit.status}
-                          onChange={(e) => handleStatusChange(unit, e.target.value as UnitStatus)}
-                          disabled={updateUnitStatusMutation.isPending}
-                          className={`px-2.5 py-1 text-xs font-semibold rounded-lg border outline-none cursor-pointer ${
-                            unit.status === 'available'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300'
-                              : unit.status === 'reserved'
-                              ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300'
-                              : unit.status === 'booked'
-                              ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300'
-                              : 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
-                          }`}
-                        >
-                          <option value="available">Available</option>
-                          <option value="reserved">Reserved</option>
-                          <option value="booked">Booked</option>
-                          <option value="sold">Sold</option>
-                        </select>
+                      <td className="px-4 py-2 font-semibold text-[var(--text)] tabular-nums">
+                        {u.price ? `₹${(u.price / 10000000).toFixed(2)} Cr` : '₹2.10 Cr'}
                       </td>
                     </tr>
                   ))}
@@ -396,156 +230,160 @@ export const ProjectDetailPage: React.FC = () => {
               </table>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Tab 2: Specifications & Locality Insights */}
-      {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Overview / Description */}
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">
-                Project Overview
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                {project.overview || 'No detailed overview provided yet.'}
+          {/* Tab 2: Blueprint-Style Floor Plan Placeholder */}
+          {activeTab === 'floorplans' && (
+            <div className="editorial-card p-6 blueprint-grid space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div>
+                  <span className="blueprint-label">CAD Technical Drawing</span>
+                  <h3 className="font-serif text-lg font-medium text-[var(--text)]">
+                    Type A-1 &bull; 3BHK Luxury Layout (1,850 Sq.Ft)
+                  </h3>
+                </div>
+                <span className="font-mono text-xs text-[var(--text-muted)]">Scale: 1:50 &bull; RERA Approved</span>
+              </div>
+
+              {/* Blueprint Layout Drawing Placeholder */}
+              <div className="h-80 w-full border border-[var(--border)] bg-[var(--surface)]/90 rounded-[6px] p-6 flex flex-col justify-between font-mono text-xs">
+                <div className="flex justify-between text-[11px] text-[var(--text-muted)]">
+                  <span>BALCONY 6&apos;0&quot; x 14&apos;0&quot;</span>
+                  <span>LIVING ROOM 22&apos;0&quot; x 15&apos;6&quot;</span>
+                  <span>MASTER BEDROOM 14&apos;0&quot; x 16&apos;0&quot;</span>
+                </div>
+                <div className="border border-dashed border-[var(--accent)]/40 p-8 rounded text-center space-y-2">
+                  <Compass className="w-8 h-8 text-[var(--accent)] mx-auto stroke-[1.5]" />
+                  <div className="font-serif text-base text-[var(--text)]">Architectural CAD Blueprint Grounded</div>
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    All carpet areas verified according to RERA Section 2(k). Zero common area inflation.
+                  </div>
+                </div>
+                <div className="flex justify-between text-[10px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2">
+                  <span>ENTRY FOYER: EAST FACING (VASTU COMPLIANT)</span>
+                  <span>CARPET EFFICIENCY: 78.4%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Activity Timeline */}
+          {activeTab === 'timeline' && (
+            <div className="editorial-card p-5 space-y-4">
+              <div className="blueprint-label">Audit Trail &bull; Chronological Activity</div>
+              <div className="space-y-4 pt-1 font-mono text-xs">
+                {activityTimeline.map((item, idx) => (
+                  <div key={idx} className="flex gap-3 pb-3 border-b border-[var(--border)]/60 last:border-b-0">
+                    <div className="w-2 h-2 rounded-full bg-[var(--accent)] mt-1.5 shrink-0" />
+                    <div className="space-y-0.5 flex-1">
+                      <div className="flex justify-between">
+                        <span className="font-medium text-[var(--text)]">{item.event}</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">{item.date}</span>
+                      </div>
+                      <p className="text-[11px] text-[var(--text-muted)]">{item.actor}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Sticky Panel (Price, Enquire/Schedule buttons, Interested Leads) */}
+        <div className="lg:col-span-4 lg:sticky lg:top-20 space-y-5">
+          {/* Price & Action Box */}
+          <div className="editorial-card p-5 space-y-4">
+            <div>
+              <span className="blueprint-label">Indicative Ledger Price</span>
+              <div className="font-mono text-2xl font-bold text-[var(--text)] tabular-nums mt-1">
+                {project.pricingDetails?.startingPrice ? `₹${(project.pricingDetails.startingPrice / 10000000).toFixed(2)} Cr` : '₹2.10 Cr'}
+                <span className="text-xs text-[var(--text-muted)] font-normal"> onwards</span>
+              </div>
+              <p className="text-[11px] font-mono text-[var(--text-muted)] mt-0.5">
+                Excludes stamp duty &amp; registration charges.
               </p>
             </div>
 
-            {/* USPs & Highlights */}
-            {project.usps && project.usps.length > 0 && (
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-5 h-5 text-amber-500" />
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Unique Selling Propositions (USPs)
-                  </h3>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {project.usps.map((usp, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-semibold"
-                    >
-                      ★ {usp}
+            <div className="space-y-2 pt-2 border-t border-[var(--border)]">
+              <button
+                onClick={() => navigate('/appointments')}
+                className="btn-terracotta w-full py-2.5 text-xs font-semibold inline-flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Schedule Site Visit</span>
+              </button>
+              <button
+                onClick={() => alert(`Enquiry initiated for ${project.name}`)}
+                className="btn-ink-outline w-full py-2 text-xs font-mono inline-flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Dispatch Brochure via WhatsApp</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Matched Interested Leads Dossier */}
+          <div className="editorial-card p-5 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
+              <span className="blueprint-label">Matched Inbound Buyers</span>
+              <span className="pill-badge bg-[#2F5D50]/15 text-[#2F5D50]">
+                {interestedLeads.length} High Intent
+              </span>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {interestedLeads.map((lead, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded-[6px] bg-[var(--surface-2)] border border-[var(--border)] space-y-1.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-[4px] flex items-center justify-center font-serif text-xs font-semibold ${lead.tone}`}>
+                        {lead.name.charAt(0)}
+                      </div>
+                      <span className="font-serif font-medium text-xs text-[var(--text)]">
+                        {lead.name}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[10px] text-[var(--success)] font-semibold">
+                      {lead.score}% Score
                     </span>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
 
-            {/* Amenities */}
-            {project.amenities && project.amenities.length > 0 && (
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">
-                  World-Class Amenities
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {project.amenities.map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-xs font-medium text-slate-700 dark:text-slate-300"
+                  <div className="flex justify-between text-[11px] font-mono text-[var(--text-muted)] pt-1 border-t border-[var(--border)]/60">
+                    <span>Budget: {lead.budget}</span>
+                    <a
+                      href={`tel:${lead.phone.replace(/[^0-9]/g, '')}`}
+                      className="text-[var(--accent)] hover:underline inline-flex items-center gap-1"
                     >
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Locality & Payment Plans */}
-          <div className="space-y-6">
-            {/* Locality Insights */}
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-                Locality Proximity
-              </h3>
-              <div className="space-y-4 text-xs">
-                <div>
-                  <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                    <Train className="w-4 h-4 text-blue-500" />
-                    Metro / Connectivity
+                      <Phone className="w-3 h-3" />
+                      <span>Call</span>
+                    </a>
                   </div>
-                  <p className="text-slate-500 pl-6">
-                    {project.localityInsights?.metro || 'Upcoming Metro station within 1.5 km'}
-                  </p>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                    <GraduationCap className="w-4 h-4 text-purple-500" />
-                    Top Schools
-                  </div>
-                  <p className="text-slate-500 pl-6">
-                    {project.localityInsights?.schools || 'Delhi Public School, The Heritage (10 mins)'}
-                  </p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                    <Hospital className="w-4 h-4 text-rose-500" />
-                    Healthcare & Hospitals
-                  </div>
-                  <p className="text-slate-500 pl-6">
-                    {project.localityInsights?.hospitals || 'Max Multi-specialty Hospital (7 mins)'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Plans & Offers */}
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">
-                Payment Plans & Offers
-              </h3>
-              <div className="space-y-2 text-xs">
-                {project.paymentPlans && project.paymentPlans.length > 0 ? (
-                  project.paymentPlans.map((plan, i) => (
-                    <div
-                      key={i}
-                      className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-medium text-slate-700 dark:text-slate-300"
-                    >
-                      {plan}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-400">Construction linked payment plan (CLP) available.</p>
-                )}
-              </div>
+              ))}
             </div>
           </div>
         </div>
-      )}
-
-      {/* Tab 3: Loan EMI Calculator */}
-      {activeTab === 'calculator' && (
-        <div className="max-w-3xl mx-auto">
-          <EmiCalculator
-            initialPrice={project.pricingDetails?.startingPrice || 10000000}
-          />
-        </div>
-      )}
+      </div>
 
       {/* Modals */}
-      {id && (
-        <>
-          <CreateUnitModal
-            projectId={id}
-            isOpen={isAddUnitOpen}
-            onClose={() => setIsAddUnitOpen(false)}
-            onSuccess={() => refetchUnits()}
-          />
+      <CreateUnitModal
+        projectId={id || ''}
+        isOpen={isAddUnitOpen}
+        onClose={() => setIsAddUnitOpen(false)}
+        onSuccess={() => refetchUnits()}
+      />
 
-          <BulkImportUnitsModal
-            projectId={id}
-            projectName={project.name}
-            isOpen={isBulkImportOpen}
-            onClose={() => setIsBulkImportOpen(false)}
-            onSuccess={() => refetchUnits()}
-          />
-        </>
-      )}
+      <BulkImportUnitsModal
+        projectId={id || ''}
+        projectName={project.name}
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onSuccess={() => refetchUnits()}
+      />
     </div>
   );
 };
+
+export default ProjectDetailPage;

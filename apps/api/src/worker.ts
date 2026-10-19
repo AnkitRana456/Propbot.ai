@@ -6,6 +6,7 @@ import { outboxProcessorService } from './modules/webhooks/outbox-processor.serv
 import { outboxDispatcherService } from './modules/events/outbox-dispatcher.service.js';
 import { scheduledJobsService } from './jobs/scheduled-jobs.service.js';
 import { rollupService } from './modules/analytics/rollup.service.js';
+import './modules/crm/next-best-action.service.js';
 import { db } from './db/index.js';
 import { companies } from './db/schema/index.js';
 import { validateEnv } from './config/env.js';
@@ -96,6 +97,20 @@ const rollupInterval = setInterval(async () => {
   }
 }, 600000);
 
+// Third-party token health check loop (runs hourly to detect expiring credentials)
+const tokenHealthInterval = setInterval(async () => {
+  if (isRunning) {
+    try {
+      const { checkedCount, expiringCount } = await scheduledJobsService.checkThirdPartyTokenHealth();
+      if (expiringCount > 0) {
+        workerLogger.warn({ checkedCount, expiringCount }, 'Found third-party integrations with expiring or stale tokens.');
+      }
+    } catch (err) {
+      workerLogger.error({ err }, 'Error during third-party token health check loop.');
+    }
+  }
+}, 3600000);
+
 const shutdown = (signal: string) => {
   workerLogger.info({ signal }, 'Worker process shutting down gracefully...');
   isRunning = false;
@@ -104,6 +119,7 @@ const shutdown = (signal: string) => {
   clearInterval(approvalExpiryInterval);
   clearInterval(decayInterval);
   clearInterval(rollupInterval);
+  clearInterval(tokenHealthInterval);
   process.exit(0);
 };
 
