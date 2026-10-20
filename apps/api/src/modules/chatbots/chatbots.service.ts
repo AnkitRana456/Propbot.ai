@@ -49,6 +49,7 @@ export class ChatbotsService {
         createdAt: chatbots.createdAt,
         updatedAt: chatbots.updatedAt,
         deletedAt: chatbots.deletedAt,
+        agentId: chatbots.agentId,
         leadsCount: sql<number>`coalesce((select count(*)::int from ${leads} where ${leads.chatbotId} = ${chatbots.id} and ${leads.deletedAt} is null), 0)`,
         conversationsCount: sql<number>`coalesce((select count(*)::int from ${conversations} where ${conversations.chatbotId} = ${chatbots.id}), 0)`,
       })
@@ -70,6 +71,7 @@ export class ChatbotsService {
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
         deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
+      agentId: r.agentId ?? null,
         leadsCount: Number(r.leadsCount),
         conversationsCount: Number(r.conversationsCount),
       };
@@ -95,6 +97,7 @@ export class ChatbotsService {
         createdAt: chatbots.createdAt,
         updatedAt: chatbots.updatedAt,
         deletedAt: chatbots.deletedAt,
+        agentId: chatbots.agentId,
         leadsCount: sql<number>`coalesce((select count(*)::int from ${leads} where ${leads.chatbotId} = ${chatbots.id} and ${leads.deletedAt} is null), 0)`,
         conversationsCount: sql<number>`coalesce((select count(*)::int from ${conversations} where ${conversations.chatbotId} = ${chatbots.id}), 0)`,
       })
@@ -123,6 +126,7 @@ export class ChatbotsService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       deletedAt: row.deletedAt ? row.deletedAt.toISOString() : null,
+      agentId: row.agentId ?? null,
       leadsCount: Number(row.leadsCount),
       conversationsCount: Number(row.conversationsCount),
     };
@@ -238,6 +242,7 @@ export class ChatbotsService {
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
       deletedAt: null,
+      agentId: updated.agentId ?? null,
       leadsCount: existing.leadsCount,
       conversationsCount: existing.conversationsCount,
     };

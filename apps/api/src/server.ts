@@ -30,10 +30,21 @@ import { eventsRouter } from './routes/events.routes.js';
 import { workflowsRouter } from './routes/workflows.routes.js';
 import { growthRouter } from './routes/growth.routes.js';
 import { voiceRouter } from './routes/voice.routes.js';
+import { voiceStudioRouter } from './routes/voice-studio.routes.js';
 import { mcpRouter } from './routes/mcp.routes.js';
 import { enterpriseRouter, statusRouter } from './routes/enterprise.routes.js';
 import { publicChatRouter } from './routes/public-chat.routes.js';
-import { authRateLimiter } from './middlewares/rate-limiter.js';
+import { authRateLimiter, generalApiRateLimiter, tenantApiRateLimiter } from './middlewares/rate-limiter.js';
+import { cronRouter } from './routes/cron.routes.js';
+import { paymentsRouter } from './routes/payments.routes.js';
+import { controlsRouter, publicControlsRouter } from './routes/controls.routes.js';
+import { tagsRouter, groupsRouter, customer360Router, surveysRouter, dashboardsRouter, boardsRouter, kbTesterRouter } from './routes/intelligence.routes.js';
+import { inboxRouter, leadSourcesRouter, channelsRouter, omnichannelPublicRouter } from './routes/omnichannel.routes.js';
+import { flowsRouter, executionsRouter } from './routes/flows.routes.js';
+import { toolsRouter, actionsRouter } from './routes/tools.routes.js';
+import { agentsRouter, formsRouter, knowledgeReferencesRouter } from './routes/agents.routes.js';
+import { cronOrAdmin } from './middlewares/cron-auth.js';
+import { leadsController } from './modules/leads/leads.controller.js';
 import { validateEnv, getMaskedConfigSummary } from './config/env.js';
 
 // Validate environment variables at startup
@@ -49,6 +60,11 @@ if (process.env.NODE_ENV !== 'test') {
 
 export function createApp(): Express {
   const app = express();
+
+  // Behind a reverse proxy set TRUSTED_PROXY_HOPS (e.g. 1) so req.ip reflects the client,
+  // otherwise rate limits would key on the proxy address (or be spoofable via X-Forwarded-For).
+  const proxyHops = Number(process.env.TRUSTED_PROXY_HOPS);
+  if (Number.isInteger(proxyHops) && proxyHops > 0) app.set('trust proxy', proxyHops);
 
   // Request correlation header
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -66,26 +82,78 @@ export function createApp(): Express {
     }),
   );
 
-  app.use(
-    express.json({
-      limit: '1mb',
-      verify: (req: Request & { rawBody?: Buffer }, _res, buf) => {
-        req.rawBody = buf;
-      },
-    }),
+  // JSON bodies: 1 MB everywhere, except authenticated knowledge-file uploads. Those carry the file as
+  // base64 (10 MB file ~ 13.4 MB of text), so they get a larger parser, but only when an Authorization
+  // header is present, so anonymous callers can never make the server buffer a big body.
+  const rawBodyCapture = (req: Request & { rawBody?: Buffer }, _res: Response, buf: Buffer) => {
+    req.rawBody = buf;
+  };
+  const smallJson = express.json({ limit: '1mb', verify: rawBodyCapture });
+  const uploadJson = express.json({ limit: '14mb', verify: rawBodyCapture });
+  const isKnowledgeUpload = (req: Request) =>
+    req.method === 'POST' &&
+    /^\/api\/chatbots\/[^/]+\/knowledge\/(sources\/)?upload\/?$/.test(req.path) &&
+    Boolean(req.headers.authorization);
+  app.use((req: Request, res: Response, next: NextFunction) =>
+    (isKnowledgeUpload(req) ? uploadJson : smallJson)(req, res, next),
   );
   app.use(express.urlencoded({ extended: true }));
+
+  // General API rate limit (spec: 60 req / min). Skipped for endpoints that have their own limiter or
+  // that third parties must always be able to reach (payment / Meta webhooks, health checks).
+  const generalAnon = generalApiRateLimiter.middleware();
+  const generalAuthed = tenantApiRateLimiter.middleware();
+  const generalExempt = /^\/(healthz|auth|public|webhooks|subscription\/webhook|status|cron)(\/|$)/;
+  app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+    if (generalExempt.test(req.path)) {
+      next();
+      return;
+    }
+    (req.headers.authorization ? generalAuthed : generalAnon)(req, res, next);
+  });
 
   // Routes
   app.use('/healthz', healthzRouter);
   app.use('/api/public/chat', publicChatRouter);
   app.use('/public', publicChatRouter);
-  app.use('/api/auth', authRateLimiter.middleware(), authRouter);
+  app.use('/api/public/omni', omnichannelPublicRouter);
+  // Strict limiter (5 / 15 min) only on credential-guessing endpoints; refresh/me stay unthrottled.
+  const strictAuth = authRateLimiter.middleware();
+  for (const path of ['/login', '/register', '/forgot-password', '/reset-password']) {
+    app.use(`/api/auth${path}`, strictAuth);
+  }
+  app.use('/api/auth', authRouter);
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/chatbots/playbooks', playbooksRouter);
   app.use('/api/chatbots/:id/playbooks', playbooksRouter);
   app.use('/api/chatbots/:id/knowledge', knowledgeRouter);
   app.use('/api/chatbots', chatbotsRouter);
+  // Maintenance: CRON_SECRET (scheduler) or ps-owner / company admin only. Registered before the
+  // authenticated /api/leads router so a cron call is not rejected by its blanket auth.
+  app.post('/api/leads/cleanup-invalid', cronOrAdmin, (req, res, next) =>
+    leadsController.cleanupInvalid(req, res, next),
+  );
+  app.use('/api/cron', cronRouter);
+  app.use('/api/agents', agentsRouter);
+  app.use('/api/forms', formsRouter);
+  app.use('/api/tools', toolsRouter);
+  app.use('/api/flows', flowsRouter);
+  app.use('/api/inbox', inboxRouter);
+  app.use('/api/payments', paymentsRouter);
+  app.use('/api/controls', controlsRouter);
+  app.use('/api/public/controls', publicControlsRouter);
+  app.use('/api/tags', tagsRouter);
+  app.use('/api/groups', groupsRouter);
+  app.use('/api/customer360', customer360Router);
+  app.use('/api/surveys', surveysRouter);
+  app.use('/api/dashboards', dashboardsRouter);
+  app.use('/api/boards', boardsRouter);
+  app.use('/api/kb-tester', kbTesterRouter);
+  app.use('/api/lead-sources', leadSourcesRouter);
+  app.use('/api/channels', channelsRouter);
+  app.use('/api/executions', executionsRouter);
+  app.use('/api/actions', actionsRouter);
+  app.use('/api/knowledge-references', knowledgeReferencesRouter);
   app.use('/api/leads', leadsRouter);
   app.use('/api/crm', crmRouter);
   app.use('/api/crm', copilotRouter);
@@ -106,6 +174,7 @@ export function createApp(): Express {
   app.use('/api/events', eventsRouter);
   app.use('/api/workflows', workflowsRouter);
   app.use('/api/growth', growthRouter);
+  app.use('/api/voice/studio', voiceStudioRouter);
   app.use('/api/voice', voiceRouter);
   app.use('/api/mcp', mcpRouter);
   app.use('/api/enterprise', enterpriseRouter);

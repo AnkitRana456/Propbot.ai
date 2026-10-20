@@ -60,6 +60,8 @@ export const aiControlsSettingsSchema = z.object({
 export const createApiKeySchema = z.object({
   name: z.string().min(2).max(100),
   permissions: z.array(z.string()).min(1),
+  /** Optional lifetime; the key stops working after this many days. */
+  expiresInDays: z.number().int().min(1).max(730).optional(),
 });
 
 export const setupTwoFactorVerifySchema = z.object({

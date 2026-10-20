@@ -204,6 +204,8 @@ export class SettingsService {
         permissions: true,
         lastUsedAt: true,
         createdAt: true,
+        expiresAt: true,
+        usageCount: true,
       },
     });
   }
@@ -222,6 +224,8 @@ export class SettingsService {
         keyPrefix,
         keyHash,
         permissions: input.permissions,
+        expiresAt: input.expiresInDays ? new Date(Date.now() + input.expiresInDays * 86_400_000) : null,
+        createdBy: actorId ?? null,
       })
       .returning();
 
@@ -241,6 +245,7 @@ export class SettingsService {
       apiKey: fullApiKey, // ONLY shown once at creation time
       permissions: input.permissions,
       createdAt: record?.createdAt,
+      expiresAt: record?.expiresAt ?? null,
     };
   }
 

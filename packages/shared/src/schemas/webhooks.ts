@@ -78,6 +78,8 @@ export const pixelEventSchema = z.object({
 export const integrationProviderSchema = z.enum([
   'google_sheets',
   'hubspot',
+  'salesforce',
+  'mailchimp',
   'zoho',
   'generic_rest',
   'meta_pixel',

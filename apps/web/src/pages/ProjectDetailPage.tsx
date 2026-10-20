@@ -11,12 +11,13 @@ import {
 import { CreateUnitModal } from '../components/inventory/CreateUnitModal.js';
 import { BulkImportUnitsModal } from '../components/inventory/BulkImportUnitsModal.js';
 import { EmptyState } from '../components/common/EmptyState.js';
+import { ProjectMediaEditor } from '../components/inventory/ProjectMediaEditor.js';
 
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'units' | 'floorplans' | 'timeline' | 'overview'>('units');
+  const [activeTab, setActiveTab] = useState<'units' | 'floorplans' | 'timeline' | 'overview' | 'chatmedia'>('units');
   const [bhkFilter] = useState<string>('all');
   const [unitStatusFilter] = useState<string>('all');
   const [unitSearch] = useState('');
@@ -182,6 +183,7 @@ export const ProjectDetailPage: React.FC = () => {
               { id: 'floorplans', label: 'Floor Plans (Blueprint)' },
               { id: 'timeline', label: 'Activity Timeline' },
               { id: 'overview', label: 'Specifications' },
+              { id: 'chatmedia', label: 'Chat Media' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -265,6 +267,9 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Chat media: photos, floor plans, master plan and map the AI assistant shows */}
+          {activeTab === 'chatmedia' && <ProjectMediaEditor project={project} />}
 
           {/* Tab 3: Activity Timeline */}
           {activeTab === 'timeline' && (

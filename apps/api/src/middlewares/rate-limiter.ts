@@ -27,7 +27,7 @@ export class MemoryRateLimiter {
     this.message = options.message || 'Too many requests, please try again later.';
     this.keyGenerator =
       options.keyGenerator ||
-      ((req: Request) => (req.headers['x-forwarded-for'] as string) || req.ip || '127.0.0.1');
+      ((req: Request) => req.ip || req.socket.remoteAddress || '127.0.0.1');
     this.skipInTests = options.skipInTests ?? false;
 
     // Periodic cleanup of expired keys every 60 seconds
@@ -44,7 +44,7 @@ export class MemoryRateLimiter {
   middleware() {
     return (req: Request, res: Response, next: NextFunction): void => {
       // Allow test override header or test bypass if configured
-      if (req.headers['x-bypass-rate-limit'] === 'test-bypass') {
+      if (process.env.NODE_ENV === 'test' && req.headers['x-bypass-rate-limit'] === 'test-bypass') {
         next();
         return;
       }
@@ -99,8 +99,16 @@ export class MemoryRateLimiter {
 // Pre-configured rate limiters
 export const authRateLimiter = new MemoryRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 mins
-  max: process.env.NODE_ENV === 'production' ? 20 : 1000, // 20 attempts in prod, 1000 in dev
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 5, // spec: 5 attempts per 15 min
   message: 'Too many authentication attempts. Please wait 15 minutes before trying again.',
+  skipInTests: true,
+});
+
+/** SMS cost / enumeration guard for OTP send + verify (per IP). */
+export const otpRateLimiter = new MemoryRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.OTP_RATE_LIMIT_MAX) || 10,
+  message: 'Too many verification requests. Please try again later.',
   skipInTests: true,
 });
 
@@ -113,7 +121,7 @@ export const publicSessionRateLimiter = new MemoryRateLimiter({
 
 export const publicChatRateLimiter = new MemoryRateLimiter({
   windowMs: 60 * 1000, // 1 min
-  max: 60, // 60 messages / min / session
+  max: Number(process.env.CHAT_RATE_LIMIT_MAX) || 100, // spec: 100 messages / min
   keyGenerator: req => {
     const sessionId = (req.body && req.body.sessionId) || req.query.sessionId;
     const ip = req.ip || (req.headers['x-forwarded-for'] as string) || '127.0.0.1';
@@ -123,9 +131,43 @@ export const publicChatRateLimiter = new MemoryRateLimiter({
   skipInTests: false,
 });
 
+/** Agent test panel / version comparison: every call spends Gemini tokens. */
+export const aiTestRateLimiter = new MemoryRateLimiter({
+  windowMs: 60 * 1000,
+  max: Number(process.env.AI_TEST_RATE_LIMIT_MAX) || 20,
+  keyGenerator: req => `aitest:${(req as Request & { user?: { id?: string } }).user?.id || req.ip || 'anon'}`,
+  message: 'Too many test runs. Please wait a minute.',
+  skipInTests: true,
+});
+
+/** Spec: uploads - 1 min window, 10 uploads. Keyed per signed-in user (falls back to IP). */
+export const uploadRateLimiter = new MemoryRateLimiter({
+  windowMs: 60 * 1000,
+  max: Number(process.env.UPLOAD_RATE_LIMIT_MAX) || 10,
+  keyGenerator: req => `upload:${(req as Request & { user?: { id?: string } }).user?.id || req.ip || 'anon'}`,
+  message: 'Too many uploads. Please wait a minute before uploading again.',
+  skipInTests: true,
+});
+
+/**
+ * Spec: general API - 1 min window, 60 requests. Applied to anonymous traffic (no Authorization header),
+ * keyed by client IP.
+ */
+export const generalApiRateLimiter = new MemoryRateLimiter({
+  windowMs: 60 * 1000,
+  max: Number(process.env.GENERAL_RATE_LIMIT_MAX) || 60,
+  keyGenerator: req => `general:${req.ip || 'anon'}`,
+  skipInTests: true,
+});
+
+/**
+ * Signed-in dashboard traffic. The spec's 60/min would be exhausted by the SPA alone (the WhatsApp inbox
+ * polls every 3-5 s), so authenticated requests get their own, higher bucket per client IP.
+ * Tune with API_AUTH_RATE_LIMIT_MAX.
+ */
 export const tenantApiRateLimiter = new MemoryRateLimiter({
-  windowMs: 60 * 1000, // 1 min
-  max: 600, // 600 req/min per tenant
-  keyGenerator: req => (req as Request & { companyId?: string }).companyId || req.ip || 'tenant-anon',
+  windowMs: 60 * 1000,
+  max: Number(process.env.API_AUTH_RATE_LIMIT_MAX) || 600,
+  keyGenerator: req => `authed:${req.ip || 'anon'}`,
   skipInTests: true,
 });

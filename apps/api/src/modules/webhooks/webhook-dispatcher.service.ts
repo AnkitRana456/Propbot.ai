@@ -11,6 +11,12 @@ export const webhookLogger = pino({
   name: 'webhook-dispatcher',
 });
 
+/** Spec section 5: zapier/make cold starts can be slow, so each attempt may take up to 30s. */
+export const WEBHOOK_TIMEOUT_MS = Number(process.env.WEBHOOK_TIMEOUT_MS) || 30_000;
+/** 1 initial attempt + 3 retries, waiting 1s, 2s, 4s between attempts. */
+export const WEBHOOK_MAX_ATTEMPTS = 4;
+export const WEBHOOK_RETRY_DELAYS_SECONDS = [1, 2, 4] as const;
+
 export interface DispatchOptions {
   companyId: string;
   endpointId: string;
@@ -61,13 +67,11 @@ export class WebhookDispatcherService {
   }
 
   /**
-   * Calculates exponential backoff date:
-   * Attempt 1 -> +30s
-   * Attempt 2 -> +120s
+   * Exponential backoff: after attempt 1 wait 1s, after attempt 2 wait 2s, after attempt 3 wait 4s.
    */
   private calculateNextRetry(attempt: number): Date {
-    const seconds = attempt === 1 ? 30 : attempt === 2 ? 120 : 300;
-    return new Date(Date.now() + seconds * 1000);
+    const idx = Math.min(Math.max(attempt, 1), WEBHOOK_RETRY_DELAYS_SECONDS.length) - 1;
+    return new Date(Date.now() + WEBHOOK_RETRY_DELAYS_SECONDS[idx]! * 1000);
   }
 
   /**
@@ -87,7 +91,7 @@ export class WebhookDispatcherService {
       chatbotId = null,
       data,
       attempt = 1,
-      maxAttempts = 3,
+      maxAttempts = WEBHOOK_MAX_ATTEMPTS,
       existingLogId,
       allowLocalForTesting = process.env.NODE_ENV === 'test',
     } = options;
@@ -163,13 +167,13 @@ export class WebhookDispatcherService {
       ...endpointHeaders,
     };
 
-    // 3. Execute HTTP Dispatch with 5000ms timeout
+    // 3. Execute HTTP Dispatch (30s timeout)
     try {
       const response = await fetch(endpointUrl, {
         method: 'POST',
         headers: requestHeaders,
         body: payloadString,
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       statusCode = response.status;

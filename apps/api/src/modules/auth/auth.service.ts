@@ -19,6 +19,22 @@ import {
 } from './auth.utils.js';
 import { emailStub } from './email-stub.js';
 
+/** Sessions last 30 days; the rotating refresh token is re-issued on every refresh. */
+const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * New registrations are locked until an administrator approves them (spec section 2).
+ * SIGNUP_AUTO_APPROVE=true opts out; it defaults to true only under NODE_ENV=test.
+ */
+function isSignupAutoApproved(): boolean {
+  const flag = process.env.SIGNUP_AUTO_APPROVE;
+  if (flag !== undefined && flag !== '') return flag === 'true';
+  return process.env.NODE_ENV === 'test';
+}
+
+export const PENDING_APPROVAL_MESSAGE =
+  'Your account is pending approval. Please wait for admin activation.';
+
 export class AuthError extends Error {
   constructor(
     public readonly code: string,
@@ -80,7 +96,7 @@ export class AuthService {
         email: input.adminEmail,
         passwordHash,
         role: 'company_admin',
-        status: 'active', // First company admin is pre-approved
+        status: isSignupAutoApproved() ? 'active' : 'pending_approval',
       })
       .returning();
 
@@ -88,8 +104,9 @@ export class AuthService {
       throw new AuthError('REGISTRATION_FAILED', 'Failed to create company administrator.', 500);
     }
 
-    // 4. Issue access and refresh tokens
-    const tokens = await this.createTokenPair(adminUser, company.id);
+    // 4. Issue access and refresh tokens (only once the account is approved)
+    const approved = adminUser.status === 'active';
+    const tokens = approved ? await this.createTokenPair(adminUser, company.id) : null;
 
     return {
       user: {
@@ -106,6 +123,7 @@ export class AuthService {
         plan: company.plan,
       },
       tokens,
+      ...(approved ? {} : { pendingApproval: true, message: PENDING_APPROVAL_MESSAGE }),
     };
   }
 
@@ -130,19 +148,6 @@ export class AuthService {
       throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or company context.', 401);
     }
 
-    // Check account status
-    if (user.status === 'pending_approval') {
-      throw new AuthError(
-        'ACCOUNT_PENDING_APPROVAL',
-        'Your account is pending administrator approval. Please contact your company administrator.',
-        403,
-      );
-    }
-
-    if (user.status === 'disabled') {
-      throw new AuthError('ACCOUNT_DISABLED', 'Your account has been disabled.', 403);
-    }
-
     // Check if company enforces Single Sign-On (SSO)
     const ssoConfig = await db.query.companySsoConfigs.findFirst({
       where: and(
@@ -163,6 +168,16 @@ export class AuthService {
     const isPasswordValid = await comparePassword(input.password, user.passwordHash);
     if (!isPasswordValid) {
       throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or password.', 401);
+    }
+
+    // Status is checked only after the password, so account state is not revealed to guessers
+    // Check account status
+    if (user.status === 'pending_approval') {
+      throw new AuthError('ACCOUNT_PENDING_APPROVAL', PENDING_APPROVAL_MESSAGE, 403);
+    }
+
+    if (user.status === 'disabled') {
+      throw new AuthError('ACCOUNT_DISABLED', 'Your account has been disabled.', 403);
     }
 
     // Check 2FA enforcement for enterprise companies
@@ -244,7 +259,7 @@ export class AuthService {
 
     // Issue new pair in the same family
     const newRawRefreshToken = generateRandomToken(48);
-    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
     await db.insert(refreshTokens).values({
       userId: user.id,
@@ -425,7 +440,7 @@ export class AuthService {
   ) {
     const familyId = crypto.randomUUID();
     const rawRefreshToken = generateRandomToken(48);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
     await db.insert(refreshTokens).values({
       userId: user.id,

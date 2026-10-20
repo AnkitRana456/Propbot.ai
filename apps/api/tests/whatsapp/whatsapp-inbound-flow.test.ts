@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
 import { createApp } from '../../src/server.js';
 import { testDb, cleanupTestDatabase } from '../helpers/test-db.js';
 import {
@@ -13,6 +12,8 @@ import {
   messages,
 } from '../../src/db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
+import { signedMetaPost, META_TEST_APP_SECRET } from '../helpers/meta-webhook.js';
+process.env.META_APP_SECRET = META_TEST_APP_SECRET;
 
 describe('WhatsApp Inbound Messaging Flow & CRM Integration', () => {
   const app = createApp();
@@ -112,7 +113,7 @@ describe('WhatsApp Inbound Messaging Flow & CRM Integration', () => {
       ],
     };
 
-    const res = await request(app).post('/api/webhooks/meta').send(payload);
+    const res = await signedMetaPost(app, payload);
     expect(res.status).toBe(200);
     expect(res.body.processedCount).toBe(1);
 
@@ -121,7 +122,9 @@ describe('WhatsApp Inbound Messaging Flow & CRM Integration', () => {
       where: and(eq(contacts.companyId, companyId), eq(contacts.phone, visitorPhone)),
     });
     expect(contact).toBeDefined();
-    expect(contact?.firstName).toBe('Rohan');
+    // Spec: first-time senders are "WhatsApp User <last4>"; the profile name is kept only as metadata
+    expect(contact?.firstName).toBe('WhatsApp');
+    expect(contact?.lastName).toBe(`User ${visitorPhone.replace(/\D/g, '').slice(-4)}`);
 
     // Verify Lead created
     const lead = await testDb.query.leads.findFirst({
@@ -178,7 +181,7 @@ describe('WhatsApp Inbound Messaging Flow & CRM Integration', () => {
       ],
     };
 
-    const res = await request(app).post('/api/webhooks/meta').send(payload);
+    const res = await signedMetaPost(app, payload);
     expect(res.status).toBe(200);
 
     // Ensure total contacts for this phone remains exactly 1
@@ -221,7 +224,7 @@ describe('WhatsApp Inbound Messaging Flow & CRM Integration', () => {
       ],
     };
 
-    const res = await request(app).post('/api/webhooks/meta').send(payload);
+    const res = await signedMetaPost(app, payload);
     expect(res.status).toBe(200);
 
     // Verify contact marked as opted out
@@ -263,7 +266,7 @@ describe('WhatsApp Inbound Messaging Flow & CRM Integration', () => {
       ],
     };
 
-    const res = await request(app).post('/api/webhooks/meta').send(payload);
+    const res = await signedMetaPost(app, payload);
     expect(res.status).toBe(200);
 
     // Verify contact marked active (not opted out)

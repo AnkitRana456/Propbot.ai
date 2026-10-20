@@ -68,7 +68,11 @@ const BUDGET_TIERS = [
 export async function runComprehensiveSeed() {
   console.info('🌱 Starting Full PropBot Pro Comprehensive Database Seed...');
 
-  const passwordHash = await hashPassword('Password123!');
+  // Demo accounts: password comes from SEED_DEMO_PASSWORD. The built-in default is for local dev only.
+  if (process.env.NODE_ENV === 'production' && !process.env.SEED_DEMO_PASSWORD) {
+    throw new Error('SEED_DEMO_PASSWORD is required to run the demo seed in production.');
+  }
+  const passwordHash = await hashPassword(process.env.SEED_DEMO_PASSWORD ?? 'Password123!');
 
   // =========================================================================
   // 1. Companies

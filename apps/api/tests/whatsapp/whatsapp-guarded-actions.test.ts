@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
 import { createApp } from '../../src/server.js';
 import { testDb, cleanupTestDatabase } from '../helpers/test-db.js';
 import {
@@ -13,6 +12,8 @@ import {
   knowledgeQaOverrides,
 } from '../../src/db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
+import { signedMetaPost, META_TEST_APP_SECRET } from '../helpers/meta-webhook.js';
+process.env.META_APP_SECRET = META_TEST_APP_SECRET;
 
 describe('WhatsApp Guarded AI Actions (Tier 2 Price & Offer Approval Queue)', () => {
   const app = createApp();
@@ -124,7 +125,7 @@ describe('WhatsApp Guarded AI Actions (Tier 2 Price & Offer Approval Queue)', ()
       ],
     };
 
-    const res = await request(app).post('/api/webhooks/meta').send(payload);
+    const res = await signedMetaPost(app, payload);
     expect(res.status).toBe(200);
 
     // Verify proposed action was created in agent_actions table

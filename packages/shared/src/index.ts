@@ -1,5 +1,6 @@
 // Utilities
 export * from './utils/assert-never.js';
+export * from './utils/phone.js';
 
 // Design Tokens (Aurora Estate Theme)
 export * from './tokens/design-tokens.js';
@@ -33,6 +34,8 @@ export * from './schemas/enterprise.js';
 
 // Constants
 export * from './constants/plans.js';
+export * from './constants/models.js';
+export * from './schemas/agents.js';
 
 // Types
 export * from './types/events.js';
@@ -53,3 +56,10 @@ export * from './types/users.js';
 export * from './types/billing.js';
 export * from './types/settings.js';
 
+export * from './schemas/tools.js';
+export * from './schemas/flows.js';
+export * from './schemas/omnichannel.js';
+export * from './schemas/voice-studio.js';
+export * from './schemas/intelligence.js';
+export * from './schemas/controls.js';
+export * from './schemas/payments.js';

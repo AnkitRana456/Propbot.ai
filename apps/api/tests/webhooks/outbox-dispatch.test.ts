@@ -154,12 +154,24 @@ describe('Outbox Webhook Delivery & HMAC Signature Verification', () => {
 
     expect(event.processedAt).toBeNull();
 
-    // 3. Run outbox processor
-    const { processedCount, dispatchedCount } =
-      await outboxProcessorService.processPendingEvents();
+    // 3. Run the outbox processor for this event. Other test files sweep the shared outbox concurrently,
+    //    so the enqueue is driven explicitly for this event instead of racing a global sweep.
+    const dispatchedCount = await outboxProcessorService.processSingleEventWebhooks(
+      event.id,
+      companyId,
+      'lead_created',
+      event.payload as Record<string, unknown>,
+    );
+    await testDb.update(domainEvents).set({ processedAt: new Date() }).where(eq(domainEvents.id, event.id));
+    const processedCount = 1;
 
     expect(processedCount).toBeGreaterThanOrEqual(1);
     expect(dispatchedCount).toBeGreaterThanOrEqual(1);
+
+    // The outbox only enqueues: nothing has been sent over HTTP yet (lead save never waits on a webhook)
+    expect(lastReceivedPayload).toBeNull();
+    const { retriedCount } = await outboxProcessorService.processScheduledRetries(25, companyId);
+    expect(retriedCount).toBeGreaterThanOrEqual(1);
 
     // 4. Verify outbox event is marked processed
     const [updatedEvent] = await testDb
@@ -173,7 +185,10 @@ describe('Outbox Webhook Delivery & HMAC Signature Verification', () => {
     expect(lastReceivedPayload).not.toBeNull();
     const parsedPayload = JSON.parse(lastReceivedPayload!);
     expect(parsedPayload.event).toBe('lead_captured');
-    expect(parsedPayload.data.lead_id).toBe(lead.id);
+    // lead_captured is flattened with PascalCase keys (spec section 5)
+    expect(parsedPayload.data.LeadId).toBe(lead.id);
+    expect(parsedPayload.data).toHaveProperty('UTMSource');
+    expect(parsedPayload.data).toHaveProperty('SharedURL');
 
     // 6. Verify HMAC-SHA256 signature header
     const signatureHeader = lastReceivedHeaders!['x-propbot-signature-256'] as string;

@@ -2,11 +2,14 @@ import { eq, and, sql, lte, isNull, notInArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { leads, agentActions, domainEvents, integrations } from '../db/schema/index.js';
 import { pino } from 'pino';
+import { otpService } from '../modules/leads/otp.service.js';
 
 export const jobsLogger = pino({
   name: 'scheduled-jobs',
   level: process.env.LOG_LEVEL ?? 'info',
 });
+
+export const ARCHIVE_STUB_MESSAGE = 'This conversation history was archived to save storage space.';
 
 export class ScheduledJobsService {
   /**
@@ -123,6 +126,81 @@ export class ScheduledJobsService {
 
     jobsLogger.info({ expiredCount: staleActions.length }, 'Expired stale proposed T2 approvals');
     return { expiredCount: staleActions.length };
+  }
+
+  /**
+   * 30-day chat retention (spec section 8).
+   *  1. Anonymous empty/bounced chats (no lead, no contact, 0-1 messages) older than 30 days are deleted.
+   *  2. Every other conversation older than 30 days keeps its row, timestamps and lead/contact links, but its
+   *     messages are replaced by a single archive stub. Idempotent: archived chats carry metadata.archivedAt.
+   * "Older" means no activity for 30 days (last message, else creation time).
+   */
+  async archiveOldChats(
+    now: Date = new Date(),
+    batchSize = 200,
+    companyId?: string,
+  ): Promise<{ archived: number; deleted: number }> {
+    const cutoff = new Date(now.getTime() - 30 * 86400000);
+    const lastActivity = sql`COALESCE((SELECT max(m.created_at) FROM messages m WHERE m.conversation_id = c.id), c.created_at)`;
+    const rowsOf = (res: unknown) =>
+      (Array.isArray(res) ? res : ((res as { rows?: unknown[] }).rows ?? [])) as Array<{ id: string; company_id: string }>;
+
+    let deleted = 0;
+    for (;;) {
+      const res = await db.execute(sql`
+        DELETE FROM conversations c
+         WHERE c.id IN (
+           SELECT c2.id FROM conversations c2
+            WHERE c2.lead_id IS NULL AND c2.contact_id IS NULL
+              AND (${companyId ?? null}::uuid IS NULL OR c2.company_id = ${companyId ?? null}::uuid)
+              AND (SELECT count(*) FROM messages m WHERE m.conversation_id = c2.id) <= 1
+              AND COALESCE((SELECT max(m.created_at) FROM messages m WHERE m.conversation_id = c2.id), c2.created_at) < ${cutoff.toISOString()}::timestamptz
+            LIMIT ${batchSize})
+        RETURNING c.id`);
+      const n = rowsOf(res).length;
+      deleted += n;
+      if (n < batchSize) break;
+    }
+
+    let archived = 0;
+    for (;;) {
+      const batch = rowsOf(
+        await db.execute(sql`
+          SELECT c.id, c.company_id FROM conversations c
+           WHERE (c.metadata->>'archivedAt') IS NULL
+             AND (${companyId ?? null}::uuid IS NULL OR c.company_id = ${companyId ?? null}::uuid)
+             AND ${lastActivity} < ${cutoff.toISOString()}::timestamptz
+           ORDER BY c.created_at ASC
+           LIMIT ${batchSize}`),
+      );
+      if (batch.length === 0) break;
+
+      await db.transaction(async tx => {
+        for (const conv of batch) {
+          await tx.execute(sql`DELETE FROM messages WHERE conversation_id = ${conv.id}::uuid`);
+          await tx.execute(sql`
+            INSERT INTO messages (company_id, conversation_id, sender_type, content, metadata)
+            VALUES (${conv.company_id}::uuid, ${conv.id}::uuid, 'system', ${ARCHIVE_STUB_MESSAGE},
+                    ${JSON.stringify({ archived: true })}::jsonb)`);
+          await tx.execute(sql`
+            UPDATE conversations
+               SET metadata = COALESCE(metadata, '{}'::jsonb) || ${JSON.stringify({ archivedAt: now.toISOString() })}::jsonb
+             WHERE id = ${conv.id}::uuid`);
+        }
+      });
+      archived += batch.length;
+      if (batch.length < batchSize) break;
+    }
+
+    if (archived > 0 || deleted > 0) {
+      jobsLogger.info({ archived, deleted }, '30-day chat retention run completed');
+    }
+    return { archived, deleted };
+  }
+
+  /** Postgres has no TTL index: expired OTP challenges are purged here (also rejected on read). */
+  async purgeExpiredOtps(): Promise<{ purgedCount: number }> {
+    return { purgedCount: await otpService.purgeExpired() };
   }
 
   /**

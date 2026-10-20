@@ -144,6 +144,11 @@ chatbotsRouter.post('/:id/rotate-key', requirePermission('manage_chatbots'), (re
   chatbotsController.rotateKey(req, res, next);
 });
 
+// CSV export of a chatbot's leads (also works after the chatbot was soft-deleted)
+chatbotsRouter.get('/:id/leads/export', requirePermission('view_leads'), (req, res, next) => {
+  chatbotsController.exportLeads(req, res, next);
+});
+
 chatbotsRouter.delete('/:id', requirePermission('manage_chatbots'), (req, res, next) => {
   chatbotsController.delete(req, res, next);
 });

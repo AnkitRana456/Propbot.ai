@@ -9,7 +9,8 @@ import type {
 } from '@propbot/shared';
 import type { SyncLeadPayload } from './integration.adapter.js';
 import { googleSheetsAdapter } from './google-sheets.adapter.js';
-import { hubspotAdapter, zohoAdapter, genericRestAdapter } from './crm.adapter.js';
+import { zohoAdapter, genericRestAdapter } from './crm.adapter.js';
+import { CRM_PROVIDERS } from './crm/crm-providers.js';
 import { conversionTrackingService } from './conversion-tracking.service.js';
 import {
   encryptSecret,
@@ -240,8 +241,12 @@ export class IntegrationsService {
         result = await googleSheetsAdapter.syncLead(companyId, dummyLead, decryptedConfig);
         break;
       case 'hubspot':
-        result = await hubspotAdapter.syncLead(companyId, dummyLead, decryptedConfig);
-        break;
+      case 'salesforce':
+      case 'mailchimp': {
+        // Real connectors: verify credentials without creating a record in the customer's CRM.
+        const check = await CRM_PROVIDERS[provider]!.testConnection(decryptedConfig);
+        return { success: check.success, message: check.message };
+      }
       case 'zoho':
         result = await zohoAdapter.syncLead(companyId, dummyLead, decryptedConfig);
         break;

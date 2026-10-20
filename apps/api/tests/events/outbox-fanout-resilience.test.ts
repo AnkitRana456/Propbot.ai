@@ -63,9 +63,11 @@ describe('Phase 15A: Transactional Outbox, Consumer Fan-out, Checkpoints & Repla
       .from(eventConsumerCheckpoints)
       .where(eq(eventConsumerCheckpoints.eventId, event!.id));
 
-    expect(checkpoints.length).toBe(8);
+    expect(checkpoints.length).toBe(10); // incl. the delivery_jobs (e-mail / CRM) and flows consumers
     expect(checkpoints.map(c => c.consumerName).sort()).toEqual([
       'analytics_rollups',
+      'delivery_jobs',
+      'flows',
       'next_best_action',
       'notifications',
       'test_consumer_a',

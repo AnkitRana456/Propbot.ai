@@ -9,6 +9,15 @@ import type {
   ChannelSendResult,
 } from './channel.adapter.js';
 
+/**
+ * Graph API version for outbound sends. Configurable because Meta retires old versions
+ * (the spec's v18.0 is long expired); defaults to the version `pnpm setup:keys` already uses.
+ */
+export function graphApiVersion(): string {
+  const v = (process.env.META_GRAPH_API_VERSION || '').trim();
+  return /^v\d{1,2}\.\d$/.test(v) ? v : 'v21.0';
+}
+
 export const whatsappLogger = pino({
   level: process.env.LOG_LEVEL ?? 'info',
 });
@@ -261,7 +270,7 @@ export class WhatsAppChannelAdapter implements ChannelAdapter {
         }
 
         // Real Meta Cloud API HTTP Request
-        const url = `https://graph.facebook.com/v19.0/${config!.phoneNumberId}/messages`;
+        const url = `https://graph.facebook.com/${graphApiVersion()}/${config!.phoneNumberId}/messages`;
         let body: Record<string, unknown> = {
           messaging_product: 'whatsapp',
           to: cleanPhone,

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { verifyHmacSha256Hex } from '../webhook-signatures.js';
 import type {
   PaymentProvider,
   CreateCheckoutInput,
@@ -26,15 +27,9 @@ export class RazorpayPaymentProvider implements PaymentProvider {
   }
 
   verifyWebhookSignature(payload: Buffer | string, signature: string, secret?: string): boolean {
-    const key = secret || this.webhookSecret;
-    if (!key) return true;
-    try {
-      const hmac = crypto.createHmac('sha256', key);
-      const computed = hmac.update(payload).digest('hex');
-      return computed === signature;
-    } catch {
-      return false;
-    }
+    const key = secret || this.webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!key) return false; // never accept unsigned deliveries
+    return verifyHmacSha256Hex(payload, signature, key);
   }
 
   async handleWebhookEvent(event: unknown): Promise<BillingWebhookResult> {

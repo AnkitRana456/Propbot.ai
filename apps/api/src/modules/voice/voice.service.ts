@@ -15,6 +15,8 @@ import { ExotelTelephonyProvider } from './providers/exotel-telephony.provider.j
 import type { VoiceProvider } from './providers/voice-provider.interface.js';
 import type { TelephonyProvider } from './providers/telephony-provider.interface.js';
 import type { ManualCallLogRequest, TelephonyWebhookPayload } from '@propbot/shared';
+import { isDnd } from './dnd.js';
+import { callCampaignsService } from './call-campaigns.service.js';
 import { pino } from 'pino';
 
 export const voiceLogger = pino({
@@ -115,6 +117,11 @@ export class VoiceService {
       return { status: 'skipped', reason: 'NO_CONSENT' };
     }
 
+    if (await isDnd(companyId, contact.phone)) {
+      voiceLogger.info({ leadId }, 'Automated callback skipped: number is on the do-not-disturb list');
+      return { status: 'skipped', reason: 'DND_LISTED' };
+    }
+
     if (contact.altPhone === 'OPTED_OUT' || contact.lifecycleStage === 'opted_out') {
       voiceLogger.info({ leadId }, 'Automated callback skipped: contact is opted out (DND)');
       return { status: 'skipped', reason: 'DND_OPTED_OUT' };
@@ -212,6 +219,10 @@ export class VoiceService {
       })
       .where(eq(voiceCalls.id, call.id));
 
+    if (['completed', 'no_answer', 'busy', 'failed'].includes(payload.status)) {
+      await db.update(voiceCalls).set({ endedAt: new Date(), outcome: call.outcome ?? (payload.status === 'completed' ? 'connected' : payload.status) }).where(eq(voiceCalls.id, call.id));
+    }
+
     // If call completed, trigger background audio transcription and scoring analysis
     let scoringResult: {
       isOptOut: boolean;
@@ -227,6 +238,10 @@ export class VoiceService {
         payload.transcript,
         payload.summary,
       );
+    }
+
+    if (['completed', 'no_answer', 'busy', 'failed'].includes(payload.status)) {
+      await callCampaignsService.onCallFinished(call.id).catch(() => null);
     }
 
     return {

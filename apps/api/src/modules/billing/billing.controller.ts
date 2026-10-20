@@ -80,11 +80,18 @@ export class BillingController {
     try {
       const provider = (req.params.provider as string) || 'stripe';
       const signature =
-        (req.headers['stripe-signature'] as string) ||
-        (req.headers['x-razorpay-signature'] as string) ||
-        '';
+        provider === 'razorpay'
+          ? (req.headers['x-razorpay-signature'] as string) || ''
+          : (req.headers['stripe-signature'] as string) || (req.headers['x-mock-signature'] as string) || '';
 
-      const result = await billingService.handleWebhook(provider, req.body, signature);
+      // The signature is computed over the raw bytes captured by the JSON parser, not over req.body
+      const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+      if (!rawBody) {
+        res.status(400).json({ error: { message: 'Missing request body' } });
+        return;
+      }
+
+      const result = await billingService.handleWebhook(provider, rawBody, signature);
       res.json({ received: true, result });
     } catch (err) {
       next(err);

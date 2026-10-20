@@ -71,15 +71,26 @@ const DEFAULT_CONFIG: ChatbotConfig = {
   },
   leadCapture: {
     enabled: true,
+    requireEmail: false,
+    requireLeadCapture: false,
+    alertEmails: [],
+    otpSettings: { enabled: false, expiryMinutes: 10, maxAttempts: 5, resendCooldownSeconds: 30 },
     triggerAfterMessages: 2,
     title: 'Connect with a Property Consultant',
     subtitle:
       'Share your contact info to receive detailed floor plans and private viewing appointments.',
     fields: [
       { id: 'f1', name: 'fullName', label: 'Full Name', type: 'text', required: true },
-      { id: 'f2', name: 'email', label: 'Email Address', type: 'email', required: true },
+      { id: 'f2', name: 'email', label: 'Email Address', type: 'email', required: false },
       { id: 'f3', name: 'phone', label: 'Phone Number', type: 'phone', required: true },
     ],
+  },
+  tracking: {
+    gtmEnabled: true,
+    googleAds: { conversionId: '', conversionLabel: '', currency: 'INR', value: 1 },
+    metaPixelId: '',
+    taboolaEnabled: false,
+    customScript: '',
   },
   businessHours: {
     enabled: false,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Search,
@@ -178,6 +179,8 @@ export const ContactsPage: React.FC = () => {
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">{selectedDetail.contact.phone}</p>
                 </div>
+                <div className="flex items-center gap-2">
+                <Link to={`/contacts/${selectedContactId}`} className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-[#B84A22] hover:bg-orange-50 dark:border-slate-700">360° view</Link>
                 <button
                   onClick={() => setIsMergeOpen(true)}
                   className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 cursor-pointer"
@@ -185,6 +188,7 @@ export const ContactsPage: React.FC = () => {
                   <GitMerge className="h-3.5 w-3.5 text-amber-600" />
                   Merge
                 </button>
+                </div>
               </div>
 
               {/* Organization link if present */}

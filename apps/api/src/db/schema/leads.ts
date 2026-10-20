@@ -8,6 +8,7 @@ import {
   jsonb,
   timestamp,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { companies } from './companies.js';
@@ -52,6 +53,13 @@ export const leads = pgTable(
       .notNull()
       .default(sql`'[]'::jsonb`),
     pageUrl: varchar('page_url', { length: 500 }),
+    visitCount: integer('visit_count').notNull().default(1),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    utmParams: jsonb('utm_params')
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    ipAddress: varchar('ip_address', { length: 64 }),
+    userAgent: varchar('user_agent', { length: 500 }),
     nextFollowUpAt: timestamp('next_follow_up_at', { withTimezone: true }),
     source: varchar('source', { length: 100 }).notNull().default('chat'),
     slaStartedAt: timestamp('sla_started_at', { withTimezone: true }),
@@ -66,6 +74,33 @@ export const leads = pgTable(
     index('leads_company_contact_idx').on(table.companyId, table.contactId),
     index('leads_company_next_follow_up_idx').on(table.companyId, table.nextFollowUpAt),
     index('leads_company_assigned_status_idx').on(table.companyId, table.assignedAgentId, table.status),
+    uniqueIndex('leads_company_bot_contact_uniq')
+      .on(table.companyId, table.chatbotId, table.contactId)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.chatbotId} IS NOT NULL`),
+  ],
+);
+
+/** SMS OTP challenges. Postgres has no TTL index: expiry is enforced on read and purged by a job. */
+export const leadOtps = pgTable(
+  'lead_otps',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'cascade' }),
+    chatbotId: uuid('chatbot_id').references(() => chatbots.id, { onDelete: 'cascade' }),
+    phone: varchar('phone', { length: 50 }).notNull(),
+    codeHash: varchar('code_hash', { length: 128 }).notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    maxAttempts: integer('max_attempts').notNull().default(5),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    lastSentAt: timestamp('last_sent_at', { withTimezone: true }).notNull().defaultNow(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [
+    index('lead_otps_phone_idx').on(table.companyId, table.chatbotId, table.phone),
+    index('lead_otps_expires_idx').on(table.expiresAt),
   ],
 );
 

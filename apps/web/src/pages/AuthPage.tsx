@@ -70,6 +70,11 @@ export const AuthPage: React.FC = () => {
           throw new Error(data?.error?.message || 'Registration failed.');
         }
 
+        if (data.data.pendingApproval || !data.data.tokens) {
+          setMode('login');
+          setErrorMessage(data.data.message || 'Your account is pending approval. Please wait for admin activation.');
+          return;
+        }
         login(data.data.tokens.accessToken, data.data.user, data.data.company);
         navigate('/dashboard');
       }

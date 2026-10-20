@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { apiKeys } from '../../db/schema/index.js';
 import { pino } from 'pino';
@@ -93,6 +93,11 @@ export async function mcpAuthMiddleware(
       return;
     }
 
+    if (key.expiresAt && key.expiresAt.getTime() < Date.now()) {
+      res.status(401).json({ error: { code: 'KEY_EXPIRED', message: 'This API key has expired. Create a new one.' } });
+      return;
+    }
+
     let isGracePeriod = false;
     if (key.revokedAt) {
       // 24-hour grace window for rotated keys
@@ -128,7 +133,7 @@ export async function mcpAuthMiddleware(
 
     // Update lastUsedAt asynchronously
     db.update(apiKeys)
-      .set({ lastUsedAt: new Date() })
+      .set({ lastUsedAt: new Date(), usageCount: sql`${apiKeys.usageCount} + 1` })
       .where(eq(apiKeys.id, key.id))
       .catch((err) => mcpLogger.warn({ err }, 'Failed to update api_key lastUsedAt'));
 

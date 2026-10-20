@@ -52,6 +52,10 @@ export const subscriptionInvoices = pgTable(
     providerInvoiceId: varchar('provider_invoice_id', { length: 255 }),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     pdfUrl: text('pdf_url'),
+    // GST (migration 0020): amount is the gross paid; tax is the inclusive share of it
+    taxAmount: integer('tax_amount').notNull().default(0),
+    taxBreakdown: jsonb('tax_breakdown').notNull().default(sql`'{}'::jsonb`),
+    billingSnapshot: jsonb('billing_snapshot').notNull().default(sql`'{}'::jsonb`),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   table => [index('subscription_invoices_company_idx').on(table.companyId, table.createdAt)],

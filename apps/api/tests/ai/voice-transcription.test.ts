@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
 import { createApp } from '../../src/server.js';
 import { testDb, cleanupTestDatabase } from '../helpers/test-db.js';
 import {
@@ -12,6 +11,8 @@ import {
 } from '../../src/db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
 import { MockSpeechToTextProvider } from '../../src/modules/ai/speech-to-text.provider.js';
+import { signedMetaPost, META_TEST_APP_SECRET } from '../helpers/meta-webhook.js';
+process.env.META_APP_SECRET = META_TEST_APP_SECRET;
 
 describe('Voice Transcription & WhatsApp Audio Voice Notes', () => {
   const app = createApp();
@@ -143,10 +144,7 @@ describe('Voice Transcription & WhatsApp Audio Voice Notes', () => {
       ],
     };
 
-    const res = await request(app)
-      .post('/api/webhooks/meta')
-      .send(audioPayload)
-      .expect(200);
+    const res = await signedMetaPost(app, audioPayload).expect(200);
 
     expect(res.body.processedCount).toBe(1);
 

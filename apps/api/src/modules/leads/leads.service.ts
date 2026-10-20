@@ -9,6 +9,7 @@ import {
   domainEvents,
   companyAiSettings,
   users,
+  chatbots,
 } from '../../db/schema/index.js';
 import type {
   BuyerDna,
@@ -23,137 +24,233 @@ import type {
   ScoreHistoryItem,
   ScoringConfig,
 } from '@propbot/shared';
+import { normalizePhoneNumber, validatePhone } from '@propbot/shared';
 import { buyerDnaService } from './buyer-dna.service.js';
 import { intentScorerService, type ScoringSignalsInput } from './intent-scorer.service.js';
 import { handoffBriefService } from './handoff-brief.service.js';
 
+/** True for a Postgres unique-constraint violation (SQLSTATE 23505), also when wrapped by Drizzle. */
+function isUniqueViolation(err: unknown): boolean {
+  const e = err as { code?: string; cause?: { code?: string } } | undefined;
+  return e?.code === '23505' || e?.cause?.code === '23505';
+}
+
 export class LeadsService {
   /**
-   * Normalizes phone numbers supporting Indian (+91) and international E.164 formats.
+   * Normalizes a phone number to E.164 using the shared validator (same rules as the widget and web app).
+   * Invalid numbers are returned sanitized; use validatePhone() before relying on the result.
    */
   normalizePhone(rawPhone: string): string {
-    const cleaned = rawPhone.trim().replace(/[\s\-()]/g, '');
-    if (cleaned.startsWith('+')) {
-      return cleaned;
-    }
-    // Indian 10-digit format starting with 6, 7, 8, or 9
-    if (/^[6-9]\d{9}$/.test(cleaned)) {
-      return `+91${cleaned}`;
-    }
-    if (/^0[6-9]\d{9}$/.test(cleaned)) {
-      return `+91${cleaned.slice(1)}`;
-    }
-    if (/^91[6-9]\d{9}$/.test(cleaned)) {
-      return `+${cleaned}`;
-    }
-    return cleaned;
+    return normalizePhoneNumber(rawPhone);
   }
 
   /**
-   * Captures or updates a lead from conversational chat or explicit forms.
-   * Enforces duplicate detection: duplicate phone creates a merge suggestion, not a second lead.
+   * Captures or updates a lead from conversational chat, brochure gating or explicit forms.
+   *
+   * Race-safe de-duplication: a person is one contact per company and one lead per contact per
+   * chatbot, enforced by partial unique indexes. If two requests race, the loser hits the unique
+   * index (SQLSTATE 23505), the transaction rolls back and the call is retried, finding the winner.
+   * Returning visitors never create a second lead: name/phone/lastSeenAt are refreshed and
+   * visit_count is incremented in SQL (visit_count = visit_count + 1), so concurrent updates are not lost.
    */
   async captureOrUpdateLead(
     companyId: string,
     input: CaptureLeadInput,
+    attempt = 0,
   ): Promise<{ lead: LeadItemResponse; isDuplicate: boolean }> {
-    const normalizedPhone = this.normalizePhone(input.phone);
-    const email = input.email && input.email.trim() ? input.email.trim().toLowerCase() : null;
-
-    // 1. Check for existing contact in this company
-    const existingContact = await db.query.contacts.findFirst({
-      where: and(
-        eq(contacts.companyId, companyId),
-        or(
-          eq(contacts.phone, normalizedPhone),
-          email ? eq(contacts.email, email) : sql`false`,
-        ),
-        isNull(contacts.deletedAt),
-      ),
-    });
-
-    if (existingContact) {
-      // Find existing active lead for this contact
-      const existingLead = await db.query.leads.findFirst({
-        where: and(
-          eq(leads.companyId, companyId),
-          eq(leads.contactId, existingContact.id),
-          isNull(leads.deletedAt),
-        ),
-      });
-
-      if (existingLead) {
-        // PDF Requirement: Duplicate phone creates a merge suggestion, not a second lead
-        const mergeSuggestion = {
-          existingContactId: existingContact.id,
-          existingLeadId: existingLead.id,
-          matchingField: 'phone' as const,
-          matchingValue: normalizedPhone,
-          conflictFields: [
-            input.name !== `${existingContact.firstName} ${existingContact.lastName || ''}`.trim()
-              ? 'name'
-              : '',
-            email && existingContact.email && email !== existingContact.email ? 'email' : '',
-          ].filter(Boolean),
-          suggestedAction:
-            'Merge recent inquiry details and updated preferences into primary lead record.',
-        };
-
-        // Link current conversation if provided
-        if (input.conversationId) {
-          await db
-            .update(conversations)
-            .set({ leadId: existingLead.id, contactId: existingContact.id, updatedAt: new Date() })
-            .where(
-              and(eq(conversations.id, input.conversationId), eq(conversations.companyId, companyId)),
-            );
-        }
-
-        // Record merge suggestion on existing lead
-        await db
-          .update(leads)
-          .set({
-            duplicateMergeSuggestion: mergeSuggestion,
-            updatedAt: new Date(),
-          })
-          .where(eq(leads.id, existingLead.id));
-
-        // Activity log
-        await db.insert(leadActivities).values({
-          companyId,
-          leadId: existingLead.id,
-          contactId: existingContact.id,
-          activityType: 'duplicate_detected',
-          title: 'Duplicate Contact Attempted in Chat',
-          description: `Visitor with phone ${normalizedPhone} submitted inquiry. Merge suggestion created.`,
-          metadata: { inputName: input.name, matchingField: 'phone' },
-        });
-
-        const fullLead = await this.getLeadById(companyId, existingLead.id);
-        return { lead: fullLead, isDuplicate: true };
+    let phoneCheck = validatePhone(input.phone);
+    if (input.source === 'whatsapp') {
+      // Meta delivers E.164 without the "+" and from any country, so interpret it as international and,
+      // for countries outside our rule table, accept any well-formed E.164 number.
+      const digits = input.phone.replace(/\D/g, '');
+      phoneCheck = validatePhone(`+${digits}`);
+      if (!phoneCheck.valid && /^[1-9]\d{7,14}$/.test(digits)) {
+        phoneCheck = { valid: true, e164: `+${digits}` };
       }
     }
+    if (!phoneCheck.valid || !phoneCheck.e164) {
+      throw Object.assign(new Error('Please enter a valid phone number.'), {
+        statusCode: 400,
+        code: 'INVALID_PHONE',
+        reason: phoneCheck.reason,
+      });
+    }
 
-    // 2. New Contact & Lead Creation inside transaction
+    try {
+      const outcome = await this.upsertLead(companyId, input, phoneCheck.e164);
+      const lead = await this.getLeadById(companyId, outcome.leadId);
+      return { lead, isDuplicate: outcome.isDuplicate };
+    } catch (err) {
+      if (isUniqueViolation(err) && attempt < 3) {
+        return this.captureOrUpdateLead(companyId, input, attempt + 1);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Invalid-lead purge (spec section 3): conversations flagged as having a lead whose contact has no
+   * valid phone lose that lead link (lead_id / contact_id cleared). Lead and contact rows are kept.
+   * `companyId` scopes the run to one tenant; omit it for a platform-wide cron run.
+   */
+  async cleanupInvalidLeadLinks(companyId?: string): Promise<{ scanned: number; cleaned: number }> {
+    const rows = await db
+      .select({ id: conversations.id, phone: contacts.phone })
+      .from(conversations)
+      .leftJoin(contacts, eq(contacts.id, conversations.contactId))
+      .where(
+        and(
+          sql`${conversations.leadId} IS NOT NULL`,
+          companyId ? eq(conversations.companyId, companyId) : undefined,
+        ),
+      );
+
+    const invalidIds = rows.filter(r => !r.phone || !validatePhone(r.phone).valid).map(r => r.id);
+    for (let i = 0; i < invalidIds.length; i += 500) {
+      const batch = invalidIds.slice(i, i + 500);
+      await db
+        .update(conversations)
+        .set({ leadId: null, contactId: null, updatedAt: new Date() })
+        .where(sql`${conversations.id} IN (${sql.join(batch.map(id => sql`${id}::uuid`), sql`, `)})`);
+    }
+    return { scanned: rows.length, cleaned: invalidIds.length };
+  }
+
+  private async upsertLead(
+    companyId: string,
+    input: CaptureLeadInput,
+    normalizedPhone: string,
+  ): Promise<{ leadId: string; isDuplicate: boolean }> {
+    const email = input.email && input.email.trim() ? input.email.trim().toLowerCase() : null;
+    const source = input.source ?? 'chat';
+    const utm = input.utmParams ?? {};
     const nameParts = input.name.trim().split(/\s+/);
     const firstName = nameParts[0] || 'Prospective';
     const lastName = nameParts.slice(1).join(' ') || null;
 
     return await db.transaction(async tx => {
-      // Insert contact
-      const [newContact] = await tx
-        .insert(contacts)
-        .values({
-          companyId,
-          firstName,
-          lastName,
-          phone: normalizedPhone,
-          email,
-          lifecycleStage: 'lead',
-        })
-        .returning();
+      // 1. Resolve the contact: phone match wins, otherwise email match.
+      const phoneContact = await tx.query.contacts.findFirst({
+        where: and(
+          eq(contacts.companyId, companyId),
+          eq(contacts.phone, normalizedPhone),
+          isNull(contacts.deletedAt),
+        ),
+      });
+      const emailContact = email
+        ? await tx.query.contacts.findFirst({
+            where: and(
+              eq(contacts.companyId, companyId),
+              sql`lower(${contacts.email}) = ${email}`,
+              isNull(contacts.deletedAt),
+            ),
+          })
+        : undefined;
+      const existingContact = phoneContact ?? emailContact;
 
-      if (!newContact) {
+      // 2. Existing lead for this contact on this chatbot -> refresh instead of duplicating.
+      if (existingContact) {
+        const existingLead = await tx.query.leads.findFirst({
+          where: and(
+            eq(leads.companyId, companyId),
+            eq(leads.contactId, existingContact.id),
+            input.chatbotId ? eq(leads.chatbotId, input.chatbotId) : isNull(leads.chatbotId),
+            isNull(leads.deletedAt),
+          ),
+        });
+
+        if (existingLead) {
+          const contactPatch: Partial<typeof contacts.$inferInsert> = {
+            ...(input.preserveName ? {} : { firstName, lastName }),
+            phone: normalizedPhone,
+            updatedAt: new Date(),
+          };
+          // Only adopt the email when no other contact already owns it.
+          if (email && !existingContact.email && (!emailContact || emailContact.id === existingContact.id)) {
+            contactPatch.email = email;
+          }
+          // When matched by email only, the phone moves to the new number (no other contact has it).
+          await tx.update(contacts).set(contactPatch).where(eq(contacts.id, existingContact.id));
+
+          const mergeSuggestion = {
+            existingContactId: existingContact.id,
+            existingLeadId: existingLead.id,
+            matchingField: phoneContact ? ('phone' as const) : ('email' as const),
+            matchingValue: phoneContact ? normalizedPhone : (email as string),
+            conflictFields: [
+              input.name.trim() !== `${existingContact.firstName} ${existingContact.lastName || ''}`.trim()
+                ? 'name'
+                : '',
+              email && existingContact.email && email !== existingContact.email.toLowerCase()
+                ? 'email'
+                : '',
+            ].filter(Boolean),
+            suggestedAction:
+              'Merge recent inquiry details and updated preferences into primary lead record.',
+          };
+
+          await tx
+            .update(leads)
+            .set({
+              visitCount: sql`${leads.visitCount} + 1`,
+              lastSeenAt: new Date(),
+              utmParams: Object.keys(utm).length
+                ? sql`${leads.utmParams} || ${JSON.stringify(utm)}::jsonb`
+                : leads.utmParams,
+              ipAddress: input.ipAddress ?? existingLead.ipAddress,
+              userAgent: input.userAgent ?? existingLead.userAgent,
+              duplicateMergeSuggestion: mergeSuggestion,
+              updatedAt: new Date(),
+            })
+            .where(eq(leads.id, existingLead.id));
+
+          if (input.conversationId) {
+            await tx
+              .update(conversations)
+              .set({ leadId: existingLead.id, contactId: existingContact.id, updatedAt: new Date() })
+              .where(
+                and(eq(conversations.id, input.conversationId), eq(conversations.companyId, companyId)),
+              );
+          }
+
+          if (input.chatbotId && source === 'brochure_download') {
+            await tx
+              .update(chatbots)
+              .set({ brochureDownloads: sql`${chatbots.brochureDownloads} + 1` })
+              .where(eq(chatbots.id, input.chatbotId));
+          }
+
+          await tx.insert(leadActivities).values({
+            companyId,
+            leadId: existingLead.id,
+            contactId: existingContact.id,
+            activityType: 'duplicate_detected',
+            title: 'Returning Visitor Re-submitted Contact Details',
+            description: `Visitor with phone ${normalizedPhone} submitted again. Visit count incremented; merge suggestion created.`,
+            metadata: { inputName: input.name, matchingField: mergeSuggestion.matchingField, source },
+          });
+
+          return { leadId: existingLead.id, isDuplicate: true };
+        }
+      }
+
+      // 3. New lead (and new contact if needed)
+      let contact = existingContact;
+      if (!contact) {
+        const [newContact] = await tx
+          .insert(contacts)
+          .values({
+            companyId,
+            firstName,
+            lastName,
+            phone: normalizedPhone,
+            email,
+            lifecycleStage: 'lead',
+          })
+          .returning();
+        contact = newContact;
+      }
+      if (!contact) {
         throw new Error('Failed to create contact');
       }
 
@@ -172,7 +269,6 @@ export class LeadsService {
         initialDna.financing = input.loanNeed ? 'bank_loan' : 'self_funded';
       }
 
-      // Calculate initial intent score
       const signals: ScoringSignalsInput = {
         hasSharedPhone: true,
         hasAskedPriceOrPaymentPlan: Boolean(input.budget),
@@ -187,12 +283,11 @@ export class LeadsService {
         timestamp: new Date().toISOString(),
       };
 
-      // Insert lead
       const [newLead] = await tx
         .insert(leads)
         .values({
           companyId,
-          contactId: newContact.id,
+          contactId: contact.id,
           chatbotId: input.chatbotId,
           status: 'new',
           priority: scoringResult.priority,
@@ -202,7 +297,10 @@ export class LeadsService {
           scoreHistory: [scoreHistoryItem],
           buyerDna: initialDna,
           phoneVerified: false,
-          source: 'chat',
+          source,
+          utmParams: utm,
+          ipAddress: input.ipAddress,
+          userAgent: input.userAgent,
           customFields: input.metadata ?? {},
         })
         .returning();
@@ -211,75 +309,50 @@ export class LeadsService {
         throw new Error('Failed to create lead');
       }
 
-      // Link conversation if supplied
+      if (input.chatbotId) {
+        await tx
+          .update(chatbots)
+          .set({
+            totalLeads: sql`${chatbots.totalLeads} + 1`,
+            ...(source === 'brochure_download'
+              ? { brochureDownloads: sql`${chatbots.brochureDownloads} + 1` }
+              : {}),
+          })
+          .where(eq(chatbots.id, input.chatbotId));
+      }
+
       if (input.conversationId) {
         await tx
           .update(conversations)
-          .set({ leadId: newLead.id, contactId: newContact.id, updatedAt: new Date() })
+          .set({ leadId: newLead.id, contactId: contact.id, updatedAt: new Date() })
           .where(
             and(eq(conversations.id, input.conversationId), eq(conversations.companyId, companyId)),
           );
       }
 
-      // Record lead activity
       await tx.insert(leadActivities).values({
         companyId,
         leadId: newLead.id,
-        contactId: newContact.id,
+        contactId: contact.id,
         activityType: 'lead_captured',
-        title: 'New Lead Captured via Web Chat',
+        title: source === 'brochure_download' ? 'Brochure Downloaded' : 'New Lead Captured via Web Chat',
         description: `Prospect ${input.name} shared contact details (${normalizedPhone}). Initial Intent Score: ${scoringResult.score}%.`,
-        metadata: { source: 'chat', initialScore: scoringResult.score },
+        metadata: { source, initialScore: scoringResult.score },
       });
 
-      // Write domain_events transactional outbox
       await tx.insert(domainEvents).values({
         companyId,
         type: 'lead_created',
         payload: {
           lead_id: newLead.id,
-          contact_id: newContact.id,
+          contact_id: contact.id,
           chatbot_id: input.chatbotId,
-          source: 'chat',
-          metadata: { phone: normalizedPhone, name: input.name },
+          source,
+          metadata: { phone: normalizedPhone, name: input.name, utm_params: utm },
         },
       });
 
-      const responseLead: LeadItemResponse = {
-        id: newLead.id,
-        companyId: newLead.companyId,
-        contactId: newLead.contactId,
-        chatbotId: newLead.chatbotId,
-        conversationId: input.conversationId ?? null,
-        assignedAgentId: newLead.assignedAgentId,
-        assignedAgentName: null,
-        name: input.name,
-        firstName: newContact.firstName,
-        lastName: newContact.lastName,
-        phone: newContact.phone,
-        email: newContact.email,
-        status: newLead.status as LeadStatus,
-        lostReason: newLead.lostReason,
-        priority: newLead.priority as LeadPriority,
-        intentScore: newLead.intentScore,
-        intentLabel: newLead.intentLabel as IntentLabel,
-        scoreExplanation: newLead.scoreExplanation as string[],
-        scoreHistory: newLead.scoreHistory as ScoreHistoryItem[],
-        buyerDna: newLead.buyerDna as BuyerDna,
-        handoffBrief: null,
-        duplicateMergeSuggestion: null,
-        phoneVerified: newLead.phoneVerified,
-        tags: (newLead.tags as string[]) || [],
-        pageUrl: newLead.pageUrl,
-        nextFollowUpAt: newLead.nextFollowUpAt ? newLead.nextFollowUpAt.toISOString() : null,
-        source: newLead.source,
-        slaStartedAt: null,
-        slaBreachedAt: null,
-        createdAt: newLead.createdAt.toISOString(),
-        updatedAt: newLead.updatedAt.toISOString(),
-      };
-
-      return { lead: responseLead, isDuplicate: false };
+      return { leadId: newLead.id, isDuplicate: false };
     });
   }
 

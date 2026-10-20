@@ -180,7 +180,8 @@ describe('Phase 15A: Next Best Action (NBA) Engine & Guarded Execution', () => {
       });
 
     // Run outbox dispatcher batch
-    await outboxDispatcherService.processBatch();
+    // other suites leave events behind in the shared dev DB, so claim a large batch to reach this one
+    await outboxDispatcherService.processBatch(1000);
 
     // Verify lead nextBestAction was updated to room viewed recommendation
     const [updatedLead] = await testDb

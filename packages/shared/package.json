@@ -11,6 +11,11 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./phone": {
+      "import": "./dist/phone.js",
+      "types": "./dist/utils/phone.d.ts",
+      "default": "./dist/phone.js"
     }
   },
   "scripts": {

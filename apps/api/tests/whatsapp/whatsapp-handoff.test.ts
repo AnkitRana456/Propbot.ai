@@ -12,6 +12,8 @@ import {
   leads,
 } from '../../src/db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
+import { signedMetaPost, META_TEST_APP_SECRET } from '../helpers/meta-webhook.js';
+process.env.META_APP_SECRET = META_TEST_APP_SECRET;
 
 describe('WhatsApp Human Handoff & Round-Robin Agent Assignment', () => {
   const app = createApp();
@@ -138,7 +140,7 @@ describe('WhatsApp Human Handoff & Round-Robin Agent Assignment', () => {
       ],
     };
 
-    const res = await request(app).post('/api/webhooks/meta').send(payload);
+    const res = await signedMetaPost(app, payload);
     expect(res.status).toBe(200);
 
     // Verify conversation status is needs_human and aiPaused is true

@@ -4,6 +4,9 @@ import { domainEvents, eventConsumerCheckpoints, notifications, users } from '..
 import { outboxProcessorService } from '../webhooks/outbox-processor.service.js';
 import { workflowEngineService } from '../workflows/workflow-engine.service.js';
 import { voiceCallbackConsumer } from '../voice/voice-callback.consumer.js';
+import { notificationsService } from '../controls/controls.service.js';
+import { handleFlowEvent } from '../flows/flow-events.js';
+import { deliveryJobsService } from '../delivery/delivery-jobs.service.js';
 import { pino } from 'pino';
 
 export const outboxLogger = pino({
@@ -41,6 +44,8 @@ export class OutboxDispatcherService {
 
     // 2. Notification consumer (hot leads, handoff requests, bookings)
     this.registerConsumer('notifications', async (event) => {
+      // Company notification rules take over when they exist for this event; otherwise the built-in alert below runs
+      if (await notificationsService.deliver({ companyId: event.companyId, type: event.type, payload: event.payload })) return;
       if (event.type === 'lead_hot' || event.type === 'handoff_requested' || event.type === 'visit_booked') {
         const payload = event.payload;
         const [adminUser] = await db
@@ -74,9 +79,21 @@ export class OutboxDispatcherService {
       }
     });
 
+    // 2b. Lead e-mail alert + CRM sync: enqueue durable delivery jobs only (no network I/O in this transaction)
+    this.registerConsumer('delivery_jobs', async (event) => {
+      if (event.type === 'lead_created') {
+        await deliveryJobsService.enqueueForLeadCreated(event);
+      }
+    });
+
     // 3. Workflows consumer
     this.registerConsumer('workflows', async (event) => {
       await workflowEngineService.handleTriggerEvent(event);
+    });
+
+    // Flow builder triggers (new lead, stage change, visit booked, form submitted)
+    this.registerConsumer('flows', async (event) => {
+      await handleFlowEvent(event);
     });
 
     // 4. Voice callback consumer (automated ~30s callback on lead_created)

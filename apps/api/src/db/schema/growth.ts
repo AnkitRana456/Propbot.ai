@@ -27,6 +27,8 @@ export const segments = pgTable(
     description: text('description'),
     filterCriteria: jsonb('filter_criteria').notNull().default({}),
     cachedCount: integer('cached_count').notNull().default(0),
+    isDynamic: boolean('is_dynamic').notNull().default(true),
+    refreshedAt: timestamp('refreshed_at', { withTimezone: true }),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

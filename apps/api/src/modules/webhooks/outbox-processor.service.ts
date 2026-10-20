@@ -1,8 +1,13 @@
-import { and, eq, isNull, lte, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { domainEvents, webhookEndpoints, webhookLogs, leads, contacts } from '../../db/schema/index.js';
 import type { WebhookEventType } from '@propbot/shared';
-import { webhookDispatcherService, webhookLogger } from './webhook-dispatcher.service.js';
+import {
+  webhookDispatcherService,
+  webhookLogger,
+  WEBHOOK_MAX_ATTEMPTS,
+} from './webhook-dispatcher.service.js';
+import { buildLeadCapturedPayload } from './lead-webhook-payload.js';
 
 export class OutboxProcessorService {
   /**
@@ -89,34 +94,38 @@ export class OutboxProcessorService {
         ),
       );
 
-    let dispatched = 0;
-    for (const ep of endpoints) {
-      if (ep.chatbotId && chatbotId && ep.chatbotId !== chatbotId) {
-        continue;
-      }
-
-      try {
-        await webhookDispatcherService.dispatch({
-          companyId,
-          endpointId: ep.id,
-          endpointUrl: ep.url,
-          endpointSecret: ep.secret,
-          endpointHeaders: (ep.headers as Record<string, string>) || {},
-          eventType: webhookEvent,
-          eventId,
-          leadId: leadId || null,
-          leadName,
-          chatbotId,
-          data: payload,
-          attempt: 1,
-        });
-        dispatched++;
-      } catch (dispatchErr) {
-        webhookLogger.warn({ dispatchErr, endpointId: ep.id }, 'Outbox webhook dispatch failed');
-      }
+    // lead_captured is delivered as a flat, PascalCase payload (UTMSource, SharedURL, ...).
+    let data: Record<string, unknown> = payload;
+    if (webhookEvent === 'lead_captured' && leadId) {
+      const flat = await buildLeadCapturedPayload(leadId);
+      if (flat) data = { ...flat };
     }
 
-    return dispatched;
+    // Enqueue only: the HTTP calls happen in processScheduledRetries(), outside the outbox
+    // transaction, in parallel and with retries. Saving the lead never waits for a webhook.
+    const targets = endpoints.filter(ep => !(ep.chatbotId && chatbotId && ep.chatbotId !== chatbotId));
+    if (targets.length === 0) return 0;
+
+    await db.insert(webhookLogs).values(
+      targets.map(ep => ({
+        companyId,
+        endpointId: ep.id,
+        leadId: leadId || null,
+        leadName,
+        chatbotId,
+        eventId,
+        eventType: webhookEvent,
+        status: 'retrying' as const,
+        statusCode: null,
+        attempt: 0, // queued: no HTTP attempt made yet
+        maxAttempts: WEBHOOK_MAX_ATTEMPTS,
+        requestPayload: data,
+        requestHeaders: {},
+        nextRetryAt: new Date(),
+      })),
+    );
+
+    return targets.length;
   }
 
   /**
@@ -160,52 +169,87 @@ export class OutboxProcessorService {
   /**
    * Processes scheduled webhook retries that are due.
    */
-  async processScheduledRetries(batchSize = 25): Promise<{ retriedCount: number }> {
-    const now = new Date();
+  /** `companyId` limits the run to one tenant (tests; also useful for manual replays). */
+  async processScheduledRetries(batchSize = 25, companyId?: string): Promise<{ retriedCount: number }> {
+    // Claim due rows atomically (SKIP LOCKED) and lease them for 2 minutes, so parallel workers never
+    // double-send and a crashed worker's rows simply become due again after the lease.
+    const claimedIds = await db.transaction(async tx => {
+      const claimed = await tx.execute(sql`
+        UPDATE webhook_logs SET next_retry_at = now() + interval '2 minutes', updated_at = now()
+        WHERE id IN (
+          SELECT wl.id FROM webhook_logs wl
+          JOIN webhook_endpoints we ON we.id = wl.endpoint_id
+          WHERE wl.status = 'retrying' AND wl.next_retry_at <= now() AND we.is_active = true
+            AND (${companyId ?? null}::uuid IS NULL OR wl.company_id = ${companyId ?? null}::uuid)
+          ORDER BY wl.next_retry_at ASC
+          LIMIT ${batchSize}
+          FOR UPDATE OF wl SKIP LOCKED
+        )
+        RETURNING id
+      `);
+      const rows = (Array.isArray(claimed) ? claimed : (claimed as { rows?: unknown[] }).rows || []) as Array<{
+        id: string;
+      }>;
+      return rows.map(r => r.id);
+    });
 
-    const dueRetries = await db
-      .select({
-        log: webhookLogs,
-        endpoint: webhookEndpoints,
-      })
+    if (claimedIds.length === 0) return { retriedCount: 0 };
+
+    const due = await db
+      .select({ log: webhookLogs, endpoint: webhookEndpoints })
       .from(webhookLogs)
       .innerJoin(webhookEndpoints, eq(webhookLogs.endpointId, webhookEndpoints.id))
-      .where(
-        and(
-          eq(webhookLogs.status, 'retrying'),
-          lte(webhookLogs.nextRetryAt, now),
-          eq(webhookEndpoints.isActive, true),
-        ),
-      )
-      .limit(batchSize);
+      .where(inArray(webhookLogs.id, claimedIds));
 
-    let retriedCount = 0;
+    // Deliver every due webhook in parallel; one slow endpoint must not delay the others.
+    const results = await Promise.allSettled(
+      due.map(async item => {
+        const attemptedBefore = item.log.attempt;
+        const nextAttempt = attemptedBefore + 1;
+        const stored = item.log.requestPayload as Record<string, unknown>;
+        // Queued rows hold the raw data; failed-attempt rows hold the full envelope that was sent.
+        const data =
+          attemptedBefore > 0 && stored && typeof stored.data === 'object' && 'event' in stored
+            ? (stored.data as Record<string, unknown>)
+            : stored;
 
-    for (const item of dueRetries) {
-      const nextAttempt = item.log.attempt + 1;
-      const payload = item.log.requestPayload as Record<string, unknown>;
+        const common = {
+          companyId: item.log.companyId,
+          endpointId: item.endpoint.id,
+          endpointUrl: item.endpoint.url,
+          endpointSecret: item.endpoint.secret,
+          endpointHeaders: (item.endpoint.headers as Record<string, string>) || {},
+          eventType: item.log.eventType as WebhookEventType,
+          eventId: item.log.eventId || undefined,
+          leadId: item.log.leadId,
+          leadName: item.log.leadName,
+          chatbotId: item.log.chatbotId,
+          data,
+          attempt: nextAttempt,
+          maxAttempts: item.log.maxAttempts,
+        };
 
-      await webhookDispatcherService.dispatch({
-        companyId: item.log.companyId,
-        endpointId: item.endpoint.id,
-        endpointUrl: item.endpoint.url,
-        endpointSecret: item.endpoint.secret,
-        endpointHeaders: (item.endpoint.headers as Record<string, string>) || {},
-        eventType: item.log.eventType as WebhookEventType,
-        eventId: item.log.eventId || undefined,
-        leadId: item.log.leadId,
-        leadName: item.log.leadName,
-        chatbotId: item.log.chatbotId,
-        data: payload,
-        attempt: nextAttempt,
-        maxAttempts: item.log.maxAttempts,
-        existingLogId: item.log.id,
-      });
+        if (attemptedBefore === 0) {
+          // The queued row becomes the record of attempt 1.
+          await webhookDispatcherService.dispatch({ ...common, existingLogId: item.log.id });
+        } else {
+          // Every attempt keeps its own audit row: close the failed one, log the new one separately.
+          await db
+            .update(webhookLogs)
+            .set({ status: 'failed', nextRetryAt: null, updatedAt: new Date() })
+            .where(eq(webhookLogs.id, item.log.id));
+          await webhookDispatcherService.dispatch(common);
+        }
+      }),
+    );
 
-      retriedCount++;
+    for (const r of results) {
+      if (r.status === 'rejected') {
+        webhookLogger.warn({ err: r.reason }, 'Scheduled webhook attempt crashed');
+      }
     }
 
-    return { retriedCount };
+    return { retriedCount: due.length };
   }
 }
 

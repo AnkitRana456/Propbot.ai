@@ -127,6 +127,14 @@ export class UsersService {
       throw new Error('User not found.');
     }
 
+    // Privilege-escalation guard: only a ps-owner may grant, change or edit the ps-owner role.
+    if (!isSuperAdmin && (input.role === 'ps-owner' || user.role === 'ps-owner')) {
+      throw Object.assign(new Error('Only a platform owner can manage the ps-owner role.'), {
+        statusCode: 403,
+        code: 'FORBIDDEN_ROLE',
+      });
+    }
+
     // Safety guard: Last company_admin cannot be demoted or disabled
     if (
       user.role === 'company_admin' &&

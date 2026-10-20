@@ -72,6 +72,8 @@ export const appearanceConfigSchema = z.object({
 export type AppearanceConfig = z.infer<typeof appearanceConfigSchema>;
 
 export const behaviorConfigSchema = z.object({
+  /** Shown when a visitor sounds frustrated and the chat is escalated to a human. */
+  escalationMessage: z.string().max(500).optional(),
   systemPrompt: z
     .string()
     .max(2000)
@@ -117,8 +119,25 @@ export const behaviorConfigSchema = z.object({
 });
 export type BehaviorConfig = z.infer<typeof behaviorConfigSchema>;
 
+export const otpSettingsSchema = z.object({
+  enabled: z.boolean().default(false),
+  /** Code lifetime in minutes (1-30). */
+  expiryMinutes: z.number().int().min(1).max(30).default(10),
+  /** Wrong guesses allowed before the code is purged. */
+  maxAttempts: z.number().int().min(1).max(10).default(5),
+  resendCooldownSeconds: z.number().int().min(0).max(300).default(30),
+});
+export type OtpSettingsConfig = z.infer<typeof otpSettingsSchema>;
+
 export const leadCaptureConfigSchema = z.object({
   enabled: z.boolean().default(true),
+  /** Email is optional in the widget unless this is true; phone is always required. */
+  requireEmail: z.boolean().default(false),
+  /** When true, brochure download links are only released after name + phone (+ email) are captured. */
+  requireLeadCapture: z.boolean().default(false),
+  /** Who gets the real-time new-lead e-mail. Empty = the company's active admins. */
+  alertEmails: z.array(z.string().email()).max(10).default([]),
+  otpSettings: otpSettingsSchema.default({}),
   triggerAfterMessages: z.number().int().min(1).max(20).default(2),
   title: z.string().min(1).max(120).default('Connect with a Property Consultant'),
   subtitle: z
@@ -141,7 +160,7 @@ export const leadCaptureConfigSchema = z.object({
       name: 'email',
       label: 'Email Address',
       type: 'email',
-      required: true,
+      required: false,
       placeholder: 'john@example.com',
     },
     {
@@ -185,11 +204,39 @@ export const wizardDraftSchema = z.object({
 });
 export type WizardDraft = z.infer<typeof wizardDraftSchema>;
 
+/**
+ * Conversion tracking (spec section 4). IDs are configured per chatbot, never hardcoded.
+ * The widget only fires pixels the host page has already loaded (gtag / fbq / _tfa / dataLayer).
+ */
+export const trackingConfigSchema = z.object({
+  /** Push `propbot_lead_submit` to window.dataLayer and dispatch the synthetic submit event for GTM. */
+  gtmEnabled: z.boolean().default(true),
+  googleAds: z
+    .object({
+      /** e.g. AW-123456789 */
+      conversionId: z.string().regex(/^AW-\d{6,12}$/, 'Expected AW-<digits>').or(z.literal('')).default(''),
+      /** e.g. AbC-D_efG123 */
+      conversionLabel: z.string().regex(/^[A-Za-z0-9_-]{4,64}$/).or(z.literal('')).default(''),
+      currency: z.string().regex(/^[A-Z]{3}$/).default('INR'),
+      value: z.number().min(0).max(1_000_000).default(1),
+    })
+    .default({}),
+  /** Meta Pixel ID (digits). Empty disables. */
+  metaPixelId: z.string().regex(/^\d{8,20}$/).or(z.literal('')).default(''),
+  taboolaEnabled: z.boolean().default(false),
+  /** Free-form client tracking snippet. Sanitized with DOMPurify and run in a sandboxed iframe. */
+  customScript: z.string().max(10_000).default(''),
+});
+export type TrackingConfig = z.infer<typeof trackingConfigSchema>;
+
 export const chatbotConfigSchema = z.object({
   description: z.string().max(500).default(''),
+  /** Project whose photos, plans and map the chat shows when the visitor does not name one. */
+  mediaProjectId: z.string().uuid().optional(),
   appearance: appearanceConfigSchema.default({}),
   behavior: behaviorConfigSchema.default({}),
   leadCapture: leadCaptureConfigSchema.default({}),
+  tracking: trackingConfigSchema.default({}),
   businessHours: businessHoursConfigSchema.default({}),
   brochures: z.array(brochureItemSchema).default([]),
   wizardDraft: wizardDraftSchema.default({}),
@@ -235,6 +282,8 @@ export const chatbotResponseSchema = z.object({
   deletedAt: z.string().or(z.date()).nullable().optional(),
   leadsCount: z.number().int().optional(),
   conversationsCount: z.number().int().optional(),
+  /** Published agent that answers for this chatbot (null = original persona settings). */
+  agentId: z.string().uuid().nullable().optional(),
 });
 export type ChatbotResponse = z.infer<typeof chatbotResponseSchema>;
 

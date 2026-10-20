@@ -1,4 +1,5 @@
-import { pgTable, uuid, varchar, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { companies } from './companies.js';
 import { organizations } from './organizations.js';
 
@@ -25,5 +26,11 @@ export const contacts = pgTable(
   table => [
     index('contacts_company_phone_idx').on(table.companyId, table.phone),
     index('contacts_company_email_idx').on(table.companyId, table.email),
+    uniqueIndex('contacts_company_phone_uniq')
+      .on(table.companyId, table.phone)
+      .where(sql`${table.deletedAt} IS NULL`),
+    uniqueIndex('contacts_company_email_uniq')
+      .on(table.companyId, sql`lower(${table.email})`)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.email} IS NOT NULL AND ${table.email} <> ''`),
   ],
 );

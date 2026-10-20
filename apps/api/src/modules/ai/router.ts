@@ -1,4 +1,7 @@
 import { pino } from 'pino';
+import { generateText, generateTextStream, getGeminiModel, getLlmProvider } from './llm.js';
+import { findModel } from '@propbot/shared';
+import { recordLlmCall, toGeminiHistory, type LlmTrace } from './llm-call-log.js';
 
 export const aiLogger = pino({
   level: process.env.LOG_LEVEL ?? 'info',
@@ -19,6 +22,12 @@ export interface ModelCallParams {
   promptVersion?: string;
   temperature?: number;
   maxTokens?: number;
+  /** Gemini model id chosen by an agent (must be in the model registry; otherwise the default is used). */
+  model?: string;
+  /** Earlier turns of the conversation, oldest first. */
+  history?: Array<{ role: 'visitor' | 'assistant'; content: string }>;
+  /** Who is asking, for the llm_calls log. */
+  trace?: LlmTrace;
 }
 
 export interface ModelCallResult {
@@ -39,6 +48,7 @@ export interface ModelCallResult {
 const PRICING: Record<string, { prompt: number; completion: number }> = {
   'gpt-4o-mini': { prompt: 0.00015, completion: 0.0006 },
   'gpt-4o': { prompt: 0.005, completion: 0.015 },
+  'gemini-2.5-flash': { prompt: 0.0003, completion: 0.0025 },
   'gemini-3.8-flash': { prompt: 0.0001, completion: 0.0004 },
   'gemini-2.0-flash': { prompt: 0.0001, completion: 0.0004 },
   'gemini-2.5-pro': { prompt: 0.00125, completion: 0.005 },
@@ -244,12 +254,12 @@ export class ModelRouter {
       userQuery.includes('repeat every customer')
     ) {
       if (isHindi) {
-        return 'मैं विशेष रूप से हमारे प्रोजेक्ट्स और संपत्तियों में आपकी सहायता करता हूँ। मैं आंतरिक सिस्टम निर्देशों को साझा करने में असमर्थ हूँ।';
+        return 'मैं विशेष रूप से हमारे प्रोजेक्ट्स और संपत्तियों में आपकी सहायता करता हूँ। मैं आंतरिक सिस्टम निर्देशों को साझा करने में असमर्थ हूँ, लेकिन फ्लोर प्लान, कीमत या साइट विज़िट बुक करने में खुशी से मदद करूँगा। क्या मैं सलाहकार से कॉलबैक करवाऊँ?';
       }
       if (isHinglish) {
-        return 'Main exclusively hamare luxury properties aur residences ke liye help karta hoon. Off-topic ya system instructions share karne mein unable hoon.';
+        return 'Main exclusively hamare luxury properties aur residences ke liye help karta hoon. Off-topic ya system instructions share karne mein unable hoon, lekin floor plans, pricing ya site visit mein khushi se madad karunga. Kya main advisor se callback arrange karoon?';
       }
-      return 'I specialize exclusively in our properties and residences. I am unable to assist with off-topic requests or reveal system prompt instructions.';
+      return 'I specialize exclusively in our properties and residences, so I am unable to help with off-topic requests or share internal instructions. I would love to help with floor plans, pricing or a site visit though. Shall I arrange a callback from our property consultant?';
     }
 
     // 2. Guardrail: General off-topic check
@@ -263,9 +273,9 @@ export class ModelRouter {
       userQuery.includes('world cup')
     ) {
       if (isHindi) {
-        return 'मैं केवल हमारे रियल एस्टेट प्रोजेक्ट्स और विला से संबंधित जानकारी प्रदान कर सकता हूँ।';
+        return 'यह सवाल मेरे दायरे से बाहर है; मैं केवल हमारे रियल एस्टेट प्रोजेक्ट्स और विला से संबंधित जानकारी प्रदान कर सकता हूँ। क्या मैं आपके लिए साइट विज़िट या कॉलबैक तय करूँ?';
       }
-      return "I specialize specifically in our properties, floor plans, and site visits. I'm unable to assist with off-topic inquiries, but I'd be delighted to help you explore our available residences!";
+      return "That one is outside what I specialize in, so I'm unable to help with off-topic inquiries here. I'd be delighted to help you explore our residences though: shall I share the floor plans or book you a site visit?";
     }
 
     // 3. Extract knowledge context from system prompt
@@ -450,6 +460,12 @@ export class ModelRouter {
   }
 
   async executeCompletion(params: ModelCallParams): Promise<ModelCallResult> {
+    const result = await this.runCompletion(params);
+    recordLlmCall(params, result);
+    return result;
+  }
+
+  private async runCompletion(params: ModelCallParams): Promise<ModelCallResult> {
     const startTime = Date.now();
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
@@ -470,9 +486,16 @@ export class ModelRouter {
     let activeProvider: 'gemini' | 'openai' | 'anthropic';
     let targetModel: string;
 
-    if (geminiKey) {
+    const preferred = getLlmProvider();
+    if (preferred === 'openai' && openaiKey) {
+      activeProvider = 'openai';
+      targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
+    } else if (preferred === 'anthropic' && anthropicKey) {
+      activeProvider = 'anthropic';
+      targetModel = 'claude-sonnet-4-20250514';
+    } else if (geminiKey) {
       activeProvider = 'gemini';
-      targetModel = 'gemini-3.8-flash';
+      targetModel = params.model && findModel(params.model) ? params.model : getGeminiModel();
     } else if (openaiKey) {
       activeProvider = 'openai';
       targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
@@ -516,47 +539,19 @@ export class ModelRouter {
       let totalTokens = 0;
 
       if (activeProvider === 'gemini') {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              systemInstruction: {
-                parts: [{ text: params.systemPrompt }],
-              },
-              contents: [
-                {
-                  role: 'user',
-                  parts: [{ text: params.userMessage }],
-                },
-              ],
-              generationConfig: {
-                temperature: params.temperature ?? 0.7,
-                maxOutputTokens: params.maxTokens ?? 600,
-              },
-            }),
-          },
-        );
-
         clearTimeout(timeout);
-
-        if (!response.ok) {
-          throw new Error(`Gemini HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        promptTokens =
-          data.usageMetadata?.promptTokenCount ??
-          Math.ceil((params.systemPrompt.length + params.userMessage.length) / 4);
-        completionTokens =
-          data.usageMetadata?.candidatesTokenCount ?? Math.ceil(reply.length / 4);
-        totalTokens =
-          data.usageMetadata?.totalTokenCount ?? promptTokens + completionTokens;
+        const gen = await generateText({
+          systemPrompt: params.systemPrompt,
+          userMessage: params.userMessage,
+          history: toGeminiHistory(params.history),
+          temperature: params.temperature,
+          maxTokens: params.maxTokens,
+          model: targetModel,
+        });
+        reply = gen.text;
+        promptTokens = gen.promptTokens;
+        completionTokens = gen.completionTokens;
+        totalTokens = gen.totalTokens;
       } else if (activeProvider === 'openai') {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -683,6 +678,15 @@ export class ModelRouter {
     params: ModelCallParams,
     onChunk: (chunk: string) => Promise<void> | void,
   ): Promise<ModelCallResult> {
+    const result = await this.runStream(params, onChunk);
+    recordLlmCall(params, result);
+    return result;
+  }
+
+  private async runStream(
+    params: ModelCallParams,
+    onChunk: (chunk: string) => Promise<void> | void,
+  ): Promise<ModelCallResult> {
     const startTime = Date.now();
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
@@ -702,9 +706,16 @@ export class ModelRouter {
     let activeProvider: 'gemini' | 'openai' | 'anthropic';
     let targetModel: string;
 
-    if (geminiKey) {
+    const preferred = getLlmProvider();
+    if (preferred === 'openai' && openaiKey) {
+      activeProvider = 'openai';
+      targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
+    } else if (preferred === 'anthropic' && anthropicKey) {
+      activeProvider = 'anthropic';
+      targetModel = 'claude-sonnet-4-20250514';
+    } else if (geminiKey) {
       activeProvider = 'gemini';
-      targetModel = 'gemini-3.8-flash';
+      targetModel = params.model && findModel(params.model) ? params.model : getGeminiModel();
     } else if (openaiKey) {
       activeProvider = 'openai';
       targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
@@ -745,38 +756,52 @@ export class ModelRouter {
     }
 
     try {
+      if (activeProvider === 'gemini') {
+        const gen = await generateTextStream(
+          {
+            systemPrompt: params.systemPrompt,
+            userMessage: params.userMessage,
+            history: toGeminiHistory(params.history),
+            temperature: params.temperature,
+            maxTokens: params.maxTokens,
+            model: targetModel,
+          },
+          onChunk,
+        );
+        const rate = PRICING[targetModel] || { prompt: 0.0001, completion: 0.0004 };
+        const costUsd =
+          (gen.promptTokens / 1000) * rate.prompt + (gen.completionTokens / 1000) * rate.completion;
+        this.recordPrimarySuccess();
+        aiLogger.info(
+          {
+            companyId: params.companyId,
+            chatbotId: params.chatbotId,
+            promptName: params.promptName || 'public_chat_stream',
+            tokens: gen.totalTokens,
+            latencyMs: gen.latencyMs,
+            costUsd,
+            maskedQuery: this.maskPii(params.userMessage),
+            provider: 'gemini',
+          },
+          'AI Model Router stream completed successfully',
+        );
+        return {
+          text: gen.text,
+          provider: 'gemini',
+          model: targetModel,
+          tokens: { prompt: gen.promptTokens, completion: gen.completionTokens, total: gen.totalTokens },
+          costUsd,
+          latencyMs: gen.latencyMs,
+          circuitBreakerTripped: false,
+        };
+      }
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
 
       let response: Response;
 
-      if (activeProvider === 'gemini') {
-        response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:streamGenerateContent?alt=sse&key=${geminiKey}`,
-          {
-            method: 'POST',
-            signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              systemInstruction: {
-                parts: [{ text: params.systemPrompt }],
-              },
-              contents: [
-                {
-                  role: 'user',
-                  parts: [{ text: params.userMessage }],
-                },
-              ],
-              generationConfig: {
-                temperature: params.temperature ?? 0.7,
-                maxOutputTokens: params.maxTokens ?? 600,
-              },
-            }),
-          },
-        );
-      } else if (activeProvider === 'openai') {
+      if (activeProvider === 'openai') {
         response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           signal: controller.signal,
@@ -842,9 +867,7 @@ export class ModelRouter {
             const parsed = JSON.parse(dataStr);
             let contentChunk: string | undefined;
 
-            if (activeProvider === 'gemini') {
-              contentChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-            } else if (activeProvider === 'openai') {
+            if (activeProvider === 'openai') {
               contentChunk = parsed.choices?.[0]?.delta?.content;
             } else if (activeProvider === 'anthropic') {
               if (parsed.type === 'content_block_delta') {

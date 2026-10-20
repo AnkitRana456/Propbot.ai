@@ -5,6 +5,7 @@ import {
   jsonb,
   text,
   timestamp,
+  integer,
   index,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
@@ -33,6 +34,10 @@ export const chatbots = pgTable(
       .array()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
+    /** Agent that answers for this chatbot. NULL keeps the legacy persona-from-config behaviour. FK lives in migration 0019. */
+    agentId: uuid('agent_id'),
+    totalLeads: integer('total_leads').notNull().default(0),
+    brochureDownloads: integer('brochure_downloads').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),

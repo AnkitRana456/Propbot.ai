@@ -9,6 +9,18 @@ import { leadsService } from './leads.service.js';
 import { assignmentService } from '../crm/assignment.service.js';
 
 export class LeadsController {
+  async cleanupInvalid(req: Request, res: Response, next: NextFunction) {
+    try {
+      const isCron = (req as Request & { cronRun?: boolean }).cronRun === true;
+      // Cron runs are platform-wide; an admin only ever cleans their own company.
+      const scope = isCron || req.user?.role === 'ps-owner' ? undefined : req.user!.companyId;
+      const result = await leadsService.cleanupInvalidLeadLinks(scope);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async capture(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const parsed = captureLeadInputSchema.parse(req.body);

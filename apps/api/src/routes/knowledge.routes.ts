@@ -3,6 +3,7 @@ import { knowledgeController } from '../modules/knowledge/knowledge.controller.j
 import { authenticate } from '../middlewares/authenticate.js';
 import { tenantGuard } from '../middlewares/tenant-guard.js';
 import { requirePermission } from '../middlewares/rbac.js';
+import { uploadRateLimiter } from '../middlewares/rate-limiter.js';
 
 export const knowledgeRouter: Router = Router({ mergeParams: true });
 
@@ -30,7 +31,7 @@ knowledgeRouter.post(['/crawl', '/sources/crawl'], requirePermission('train_chat
   knowledgeController.createCrawlSource(req, res, next);
 });
 
-knowledgeRouter.post(['/upload', '/sources/upload'], requirePermission('train_chatbots'), (req, res, next) => {
+knowledgeRouter.post(['/upload', '/sources/upload'], requirePermission('train_chatbots'), uploadRateLimiter.middleware(), (req, res, next) => {
   knowledgeController.uploadFileSource(req, res, next);
 });
 

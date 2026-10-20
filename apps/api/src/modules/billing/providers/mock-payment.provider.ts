@@ -18,6 +18,8 @@ export class DevMockPaymentProvider implements PaymentProvider {
   }
 
   verifyWebhookSignature(_payload: Buffer | string, signature: string): boolean {
+    // Development / test helper only. In production this would let anyone POST a "payment" for free.
+    if (process.env.NODE_ENV === 'production') return false;
     return signature === 'mock_valid_signature' || process.env.NODE_ENV === 'test';
   }
 

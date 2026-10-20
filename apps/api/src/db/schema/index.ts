@@ -31,6 +31,8 @@ export * from './webhooks.js';
 export * from './subscriptions.js';
 export * from './audit.js';
 export * from './events.js';
+export * from './delivery-jobs.js';
+export * from './agents.js';
 export * from './actions.js';
 export * from './auth-tokens.js';
 export * from './whatsapp.js';
@@ -379,3 +381,10 @@ export const leadCreditTransactionsRelations = relations(leadCreditTransactions,
 }));
 
 
+export * from './tools.js';
+export * from './flows.js';
+export * from './omnichannel.js';
+export * from './voice-studio.js';
+export * from './intelligence.js';
+export * from './controls.js';
+export * from './payments.js';

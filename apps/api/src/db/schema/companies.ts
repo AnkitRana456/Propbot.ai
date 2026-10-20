@@ -5,6 +5,7 @@ import {
   jsonb,
   timestamp,
   boolean,
+  bigint,
   integer,
   text,
   index,
@@ -66,6 +67,10 @@ export const apiKeys = pgTable(
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    // Developer platform columns (migration 0020)
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    usageCount: bigint('usage_count', { mode: 'number' }).notNull().default(0),
+    createdBy: uuid('created_by'),
   },
   table => [index('api_keys_company_prefix_idx').on(table.companyId, table.keyPrefix)],
 );

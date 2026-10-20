@@ -26,10 +26,13 @@ import type {
 } from '@propbot/shared';
 import { whatsappAdapter, whatsappLogger } from './whatsapp.adapter.js';
 import { leadsService } from '../leads/leads.service.js';
+import { billingService, PlanLimitError } from '../billing/billing.service.js';
 import { retrievalService } from '../ai/retrieval.service.js';
 import { assignmentService } from '../crm/assignment.service.js';
 import { speechToTextProvider } from '../ai/speech-to-text.provider.js';
-import { modelRouter, TaskTier } from '../ai/router.js';
+
+import { isFrustrated } from '../ai/llm.js';
+import { prepareAgentTurn, collectAttributes } from '../agents/agent-chat.js';
 
 export class WhatsAppService {
   /**
@@ -205,6 +208,11 @@ export class WhatsAppService {
    * One-click sandbox connector for instant demo & development testing.
    */
   async quickConnectSandbox(companyId: string): Promise<WhatsappConfigResponse> {
+    if (process.env.NODE_ENV === 'production') {
+      const err = new Error('The WhatsApp sandbox connector is disabled in production.');
+      Object.assign(err, { statusCode: 403, code: 'SANDBOX_DISABLED' });
+      throw err;
+    }
     const existing = await db.query.whatsappConfigs.findFirst({
       where: eq(whatsappConfigs.companyId, companyId),
     });
@@ -444,9 +452,8 @@ export class WhatsAppService {
    * Detects customer frustration or complaint sentiments.
    */
   isFrustratedSentiment(text: string): boolean {
-    const frustrationPattern =
-      /(?:worst service|ridiculous|cheat|fraud|angry|terrible|bad experience|scam|waste of time|complaint|cancel booking)/i;
-    return frustrationPattern.test(text);
+    // Same detector as web chat (useless / not working / !! / ALL CAPS ...), plus complaint wording
+    return isFrustrated(text) || /\b(?:worst service|complaint)\b/i.test(text);
   }
 
   /**
@@ -488,9 +495,17 @@ export class WhatsAppService {
 
     const companyId = config.companyId;
 
-    // Verify HMAC SHA-256 signature if appSecret is configured
-    if (config.appSecret) {
-      const isValid = whatsappAdapter.verifySignature(rawBody, signatureHeader || '', config.appSecret);
+    // Meta signs every delivery with the app secret. A missing secret must never mean "skip the check",
+    // otherwise anyone who knows a phone-number ID could inject fake messages and leads.
+    const appSecret = config.appSecret || process.env.META_APP_SECRET;
+    const allowUnsigned = process.env.ALLOW_UNSIGNED_WHATSAPP_WEBHOOKS === 'true' && process.env.NODE_ENV !== 'production';
+    if (!appSecret && !allowUnsigned) {
+      const err = new Error('WhatsApp app secret is not configured; refusing unsigned webhook deliveries.');
+      Object.assign(err, { statusCode: 401, code: 'WEBHOOK_SECRET_MISSING' });
+      throw err;
+    }
+    if (appSecret) {
+      const isValid = whatsappAdapter.verifySignature(rawBody, signatureHeader || '', appSecret);
       if (!isValid) {
         const err = new Error('Invalid X-Hub-Signature-256 signature header');
         Object.assign(err, { statusCode: 401 });
@@ -583,11 +598,17 @@ export class WhatsAppService {
 
       // 3. Resolve default chatbot and capture Lead via leadsService
       const targetBotId = config.chatbotId || (await this.resolveDefaultChatbot(companyId));
+      // Spec: first-time senders become "WhatsApp User <last4>" with source "whatsapp". The WhatsApp
+      // profile name is unverified user input, so it is kept only as metadata; later messages never
+      // overwrite a real name captured elsewhere (preserveName).
+      const last4 = msg.fromPhone.replace(/\D/g, '').slice(-4);
       const leadResult = await leadsService.captureOrUpdateLead(companyId, {
         chatbotId: targetBotId,
-        name: msg.fromName || 'WhatsApp User',
+        name: `WhatsApp User ${last4}`,
         phone: msg.fromPhone,
-        metadata: { source: 'whatsapp' },
+        source: 'whatsapp',
+        preserveName: true,
+        metadata: { source: 'whatsapp', ...(msg.fromName ? { whatsappProfileName: msg.fromName } : {}) },
       });
 
       const contactId = leadResult.lead.contactId;
@@ -614,6 +635,17 @@ export class WhatsAppService {
       let conv = existingConvs[0];
 
       if (!conv) {
+        // Plan quota: over the monthly conversation limit the lead is still captured above, but no new
+        // conversation (and no AI reply) is started.
+        try {
+          await billingService.assertConversationQuota(companyId);
+        } catch (quotaErr) {
+          if (quotaErr instanceof PlanLimitError) {
+            whatsappLogger.warn({ companyId }, 'Monthly conversation limit reached; skipping new WhatsApp conversation.');
+            continue;
+          }
+          throw quotaErr;
+        }
         const [newConv] = await db
           .insert(conversations)
           .values({
@@ -752,22 +784,37 @@ export class WhatsAppService {
       let aiAnswer = "I'd be delighted to assist you with our residences and floor plans. Could you share your preferred configuration?";
 
       try {
-        const ragResult = await retrievalService.query(companyId, botIdForRag, {
-          query: msgText,
+        // Published agent (persona, model, knowledge scope, memory, data collection) or the legacy path
+        const agentTurn = await prepareAgentTurn({
+          companyId,
+          chatbotId: botIdForRag,
+          conversationId: conv.id,
+          message: msgText,
+          channel: 'whatsapp',
         });
+        const ragResult = await retrievalService.query(
+          companyId,
+          botIdForRag,
+          { query: msgText },
+          agentTurn?.options,
+        );
         if (ragResult?.answer) {
           aiAnswer = ragResult.answer;
         }
+        if (agentTurn) {
+          void collectAttributes({
+            companyId,
+            conversationId: conv.id,
+            agent: agentTurn.agent,
+            history: agentTurn.history,
+            message: msgText,
+          });
+        }
       } catch (ragErr) {
         whatsappLogger.warn({ ragErr }, 'Retrieval service failed, falling back to grounded assistant reply');
-        aiAnswer = modelRouter.generateOfflineGroundedResponse({
-          tier: TaskTier.STRONG,
-          companyId,
-          chatbotId: botIdForRag,
-          systemPrompt:
-            'Relevant Knowledge Context: Verified property pricing starting from ₹3.25 Cr onwards with official payment plans. Sample residences and floor plans available.',
-          userMessage: msgText,
-        });
+        // Never invent project facts when retrieval is down: bridge to a human instead.
+        aiAnswer =
+          'Thanks for your message! I want to give you accurate details, so a property advisor will follow up shortly. Would you like to schedule a site visit or a callback?';
       }
 
       // 9. Guarded Action Layer Check (T2 Sensitive Action for Price / Payment Promises)

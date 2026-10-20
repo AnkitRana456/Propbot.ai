@@ -7,6 +7,8 @@ import {
   resolveUnansweredSchema,
   ragQuerySchema,
 } from '@propbot/shared';
+import { validateUpload, UploadRejectedError, MAX_UPLOAD_BYTES } from './upload-guard.js';
+import { billingService } from '../billing/billing.service.js';
 import { knowledgeService } from './knowledge.service.js';
 import { retrievalService } from '../ai/retrieval.service.js';
 
@@ -83,6 +85,10 @@ export class KnowledgeController {
       let buffer: Buffer;
       if (fileBase64 && typeof fileBase64 === 'string') {
         const base64Data = fileBase64.replace(/^data:[^;]+;base64,/, '');
+        // Reject before decoding: base64 inflates by ~4/3, so this bounds memory for oversized payloads
+        if (base64Data.length > Math.ceil((MAX_UPLOAD_BYTES * 4) / 3) + 8) {
+          throw new UploadRejectedError('FILE_TOO_LARGE', 'File is too large (max 10 MB).', 413);
+        }
         buffer = Buffer.from(base64Data, 'base64');
       } else if (content && typeof content === 'string') {
         buffer = Buffer.from(content, 'utf-8');
@@ -90,6 +96,11 @@ export class KnowledgeController {
         res.status(400).json({ error: { message: 'File content or fileBase64 is required' } });
         return;
       }
+
+      // Size cap, extension/MIME allow-list, magic bytes and script scan (spec section 7)
+      validateUpload({ fileName: fileName || `${title}.txt`, mimeType, buffer });
+      // Plan storage allowance, enforced server-side
+      await billingService.assertStorageQuota(companyId, buffer.length);
 
       const result = await knowledgeService.createFileSource(
         companyId,

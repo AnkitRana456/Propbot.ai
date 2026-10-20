@@ -79,7 +79,9 @@ export class PublicChatController {
           },
         });
 
-        res.write(`data: ${JSON.stringify({ done: true, reply: result.reply, aiOffline: result.aiOffline })}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({ done: true, reply: result.reply, aiOffline: result.aiOffline, media: result.media })}\n\n`,
+        );
         res.end();
         return;
       }
@@ -131,8 +133,81 @@ export class PublicChatController {
         phone,
         email,
         preferences,
+        utmParams: req.body.utmParams as Record<string, unknown> | undefined,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
       });
 
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  private bearerOrBody(req: Request): string | undefined {
+    const authHeader = req.headers.authorization;
+    return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : (req.body.token as string | undefined);
+  }
+
+  private conversationIdFor(req: Request, token: string): string {
+    return (req.body.conversationId as string) || publicChatService.verifySessionToken(token).conversationId;
+  }
+
+  async sendOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const token = this.bearerOrBody(req);
+      if (!token || !req.body.phone) {
+        res.status(400).json({ error: { message: 'token and phone are required' } });
+        return;
+      }
+      const result = await publicChatService.sendOtp({
+        token,
+        conversationId: this.conversationIdFor(req, token),
+        phone: req.body.phone as string,
+      });
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async verifyOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const token = this.bearerOrBody(req);
+      if (!token || !req.body.phone || !req.body.code) {
+        res.status(400).json({ error: { message: 'token, phone and code are required' } });
+        return;
+      }
+      const result = await publicChatService.verifyOtp({
+        token,
+        conversationId: this.conversationIdFor(req, token),
+        phone: req.body.phone as string,
+        code: String(req.body.code),
+      });
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async downloadBrochure(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const token = this.bearerOrBody(req);
+      if (!token || !req.body.brochureId) {
+        res.status(400).json({ error: { message: 'token and brochureId are required' } });
+        return;
+      }
+      const result = await publicChatService.downloadBrochure({
+        token,
+        conversationId: this.conversationIdFor(req, token),
+        brochureId: req.body.brochureId as string,
+        fullName: (req.body.fullName as string) || (req.body.name as string),
+        phone: req.body.phone as string | undefined,
+        email: req.body.email as string | undefined,
+        utmParams: req.body.utmParams as Record<string, unknown> | undefined,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
       res.status(200).json({ success: true, data: result });
     } catch (err) {
       next(err);

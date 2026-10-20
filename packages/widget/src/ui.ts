@@ -1,4 +1,8 @@
 import { sanitizeHtml } from './sanitizer.js';
+import { validatePhone } from '@propbot/shared/phone';
+import { captureUtmParams } from './utm.js';
+import { renderMediaItems, MEDIA_STYLES } from './media.js';
+import { fireLeadConversion, LEAD_FORM_BODY_SELECTOR, type WidgetTrackingConfig } from './tracking.js';
 
 export interface WidgetUiConfig {
   publicKey: string;
@@ -15,6 +19,8 @@ export class ChatWidgetUi {
   private config: WidgetUiConfig;
   private sessionToken: string | null = null;
   private conversationId: string | null = null;
+  private tracking: WidgetTrackingConfig | undefined;
+  private chatbotId: string | undefined;
   private isOpen = false;
   private isAiOffline = false;
   private activeLanguage: 'en' | 'hi' | 'hinglish' = 'en';
@@ -292,6 +298,8 @@ export class ChatWidgetUi {
         color: ${textMuted};
         line-height: 1.3;
       }
+
+      ${MEDIA_STYLES}
 
       /* Message Bubbles */
       .propbot-msg {
@@ -659,6 +667,7 @@ export class ChatWidgetUi {
           publicKey: this.config.publicKey,
           pageUrl: window.location.href,
           referrer: document.referrer,
+          utmParams: captureUtmParams(),
         }),
       });
 
@@ -669,6 +678,8 @@ export class ChatWidgetUi {
       const data = await res.json();
       this.sessionToken = data.data.sessionToken;
       this.conversationId = data.data.conversationId;
+      this.tracking = data.data.config?.tracking as WidgetTrackingConfig | undefined;
+      this.chatbotId = data.data.chatbotId as string | undefined;
 
       // 1. Initial Greeting
       this.addBotMessage(this.config.greetingMessage);
@@ -791,7 +802,7 @@ export class ChatWidgetUi {
     banner.className = 'propbot-lead-banner';
     banner.innerHTML = `
       <h4>Request Verified Pricing & Floor Plans</h4>
-      <div class="propbot-lead-form">
+      <div class="propbot-lead-form propbot-lead-form-body">
         <input type="text" placeholder="Your Full Name" id="lead-name" />
         <input type="tel" placeholder="Phone Number (e.g. +91 98765 43210)" id="lead-phone" />
         <button type="button" id="lead-submit">Get Priority Callback</button>
@@ -806,11 +817,16 @@ export class ChatWidgetUi {
         alert('Please provide your name and phone number');
         return;
       }
+      // Same rules as the server (shared validator), so bad numbers never reach the network.
+      if (!validatePhone(phoneInput.value).valid) {
+        alert('Please enter a valid phone number (India: 10 digits starting 6-9; or include your country code).');
+        return;
+      }
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting...';
 
       try {
-        await fetch(`${this.config.apiUrl}/public/lead`, {
+        const leadRes = await fetch(`${this.config.apiUrl}/public/lead`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -821,8 +837,32 @@ export class ChatWidgetUi {
             name: nameInput.value.trim(),
             phone: phoneInput.value.trim(),
             conversationId: this.conversationId,
+            utmParams: captureUtmParams(),
           }),
         });
+        if (!leadRes.ok) {
+          const errBody = (await leadRes.json().catch(() => ({}))) as { error?: { message?: string } };
+          alert(errBody.error?.message || 'We could not save your details. Please try again.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Try Again';
+          return;
+        }
+
+        // Conversion pixels, fired only after the server confirmed the lead was saved. Fire-and-forget:
+        // tracking problems must never affect the visitor's confirmation.
+        void fireLeadConversion(
+          this.tracking,
+          {
+            name: nameInput.value.trim(),
+            phone: phoneInput.value.trim(),
+            chatbotId: this.chatbotId,
+            conversationId: this.conversationId,
+            source: 'chat',
+            utmParams: captureUtmParams(),
+            pageUrl: window.location.href,
+          },
+          banner.querySelector(LEAD_FORM_BODY_SELECTOR),
+        ).catch(() => undefined);
 
         banner.innerHTML = `
           <div style="color: #14B8A6; font-size: 13px; font-weight: 700; text-align: center; padding: 6px 0;">
@@ -837,6 +877,19 @@ export class ChatWidgetUi {
 
     this.messagesListEl.appendChild(banner);
     this.scrollToBottom();
+  }
+
+  /** Shows photos / floor plans / master plan / map under the bot's reply. Never throws. */
+  private appendMedia(afterEl: HTMLElement, media: unknown): void {
+    try {
+      const el = renderMediaItems(media, afterEl.ownerDocument);
+      if (el) {
+        afterEl.after(el);
+        this.scrollToBottom();
+      }
+    } catch {
+      /* media is optional */
+    }
   }
 
   private async handleSend(): Promise<void> {
@@ -888,10 +941,17 @@ export class ChatWidgetUi {
                 if (dataStr === '[DONE]') continue;
                 try {
                   const parsed = JSON.parse(dataStr);
-                  if (parsed.delta) {
-                    accumulatedText += parsed.delta;
+                  const piece = parsed.chunk ?? parsed.delta;
+                  if (typeof piece === 'string') {
+                    accumulatedText += piece;
                     botMsgEl.innerHTML = sanitizeHtml(accumulatedText);
                     this.scrollToBottom();
+                  } else if (parsed.done) {
+                    this.appendMedia(botMsgEl, parsed.media);
+                    if (parsed.aiOffline) {
+                      this.isAiOffline = true;
+                      this.updateOfflineStatus();
+                    }
                   } else if (parsed.aiOffline) {
                     this.isAiOffline = true;
                     this.updateOfflineStatus();
@@ -906,6 +966,7 @@ export class ChatWidgetUi {
       } else {
         const json = await res.json();
         botMsgEl.innerHTML = sanitizeHtml(json.data?.reply || 'Thank you for your inquiry.');
+        this.appendMedia(botMsgEl, json.data?.media);
         if (json.data?.aiOffline) {
           this.isAiOffline = true;
           this.updateOfflineStatus();

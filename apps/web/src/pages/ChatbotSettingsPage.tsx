@@ -14,6 +14,7 @@ import { Step4Persona } from '../components/chatbots/wizard/Step4Persona.js';
 import { Step5LeadCapture } from '../components/chatbots/wizard/Step5LeadCapture.js';
 import { Step6BusinessHours } from '../components/chatbots/wizard/Step6BusinessHours.js';
 import { Step7AllowedDomains } from '../components/chatbots/wizard/Step7AllowedDomains.js';
+import { AgentPicker } from '../components/chatbots/AgentPicker.js';
 import { ObjectionPlaybooksTab } from '../components/chatbots/ObjectionPlaybooksTab.js';
 import {
   ChevronLeft,
@@ -285,6 +286,7 @@ export const ChatbotSettingsPage: React.FC = () => {
           {/* TAB 3: PERSONA & GREETING */}
           {activeTab === 'persona' && (
             <div className="space-y-6">
+              {id && <AgentPicker chatbotId={id} agentId={bot?.agentId} />}
               <Step3Greeting config={config} onChangeConfig={setConfig} />
               <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
                 <Step4Persona config={config} onChangeConfig={setConfig} />

@@ -11,6 +11,7 @@
     "dev:web": "pnpm --filter @propbot/web dev",
     "dev:widget": "pnpm --filter @propbot/widget dev",
     "seed": "pnpm --filter @propbot/api db:seed",
+    "seed:admin": "pnpm --filter @propbot/api db:seed:admin",
     "build": "pnpm --recursive run build",
     "typecheck": "tsc --build",
     "lint": "eslint . --max-warnings 0",

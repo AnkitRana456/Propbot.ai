@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Building2 } from 'lucide-react';
 import { useCreateProject } from '../../services/inventory.service.js';
+import { ProjectMediaFields, EMPTY_MEDIA, mediaToPayload, validateMedia, type ProjectMediaValue } from './ProjectMediaFields.js';
 import type { ProjectStatus } from '@propbot/shared';
 
 interface CreateProjectModalProps {
@@ -25,6 +26,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [uspsText, setUspsText] = useState('Metro adjacent, Zero pre-EMI, High rental yield');
   const [amenitiesText, setAmenitiesText] = useState('Infinity Swimming Pool, Modern Clubhouse, Tennis Court, Landscaped Gardens, 24/7 Security');
   const [galleryText, setGalleryText] = useState('');
+  const [media, setMedia] = useState<ProjectMediaValue>(EMPTY_MEDIA);
 
   const createProjectMutation = useCreateProject();
 
@@ -33,6 +35,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !builderName.trim() || !location.trim()) return;
+    if (Object.keys(validateMedia(media)).length > 0) return; // errors are shown inline
 
     const usps = uspsText.split(',').map(s => s.trim()).filter(Boolean);
     const amenities = amenitiesText.split(',').map(s => s.trim()).filter(Boolean);
@@ -50,6 +53,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       usps,
       amenities,
       gallery,
+      ...mediaToPayload(media),
       pricingDetails: {
         startingPrice: priceNum,
       },
@@ -204,6 +208,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               onChange={e => setGalleryText(e.target.value)}
               className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800 dark:text-white"
             />
+          </div>
+
+          <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
+            <p className="mb-3 text-xs font-bold text-slate-900 dark:text-white">Chat media (optional)</p>
+            <ProjectMediaFields value={media} onChange={setMedia} errors={validateMedia(media)} />
           </div>
 
           <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">

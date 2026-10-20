@@ -1,3 +1,5 @@
+import { embedText } from './llm.js';
+
 export interface IEmbeddingsService {
   generateEmbedding(text: string): Promise<number[]>;
   generateBatchEmbeddings(texts: string[]): Promise<number[][]>;
@@ -66,26 +68,7 @@ export class EmbeddingsService implements IEmbeddingsService {
 
     if (geminiKey && !openaiKey) {
       try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'models/gemini-embedding-001',
-              content: { parts: [{ text: text.slice(0, 8000) }] },
-            }),
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(`Gemini Embeddings API error: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return data.embedding.values;
+        return await embedText(text, this.dimension);
       } catch {
         return this.generateDeterministicEmbedding(text);
       }

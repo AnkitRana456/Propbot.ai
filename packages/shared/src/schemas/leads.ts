@@ -132,6 +132,14 @@ export const captureLeadInputSchema = z.object({
   timeline: z.string().optional(),
   loanNeed: z.boolean().optional(),
   metadata: z.record(z.unknown()).optional(),
+  /** Attribution captured by the widget (utm_source ... utm_agencypartner). */
+  utmParams: z.record(z.string()).optional(),
+  ipAddress: z.string().max(64).optional(),
+  userAgent: z.string().max(500).optional(),
+  /** Defaults to "chat". Other values: brochure_download, whatsapp, ... */
+  source: z.string().max(100).optional(),
+  /** Keep the stored name when the lead already exists (e.g. a WhatsApp placeholder must not overwrite a real name). */
+  preserveName: z.boolean().optional(),
 });
 export type CaptureLeadInput = z.infer<typeof captureLeadInputSchema>;
 

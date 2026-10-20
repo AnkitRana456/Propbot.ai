@@ -13,6 +13,8 @@ describe('Security: Per-Tenant and Per-IP Rate Limiting (Phase 14.1)', () => {
     });
 
     const app = express();
+    // The limiter keys on req.ip; X-Forwarded-For is honoured only behind a trusted proxy.
+    app.set('trust proxy', 1);
     app.use(testLimiter.middleware());
     app.get('/test', (_req, res) => {
       res.json({ ok: true });

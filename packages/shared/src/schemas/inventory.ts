@@ -75,6 +75,9 @@ export const projectSchema = z.object({
   amenities: z.array(z.string()).default([]),
   usps: z.array(z.string()).default([]),
   gallery: z.array(z.string()).default([]),
+  /** Shown automatically on the visitor's first chat message. */
+  highlightPhotos: z.array(z.string()).default([]),
+  masterPlanUrl: z.string().nullable().optional(),
   videoTourUrl: z.string().nullable().optional(),
   floorPlans: z.array(floorPlanSchema).default([]),
   priceSheetUrl: z.string().nullable().optional(),
@@ -102,6 +105,13 @@ export const createProjectInputSchema = z.object({
   amenities: z.array(z.string()).default([]).optional(),
   usps: z.array(z.string()).default([]).optional(),
   gallery: z.array(z.string()).default([]).optional(),
+  highlightPhotos: z.array(z.string().max(2048).regex(/^https:\/\/\S+$/i, 'Photo URLs must start with https://')).max(10).default([]).optional(),
+  masterPlanUrl: z
+    .string()
+    .max(2048)
+    .regex(/^https:\/\/\S+$/i, 'Master plan URL must start with https://')
+    .optional()
+    .nullable(),
   videoTourUrl: z.string().url().or(z.string().min(1)).optional(),
   floorPlans: z.array(floorPlanSchema).default([]).optional(),
   priceSheetUrl: z.string().url().or(z.string().min(1)).optional(),

@@ -4,6 +4,7 @@ import {
   updateChatbotSchema,
   updateChatbotStatusSchema,
 } from '@propbot/shared';
+import { leadsExportService } from './leads-export.service.js';
 import { chatbotsService } from './chatbots.service.js';
 
 export class ChatbotsController {
@@ -105,13 +106,34 @@ export class ChatbotsController {
     }
   }
 
+  async exportLeads(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = req.tenant!.companyId;
+      const result = await leadsExportService.exportChatbotLeadsCsv(companyId, req.params.id!);
+      if (!result) {
+        res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Chatbot not found.' } });
+        return;
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.setHeader('X-Lead-Count', String(result.count));
+      res.status(200).send(result.csv);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const companyId = req.tenant!.companyId;
       const { id } = req.params;
       await chatbotsService.deleteChatbot(companyId, id!);
+      // Soft delete: the chatbot is hidden and stops serving visitors, but its leads and conversations
+      // are kept (never cascaded). The export below stays available for the deleted chatbot.
       res.status(200).json({
-        message: 'Chatbot deleted successfully',
+        message: 'Chatbot deleted successfully. Its leads and conversations were kept.',
+        leadsRetained: true,
+        exportUrl: `/api/chatbots/${id}/leads/export`,
       });
     } catch (err) {
       next(err);

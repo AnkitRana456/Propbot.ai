@@ -76,6 +76,12 @@ export class UsersController {
       const companyId = req.user!.companyId;
       const invitedBy = req.user!.id;
       const input = inviteUserSchema.parse(req.body);
+      if (input.role === 'ps-owner' && req.user!.role !== 'ps-owner') {
+        res.status(403).json({
+          error: { code: 'FORBIDDEN_ROLE', message: 'Only a platform owner can invite a ps-owner.' },
+        });
+        return;
+      }
 
       const data = await invitationsService.inviteUser(
         companyId,

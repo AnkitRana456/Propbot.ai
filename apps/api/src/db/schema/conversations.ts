@@ -33,6 +33,10 @@ export const conversations = pgTable(
     metadata: jsonb('metadata')
       .notNull()
       .default(sql`'{}'::jsonb`),
+    priority: varchar('priority', { length: 12 }).notNull().default('normal'),
+    tags: text('tags').array().notNull().default(sql`ARRAY[]::text[]`),
+    firstResponseAt: timestamp('first_response_at', { withTimezone: true }),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

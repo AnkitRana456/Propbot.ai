@@ -8,12 +8,20 @@ import {
   messages,
   leads,
   domainEvents,
+  brochures,
+  projects,
 } from '../../db/schema/index.js';
 import { modelRouter, TaskTier } from '../ai/router.js';
+import { isFrustrated, DEFAULT_ESCALATION_MESSAGE } from '../ai/llm.js';
 import { retrievalService } from '../ai/retrieval.service.js';
 import { leadsService } from '../leads/leads.service.js';
+import { billingService } from '../billing/billing.service.js';
+import { loadMediaForMessage } from './media-loader.js';
+import { prepareAgentTurn, collectAttributes, applyPendingAttributes } from '../agents/agent-chat.js';
+import type { MediaItem } from './media-triggers.js';
 import { buyerDnaService } from '../leads/buyer-dna.service.js';
-import type { BuyerDna } from '@propbot/shared';
+import { otpService, resolveOtpSettings, OtpError, type OtpSettings } from '../leads/otp.service.js';
+import { validatePhone, trackingConfigSchema, type BuyerDna } from '@propbot/shared';
 
 const JWT_SECRET = process.env.JWT_ACCESS_SECRET || 'propbot_pro_dev_jwt_access_secret_key_super_secure_32chars';
 
@@ -49,6 +57,48 @@ export interface CaptureLeadParams {
   phone: string;
   email?: string;
   preferences?: Record<string, unknown>;
+  utmParams?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface BrochureDownloadParams {
+  token: string;
+  conversationId: string;
+  brochureId: string;
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  utmParams?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/** Keeps only string UTM values and caps their size (attribution is untrusted visitor input). */
+export function sanitizeUtmParams(raw: unknown): Record<string, string> {
+  const allowed = [
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_term',
+    'utm_content',
+    'utm_sub_source',
+    'utm_agencypartner',
+  ];
+  const out: Record<string, string> = {};
+  if (raw && typeof raw === 'object') {
+    for (const key of allowed) {
+      const v = (raw as Record<string, unknown>)[key];
+      if (typeof v === 'string' && v.trim()) out[key] = v.trim().slice(0, 200);
+    }
+  }
+  return out;
+}
+
+export interface LeadSettings {
+  requireEmail: boolean;
+  requireLeadCapture: boolean;
+  otp: OtpSettings;
 }
 
 export class PublicChatService {
@@ -105,6 +155,11 @@ export class PublicChatService {
       avatarUrl: appearance.botAvatarUrl as string | undefined,
       primaryColor: (appearance.primaryColor as string) || '#3b82f6',
       themeMode: (appearance.themeMode as 'light' | 'dark') || 'dark',
+      // Parsed through the shared schema so malformed IDs are dropped, never forwarded to the widget.
+      tracking: (() => {
+        const parsed = trackingConfigSchema.safeParse((config.tracking as unknown) ?? {});
+        return parsed.success ? parsed.data : trackingConfigSchema.parse({});
+      })(),
       greetingMessage: (behavior.greetingMessage as string) || 'Hello! Welcome to our property portal. How can I assist with your home search today?',
       quickQuestions: (behavior.quickQuestions as string[]) || [
         'What 2BHK and 3BHK configurations are available?',
@@ -168,6 +223,8 @@ export class PublicChatService {
 
     let isNewSession = false;
     if (!conv) {
+      // Server-side plan enforcement: a brand-new conversation counts against the monthly quota
+      await billingService.assertConversationQuota(bot.companyId);
       isNewSession = true;
       const [newConv] = await db
         .insert(conversations)
@@ -208,7 +265,38 @@ export class PublicChatService {
     };
   }
 
+  /**
+   * Answers a visitor message and attaches any triggered media (highlight photos on the first message,
+   * floor plans, master plan, location map). Media never blocks or fails the answer.
+   */
   async sendMessage(params: SendMessageParams) {
+    const result = await this.answerMessage(params);
+    if ((result as { escalated?: boolean }).escalated) return { ...result, media: [] as MediaItem[] };
+
+    let media: MediaItem[] = [];
+    try {
+      const session = this.verifySessionToken(params.token);
+      media = await loadMediaForMessage({
+        companyId: session.companyId,
+        chatbotId: session.chatbotId,
+        conversationId: session.conversationId,
+        message: params.message,
+      });
+      if (media.length > 0) {
+        // Keep media on the stored bot message so conversation history shows it too
+        await db.execute(sql`
+          UPDATE messages SET metadata = COALESCE(metadata, '{}'::jsonb) || ${JSON.stringify({ media })}::jsonb
+           WHERE id = (SELECT id FROM messages
+                        WHERE conversation_id = ${session.conversationId}::uuid AND sender_type = 'bot'
+                        ORDER BY created_at DESC LIMIT 1)`);
+      }
+    } catch {
+      media = []; // media is a bonus: ignore lookup failures
+    }
+    return { ...result, media };
+  }
+
+  private async answerMessage(params: SendMessageParams) {
     const session = this.verifySessionToken(params.token);
     if (session.conversationId !== params.conversationId) {
       const err = new Error('Conversation ID does not match session');
@@ -216,14 +304,28 @@ export class PublicChatService {
       throw err;
     }
 
+    // Frustration check (cheap local heuristics: "useless", "not working", !!, ALL CAPS ...)
+    const frustrated = isFrustrated(params.message);
+
     // Persist visitor query
     await db.insert(messages).values({
       companyId: session.companyId,
       conversationId: session.conversationId,
       senderType: 'visitor',
       content: params.message.trim(),
+      sentiment: frustrated ? 'frustrated' : null,
       metadata: {},
     });
+
+    // A teammate took control in the inbox: store the visitor message, stay silent (the agent will answer)
+    const [owner] = await db.select({ metadata: conversations.metadata }).from(conversations).where(eq(conversations.id, session.conversationId));
+    if ((owner?.metadata as Record<string, unknown> | undefined)?.aiPaused === true) {
+      return { reply: '', citations: [], isGrounded: false, aiOffline: false, escalated: true, humanHandling: true };
+    }
+
+    if (frustrated) {
+      return this.escalateToHuman(session, params);
+    }
 
     // Background Buyer DNA extraction from visitor message
     try {
@@ -292,10 +394,24 @@ export class PublicChatService {
       };
     }
 
-    // Query RAG Retrieval Service
-    const ragResponse = await retrievalService.query(session.companyId, session.chatbotId, {
-      query: params.message,
+    // A chatbot with a published agent uses the agent's persona, model, knowledge scope, conversation memory
+    // and data-collection form. Chatbots without one keep the original behaviour untouched.
+    const agentTurn = await prepareAgentTurn({
+      companyId: session.companyId,
+      chatbotId: session.chatbotId,
+      conversationId: session.conversationId,
+      message: params.message,
+      channel: 'web',
+      skipGeneration: Boolean(params.onChunk), // streaming generates once, below, instead of twice
     });
+
+    // Query RAG Retrieval Service
+    const ragResponse = await retrievalService.query(
+      session.companyId,
+      session.chatbotId,
+      { query: params.message },
+      agentTurn?.options,
+    );
 
     let reply = ragResponse.answer;
     const citations = ragResponse.citations;
@@ -308,6 +424,24 @@ export class PublicChatService {
           const chunk = words.slice(i, i + 3).join(' ') + (i + 3 < words.length ? ' ' : '');
           await params.onChunk(chunk);
         }
+      } else if (agentTurn && ragResponse.systemPrompt) {
+        const result = await modelRouter.executeStream(
+          {
+            tier: TaskTier.STRONG,
+            companyId: session.companyId,
+            chatbotId: session.chatbotId,
+            systemPrompt: ragResponse.systemPrompt,
+            userMessage: params.message,
+            promptName: 'public_chat_agent',
+            model: agentTurn.options.model,
+            temperature: agentTurn.options.temperature,
+            maxTokens: agentTurn.options.maxTokens,
+            history: agentTurn.history,
+            trace: agentTurn.options.trace,
+          },
+          params.onChunk,
+        );
+        reply = result.text;
       } else {
         const [bot] = await db
           .select({
@@ -357,6 +491,18 @@ export class PublicChatService {
       metadata: { citations },
     });
 
+    // The agent's form: pull attributes the visitor just stated onto the lead (or the conversation until a
+    // lead exists). Runs after the reply is stored and is never awaited, so it cannot slow or break the answer.
+    if (agentTurn) {
+      void collectAttributes({
+        companyId: session.companyId,
+        conversationId: session.conversationId,
+        agent: agentTurn.agent,
+        history: agentTurn.history,
+        message: params.message,
+      });
+    }
+
     return {
       reply,
       citations,
@@ -365,12 +511,208 @@ export class PublicChatService {
     };
   }
 
-  async captureLead(params: CaptureLeadParams) {
+  /**
+   * Human escalation: the conversation is flagged (status needs_human + metadata.escalation), a
+   * handoff_requested event notifies the team, and the visitor gets an empathetic message instead of
+   * an AI answer. The flag is what the dashboard / inbox filters on.
+   */
+  private async escalateToHuman(
+    session: PublicChatSessionPayload,
+    params: SendMessageParams,
+  ) {
+    const [conv] = await db
+      .select({ metadata: conversations.metadata, status: conversations.status, leadId: conversations.leadId })
+      .from(conversations)
+      .where(eq(conversations.id, session.conversationId));
+    const alreadyEscalated = conv?.status === 'needs_human';
+
+    if (!alreadyEscalated) {
+      await db
+        .update(conversations)
+        .set({
+          status: 'needs_human',
+          updatedAt: new Date(),
+          metadata: {
+            ...((conv?.metadata as Record<string, unknown>) || {}),
+            escalation: {
+              reason: 'frustrated',
+              at: new Date().toISOString(),
+              triggerMessage: params.message.trim().slice(0, 300),
+            },
+          },
+        })
+        .where(eq(conversations.id, session.conversationId));
+
+      await db.insert(domainEvents).values({
+        companyId: session.companyId,
+        type: 'handoff_requested',
+        payload: {
+          conversation_id: session.conversationId,
+          lead_id: conv?.leadId ?? null,
+          chatbot_id: session.chatbotId,
+          channel: 'web',
+          reason: 'frustrated',
+          summary: `Visitor sounds frustrated: "${params.message.trim().slice(0, 120)}"`,
+        },
+      });
+    }
+
+    const [bot] = await db
+      .select({ config: chatbots.config })
+      .from(chatbots)
+      .where(eq(chatbots.id, session.chatbotId));
+    const behavior = ((bot?.config as Record<string, unknown> | undefined)?.behavior ?? {}) as {
+      escalationMessage?: string;
+    };
+    const reply = behavior.escalationMessage?.trim() || DEFAULT_ESCALATION_MESSAGE;
+
+    if (params.onChunk) {
+      const words = reply.split(' ');
+      for (let i = 0; i < words.length; i += 3) {
+        await params.onChunk(words.slice(i, i + 3).join(' ') + (i + 3 < words.length ? ' ' : ''));
+      }
+    }
+
+    await db.insert(messages).values({
+      companyId: session.companyId,
+      conversationId: session.conversationId,
+      senderType: 'bot',
+      content: reply,
+      metadata: { isEscalationNotice: true },
+    });
+
+    return { reply, citations: [], isGrounded: false, aiOffline: false, escalated: true };
+  }
+
+  /** Per-chatbot lead rules (requireEmail, brochure gating, OTP) from the chatbot's config JSON. */
+  async getLeadSettings(chatbotId: string): Promise<LeadSettings> {
+    const [bot] = await db
+      .select({ config: chatbots.config })
+      .from(chatbots)
+      .where(and(eq(chatbots.id, chatbotId), sql`${chatbots.deletedAt} IS NULL`));
+    const lc = ((bot?.config as Record<string, unknown> | undefined)?.leadCapture ?? {}) as Record<
+      string,
+      unknown
+    >;
+    return {
+      requireEmail: lc.requireEmail === true,
+      requireLeadCapture: lc.requireLeadCapture === true,
+      otp: resolveOtpSettings(lc.otpSettings),
+    };
+  }
+
+  private assertSessionConversation(params: { token: string; conversationId: string }) {
     const session = this.verifySessionToken(params.token);
     if (session.conversationId !== params.conversationId) {
       const err = new Error('Conversation ID does not match session');
       Object.assign(err, { statusCode: 403 });
       throw err;
+    }
+    return session;
+  }
+
+  async sendOtp(params: { token: string; conversationId: string; phone: string }) {
+    const session = this.assertSessionConversation(params);
+    const { otp } = await this.getLeadSettings(session.chatbotId);
+    if (!otp.enabled) {
+      throw new OtpError('OTP_DISABLED', 'Phone verification is not enabled for this assistant.', 400);
+    }
+    return otpService.sendOtp({
+      companyId: session.companyId,
+      chatbotId: session.chatbotId,
+      phone: params.phone,
+      settings: otp,
+    });
+  }
+
+  async verifyOtp(params: { token: string; conversationId: string; phone: string; code: string }) {
+    const session = this.assertSessionConversation(params);
+    return otpService.verifyOtp({
+      companyId: session.companyId,
+      chatbotId: session.chatbotId,
+      phone: params.phone,
+      code: params.code,
+    });
+  }
+
+  /**
+   * Brochure download. When the chatbot has requireLeadCapture=true the file URL is released only
+   * after a valid lead (name + phone + email) is captured; the lead is stored with
+   * source "brochure_download", IP and user agent, and the chatbot counters are incremented atomically.
+   */
+  async downloadBrochure(params: BrochureDownloadParams) {
+    const session = this.assertSessionConversation(params);
+    const settings = await this.getLeadSettings(session.chatbotId);
+
+    const [brochure] = await db
+      .select({ id: brochures.id, fileUrl: brochures.fileUrl, isGated: brochures.isGated, title: brochures.title })
+      .from(brochures)
+      .innerJoin(projects, eq(projects.id, brochures.projectId))
+      .where(and(eq(brochures.id, params.brochureId), eq(brochures.companyId, session.companyId)));
+    if (!brochure) {
+      throw Object.assign(new Error('Brochure not found.'), { statusCode: 404, code: 'NOT_FOUND' });
+    }
+
+    const gated = settings.requireLeadCapture || brochure.isGated;
+    if (gated) {
+      if (!params.fullName?.trim() || !params.phone?.trim() || !params.email?.trim()) {
+        throw Object.assign(
+          new Error('Please share your name, email and phone number to download the brochure.'),
+          { statusCode: 403, code: 'LEAD_CAPTURE_REQUIRED' },
+        );
+      }
+      await this.captureLead({
+        token: params.token,
+        conversationId: params.conversationId,
+        fullName: params.fullName,
+        phone: params.phone,
+        email: params.email,
+        utmParams: params.utmParams,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+        source: 'brochure_download',
+      });
+    } else {
+      await db
+        .update(chatbots)
+        .set({ brochureDownloads: sql`${chatbots.brochureDownloads} + 1` })
+        .where(eq(chatbots.id, session.chatbotId));
+    }
+
+    await db
+      .update(brochures)
+      .set({ downloadCount: sql`${brochures.downloadCount} + 1` })
+      .where(eq(brochures.id, brochure.id));
+
+    return { downloadUrl: brochure.fileUrl, title: brochure.title };
+  }
+
+  async captureLead(params: CaptureLeadParams & { source?: string }) {
+    const session = this.assertSessionConversation(params);
+    const settings = await this.getLeadSettings(session.chatbotId);
+
+    if (settings.requireEmail && !params.email?.trim()) {
+      throw Object.assign(new Error('Email address is required.'), {
+        statusCode: 400,
+        code: 'EMAIL_REQUIRED',
+      });
+    }
+    const phoneOk = validatePhone(params.phone);
+    if (!phoneOk.valid || !phoneOk.e164) {
+      throw Object.assign(new Error('Please enter a valid phone number.'), {
+        statusCode: 400,
+        code: 'INVALID_PHONE',
+      });
+    }
+    let otpVerified = false;
+    if (settings.otp.enabled) {
+      otpVerified = await otpService.hasRecentVerification(session.companyId, session.chatbotId, phoneOk.e164);
+      if (!otpVerified) {
+        throw Object.assign(new Error('Please verify your phone number with the code we sent you.'), {
+          statusCode: 403,
+          code: 'OTP_REQUIRED',
+        });
+      }
     }
 
     // 1. Recover any accumulated preferences from conversation metadata & messages
@@ -406,7 +748,15 @@ export class PublicChatService {
     }
 
     // 2. Delegate to official leadsService.captureOrUpdateLead()
+    // UTM: explicit values from the widget win over those stored at session start.
+    const sessionUtm = ((conv?.metadata as Record<string, unknown> | undefined)?.utmParams ?? {}) as unknown;
+    const utmParams = { ...sanitizeUtmParams(sessionUtm), ...sanitizeUtmParams(params.utmParams) };
+
     const leadCaptureResult = await leadsService.captureOrUpdateLead(session.companyId, {
+      utmParams,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent?.slice(0, 500),
+      source: params.source,
       name: params.fullName,
       phone: params.phone,
       email: params.email?.trim() || undefined,
@@ -423,6 +773,11 @@ export class PublicChatService {
     });
 
     const lead = leadCaptureResult.lead;
+    // Attributes gathered in chat before the visitor shared contact details now belong to the new lead
+    await applyPendingAttributes(session.companyId, session.conversationId, lead.id, session.chatbotId);
+    if (otpVerified) {
+      await otpService.markLeadPhoneVerified(session.companyId, lead.id);
+    }
 
     // 3. Merge full structured Buyer DNA if accumulated has extra fields
     if (Object.keys(accumulatedDna).length > 0) {

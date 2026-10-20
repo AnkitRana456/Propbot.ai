@@ -40,6 +40,10 @@ export const projects = pgTable(
     gallery: jsonb('gallery')
       .notNull()
       .default(sql`'[]'::jsonb`),
+    highlightPhotos: jsonb('highlight_photos')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    masterPlanUrl: text('master_plan_url'),
     videoTourUrl: text('video_tour_url'),
     floorPlans: jsonb('floor_plans')
       .notNull()
