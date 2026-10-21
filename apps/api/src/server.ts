@@ -37,6 +37,7 @@ import { publicChatRouter } from './routes/public-chat.routes.js';
 import { authRateLimiter, generalApiRateLimiter, tenantApiRateLimiter } from './middlewares/rate-limiter.js';
 import { cronRouter } from './routes/cron.routes.js';
 import { paymentsRouter } from './routes/payments.routes.js';
+import { demoRequestsRouter } from './routes/demo-requests.routes.js';
 import { controlsRouter, publicControlsRouter } from './routes/controls.routes.js';
 import { tagsRouter, groupsRouter, customer360Router, surveysRouter, dashboardsRouter, boardsRouter, kbTesterRouter } from './routes/intelligence.routes.js';
 import { inboxRouter, leadSourcesRouter, channelsRouter, omnichannelPublicRouter } from './routes/omnichannel.routes.js';
@@ -103,7 +104,7 @@ export function createApp(): Express {
   // that third parties must always be able to reach (payment / Meta webhooks, health checks).
   const generalAnon = generalApiRateLimiter.middleware();
   const generalAuthed = tenantApiRateLimiter.middleware();
-  const generalExempt = /^\/(healthz|auth|public|webhooks|subscription\/webhook|status|cron)(\/|$)/;
+  const generalExempt = /^\/(healthz|auth|public|demo-requests|webhooks|subscription\/webhook|status|cron)(\/|$)/;
   app.use('/api', (req: Request, res: Response, next: NextFunction) => {
     if (generalExempt.test(req.path)) {
       next();
@@ -117,6 +118,7 @@ export function createApp(): Express {
   app.use('/api/public/chat', publicChatRouter);
   app.use('/public', publicChatRouter);
   app.use('/api/public/omni', omnichannelPublicRouter);
+  app.use('/api/demo-requests', demoRequestsRouter);
   // Strict limiter (5 / 15 min) only on credential-guessing endpoints; refresh/me stay unthrottled.
   const strictAuth = authRateLimiter.middleware();
   for (const path of ['/login', '/register', '/forgot-password', '/reset-password']) {

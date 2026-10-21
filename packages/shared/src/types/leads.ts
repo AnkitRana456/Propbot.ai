@@ -9,6 +9,7 @@ export type {
   ScoringConfig,
   CaptureLeadInput,
   UpdateLeadStatusInput,
+  UpdateLeadInput,
   MergeLeadInput,
   LeadItemResponse,
   LeadsListResponse,

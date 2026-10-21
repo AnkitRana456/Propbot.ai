@@ -25,8 +25,11 @@ const Contact360Page = React.lazy(() => import('./pages/Contact360Page.js').then
 const ControlsPage = React.lazy(() => import('./pages/ControlsPage.js').then((m) => ({ default: m.ControlsPage })));
 const ChangelogPage = React.lazy(() => import('./pages/ChangelogPage.js').then((m) => ({ default: m.ChangelogPage })));
 const BillingPage = React.lazy(() => import('./pages/BillingPage.js').then((m) => ({ default: m.BillingPage })));
+const StyleguidePage = React.lazy(() => import('./pages/StyleguidePage.js').then((m) => ({ default: m.StyleguidePage })));
 const FormsPage = React.lazy(() => import('./pages/FormsPage.js').then((m) => ({ default: m.FormsPage })));
 const LeadsPage = React.lazy(() => import('./pages/LeadsPage.js').then((m) => ({ default: m.LeadsPage })));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage.js').then((m) => ({ default: m.NotFoundPage })));
+const ClientsPage = React.lazy(() => import('./pages/ClientsPage.js').then((m) => ({ default: m.ClientsPage })));
 const ContactsPage = React.lazy(() => import('./pages/ContactsPage.js').then((m) => ({ default: m.ContactsPage })));
 const PropertiesPage = React.lazy(() => import('./pages/PropertiesPage.js').then((m) => ({ default: m.PropertiesPage })));
 const ProjectDetailPage = React.lazy(() => import('./pages/ProjectDetailPage.js').then((m) => ({ default: m.ProjectDetailPage })));
@@ -68,6 +71,7 @@ export const App: React.FC = () => {
       <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
       <Route path="/cue-analytics" element={<AnalyticsDashboard />} />
       <Route path="/design" element={<DesignSystemPage />} />
+      <Route path="/styleguide" element={<StyleguidePage />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
       <Route path="/status" element={<StatusPage />} />
@@ -108,6 +112,7 @@ export const App: React.FC = () => {
         <Route path="forms" element={<FormsPage />} />
         <Route path="whatsapp" element={<WhatsAppPage />} />
         <Route path="leads" element={<LeadsPage />} />
+        <Route path="clients" element={<ClientsPage />} />
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="properties" element={<PropertiesPage />} />
         <Route path="properties/:id" element={<ProjectDetailPage />} />
@@ -121,7 +126,7 @@ export const App: React.FC = () => {
         <Route path="subscription" element={<SubscriptionPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="help" element={<HelpSupportPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
     </React.Suspense>

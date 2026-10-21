@@ -34,6 +34,10 @@ leadsRouter.get('/:id', requirePermission('view_leads'), (req, res, next) => {
 });
 
 // Update lead status
+leadsRouter.patch('/:id', requirePermission('edit_leads'), (req, res, next) => {
+  leadsController.update(req, res, next);
+});
+
 leadsRouter.patch('/:id/status', requirePermission('edit_leads'), (req, res, next) => {
   leadsController.updateStatus(req, res, next);
 });

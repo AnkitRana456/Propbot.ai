@@ -83,14 +83,14 @@ const PoliciesTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3"><p className="text-xs text-slate-500">Roles decide the basics. A policy narrows what specific people, roles or teams may do. Once someone has a policy, only what it grants is allowed.</p><button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> New policy</button></div>
+      <div className="flex items-center justify-between gap-3"><p className="text-xs text-slate-500">Roles decide the basics. A policy narrows what specific people, roles or teams may do. Once someone has a policy, only what it grants is allowed.</p><button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> New policy</button></div>
       {adding && (
         <form onSubmit={save} className={`${card} grid gap-3 sm:grid-cols-2`}>
           <div><label htmlFor="po-name" className="text-xs font-semibold">Name</label><input id="po-name" required minLength={2} value={f.name} onChange={e => setF({ ...f, name: e.target.value })} className={`${inputCls} mt-1 w-full`} /></div>
           <div><label htmlFor="po-mod" className="text-xs font-semibold">Applies to</label><select id="po-mod" value={f.module} onChange={e => setF({ ...f, module: e.target.value as PolicyModule })} className={`${inputCls} mt-1 w-full`}>{POLICY_MODULES.map(m => <option key={m} value={m}>{m === '*' ? 'Everything' : m}</option>)}</select></div>
           <fieldset className="sm:col-span-2"><legend className="text-xs font-semibold">Allowed actions</legend><div className="mt-1 flex flex-wrap gap-3">{POLICY_ACTIONS.map(a => <label key={a} className="flex items-center gap-1 text-xs"><input type="checkbox" checked={f.actions.includes(a)} onChange={() => toggle(a)} /> {a}</label>)}</div></fieldset>
           <label className="flex items-center gap-2 text-xs sm:col-span-2"><input type="checkbox" checked={f.hours} onChange={e => setF({ ...f, hours: e.target.checked })} /> Only during office hours (Mon-Sat, IST) <input aria-label="From hour" type="number" min={0} max={23} value={f.start} disabled={!f.hours} onChange={e => setF({ ...f, start: Number(e.target.value) })} className={`${inputCls} w-16`} /> to <input aria-label="To hour" type="number" min={1} max={24} value={f.end} disabled={!f.hours} onChange={e => setF({ ...f, end: Number(e.target.value) })} className={`${inputCls} w-16`} /></label>
-          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={f.actions.length === 0 || create.isPending} className={`${btn} bg-[#B84A22] text-white`}>Save policy</button></div>
+          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={f.actions.length === 0 || create.isPending} className={`${btn} bg-accent text-white`}>Save policy</button></div>
         </form>
       )}
       <Err error={error} />
@@ -131,7 +131,7 @@ const TeamsTab: React.FC = () => {
     <div className="space-y-4">
       <form onSubmit={e => { e.preventDefault(); void run(async () => { await create.mutateAsync({ name, memberIds: [] }); setName(''); }); }} className="flex gap-2">
         <input aria-label="Team name" required minLength={2} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Whitefield sales" className={`${inputCls} flex-1`} />
-        <button type="submit" className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> Team</button>
+        <button type="submit" className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> Team</button>
       </form>
       <Err error={error} />
       {isLoading ? <Skeleton className="h-16 w-full" /> : (data ?? []).length === 0 ? (
@@ -188,13 +188,13 @@ const PrivacyTab: React.FC = () => {
         <h2 className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white"><FileLock2 className="h-4 w-4" /> Data requests (DPDP)</h2>
         <p className="text-xs text-slate-500">Export everything held about a person, or erase them. Erasure removes personal details and message text; the lead record and counts stay.</p>
         <input aria-label="Find a contact" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search a contact by name or phone" className={`${inputCls} w-full`} />
-        {search && <ul className="space-y-1">{(contacts?.items ?? []).map(c => <li key={c.id} className="flex items-center gap-2 text-xs"><span className="font-semibold">{c.firstName} {c.lastName ?? ''}</span><button type="button" onClick={() => void run(() => create.mutateAsync({ kind: 'export', contactId: c.id }))} className="text-[#B84A22] cursor-pointer">Request export</button><button type="button" onClick={() => void run(() => create.mutateAsync({ kind: 'delete', contactId: c.id }))} className="text-rose-600 cursor-pointer">Request erasure</button></li>)}</ul>}
+        {search && <ul className="space-y-1">{(contacts?.items ?? []).map(c => <li key={c.id} className="flex items-center gap-2 text-xs"><span className="font-semibold">{c.firstName} {c.lastName ?? ''}</span><button type="button" onClick={() => void run(() => create.mutateAsync({ kind: 'export', contactId: c.id }))} className="text-accent cursor-pointer">Request export</button><button type="button" onClick={() => void run(() => create.mutateAsync({ kind: 'delete', contactId: c.id }))} className="text-rose-600 cursor-pointer">Request erasure</button></li>)}</ul>}
         <Err error={error} />
         <ul className="space-y-2">{(requests ?? []).map(r => (
           <li key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-2 text-xs dark:border-slate-800">
             <Badge variant={r.status === 'completed' ? 'mint' : r.status === 'pending' ? 'blue' : 'slate'} size="sm">{r.status}</Badge><span className="font-semibold">{r.kind}</span><span className="text-slate-500">{r.subjectLabel}</span>
             {r.status === 'pending' && <span className="ml-auto flex gap-2"><button type="button" onClick={() => window.confirm(r.kind === 'delete' ? 'Erase this person? This cannot be undone.' : 'Prepare the export?') && void run(() => decide.mutateAsync({ id: r.id, decision: 'approve' }))} className="font-bold text-emerald-700 cursor-pointer">Approve</button><button type="button" onClick={() => void run(() => decide.mutateAsync({ id: r.id, decision: 'reject' }))} className="text-slate-500 cursor-pointer">Reject</button></span>}
-            {r.status === 'completed' && r.kind === 'export' && <a href={`/api/controls/data-requests/${r.id}/download`} className="ml-auto font-bold text-[#B84A22]">Download</a>}
+            {r.status === 'completed' && r.kind === 'export' && <a href={`/api/controls/data-requests/${r.id}/download`} className="ml-auto font-bold text-accent">Download</a>}
           </li>
         ))}{(requests ?? []).length === 0 && <li className="text-xs text-slate-400">No requests.</li>}</ul>
       </section>
@@ -218,7 +218,7 @@ const UsageTab: React.FC = () => {
         {stat('AI call minutes', String(data.calls.minutes), `${data.calls.count} calls`)}
         {stat('Busiest purpose', Object.entries(data.llm.byPurpose).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '-', 'where tokens go')}
       </div>
-      <section><h3 className="text-xs font-bold">Tokens per day</h3><div className="mt-2 flex h-28 items-end gap-1">{data.daily.map(d => <div key={d.day} title={`${d.day}: ${d.tokens} tokens, ${d.messages} messages`} className="flex-1 rounded-t bg-[#B84A22]/80" style={{ height: `${(d.tokens / max) * 100}%`, minHeight: 3 }} />)}{data.daily.length === 0 && <p className="text-xs text-slate-400">No usage in this period.</p>}</div></section>
+      <section><h3 className="text-xs font-bold">Tokens per day</h3><div className="mt-2 flex h-28 items-end gap-1">{data.daily.map(d => <div key={d.day} title={`${d.day}: ${d.tokens} tokens, ${d.messages} messages`} className="flex-1 rounded-t bg-accent/80" style={{ height: `${(d.tokens / max) * 100}%`, minHeight: 3 }} />)}{data.daily.length === 0 && <p className="text-xs text-slate-400">No usage in this period.</p>}</div></section>
       <p className="text-[11px] text-slate-400">Usage is tracked for visibility only. Nothing is charged yet.</p>
     </div>
   );
@@ -241,14 +241,14 @@ const AlertsTab: React.FC = () => {
         <form onSubmit={e => { e.preventDefault(); void run(() => save.mutateAsync({ eventType: f.event, channels: f.channels as never, isActive: true })); }} className="space-y-2">
           <select aria-label="Event" value={f.event} onChange={e => setF({ ...f, event: e.target.value as typeof f.event })} className={`${inputCls} w-full`}>{NOTIFICATION_EVENTS.map(e => <option key={e} value={e}>{e.replace(/_/g, ' ')}</option>)}</select>
           <div className="flex flex-wrap gap-3">{NOTIFICATION_CHANNELS.map(c => <label key={c} className="flex items-center gap-1 text-xs"><input type="checkbox" checked={f.channels.includes(c)} onChange={() => toggle(c)} /> {c.replace('_', '-')}{c === 'whatsapp' || c === 'slack' ? ' (soon)' : ''}</label>)}</div>
-          <button type="submit" disabled={f.channels.length === 0} className={`${btn} bg-[#B84A22] text-white`}>Save for admins and managers</button>
+          <button type="submit" disabled={f.channels.length === 0} className={`${btn} bg-accent text-white`}>Save for admins and managers</button>
         </form>
         <Err error={error} />
         <ul className="space-y-1">{(rules ?? []).map(r => <li key={r.id} className="flex items-center gap-2 text-xs"><b>{r.eventType.replace(/_/g, ' ')}</b><span className="text-slate-500">{r.channels.join(', ')}{r.userId ? ' (personal)' : ''}</span><button type="button" aria-label={`Remove rule ${r.eventType}`} onClick={() => void run(() => del.mutateAsync(r.id))} className="ml-auto text-slate-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button></li>)}{(rules ?? []).length === 0 && <li className="text-xs text-slate-400">No rules: the built-in alerts apply.</li>}</ul>
       </section>
       <section className="space-y-3">
-        <div className="flex items-center justify-between"><h2 className="text-sm font-bold">Your notifications {centre?.unreadCount ? <Badge variant="gold" size="sm">{centre.unreadCount} new</Badge> : null}</h2><button type="button" disabled={!centre?.unreadCount} onClick={() => void read.mutateAsync(undefined)} className="text-xs font-semibold text-[#B84A22] disabled:opacity-40 cursor-pointer">Mark all read</button></div>
-        <ul className="space-y-2">{(centre?.items ?? []).map(n => <li key={n.id} className={`rounded-xl border p-2 text-xs ${n.isRead ? 'border-slate-200 dark:border-slate-800' : 'border-orange-200 bg-orange-50/50 dark:border-orange-900 dark:bg-orange-950/20'}`}><p className="font-semibold">{n.title}</p><p className="text-slate-600 dark:text-slate-300">{n.message}</p>{n.linkUrl && <Link to={n.linkUrl} className="text-[#B84A22]">Open</Link>}</li>)}{(centre?.items ?? []).length === 0 && <li className="text-xs text-slate-400">Nothing yet.</li>}</ul>
+        <div className="flex items-center justify-between"><h2 className="text-sm font-bold">Your notifications {centre?.unreadCount ? <Badge variant="gold" size="sm">{centre.unreadCount} new</Badge> : null}</h2><button type="button" disabled={!centre?.unreadCount} onClick={() => void read.mutateAsync(undefined)} className="text-xs font-semibold text-accent disabled:opacity-40 cursor-pointer">Mark all read</button></div>
+        <ul className="space-y-2">{(centre?.items ?? []).map(n => <li key={n.id} className={`rounded-xl border p-2 text-xs ${n.isRead ? 'border-slate-200 dark:border-slate-800' : 'border-orange-200 bg-orange-50/50 dark:border-orange-900 dark:bg-orange-950/20'}`}><p className="font-semibold">{n.title}</p><p className="text-slate-600 dark:text-slate-300">{n.message}</p>{n.linkUrl && <Link to={n.linkUrl} className="text-accent">Open</Link>}</li>)}{(centre?.items ?? []).length === 0 && <li className="text-xs text-slate-400">Nothing yet.</li>}</ul>
       </section>
     </div>
   );
@@ -269,7 +269,7 @@ const KeysTab: React.FC = () => {
       <form onSubmit={e => { e.preventDefault(); void run(async () => { const k = await create.mutateAsync({ name, permissions: ['read:leads'], expiresInDays: days }); setShown(k.apiKey); setName(''); }); }} className="flex flex-wrap gap-2">
         <input aria-label="Key name" required minLength={2} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Portal sync" className={`${inputCls} flex-1`} />
         <select aria-label="Expires" value={days} onChange={e => setDays(Number(e.target.value))} className={inputCls}>{[30, 90, 180, 365].map(d => <option key={d} value={d}>Expires in {d} days</option>)}</select>
-        <button type="submit" className={`${btn} bg-[#B84A22] text-white`}><KeyRound className="h-4 w-4" /> Create key</button>
+        <button type="submit" className={`${btn} bg-accent text-white`}><KeyRound className="h-4 w-4" /> Create key</button>
       </form>
       {shown && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900" role="status"><b>Copy it now, it is shown only once:</b><code className="mt-1 block break-all font-mono">{shown}</code></div>}
       <Err error={error} />
@@ -305,10 +305,10 @@ export const ControlsPage: React.FC = () => {
     <div className="space-y-6 pb-12">
       <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
         <h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Security &amp; compliance</h1>
-        <p className="mt-1 text-xs text-slate-500 sm:text-sm">Control who can do what, see who looked at what, protect personal data and keep an eye on usage. <Link to="/changelog" className="font-semibold text-[#B84A22]">What&apos;s new</Link></p>
+        <p className="mt-1 text-xs text-slate-500 sm:text-sm">Control who can do what, see who looked at what, protect personal data and keep an eye on usage. <Link to="/changelog" className="font-semibold text-accent">What&apos;s new</Link></p>
       </div>
       <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist">
-        {tabs.map(([id, label, icon]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`flex items-center gap-1.5 border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500'}`}>{icon}{label}</button>)}
+        {tabs.map(([id, label, icon]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`flex items-center gap-1.5 border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-accent text-accent' : 'border-transparent text-slate-500'}`}>{icon}{label}</button>)}
       </div>
       {tab === 'policies' ? <PoliciesTab /> : tab === 'teams' ? <TeamsTab /> : tab === 'logs' ? <LogsTab /> : tab === 'privacy' ? <PrivacyTab /> : tab === 'usage' ? <UsageTab /> : tab === 'alerts' ? <AlertsTab /> : <KeysTab />}
     </div>

@@ -20,17 +20,17 @@ export function WebhookFilterBar({
   isLoading,
 }: WebhookFilterBarProps) {
   return (
-    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+    <div className="bg-surface p-4 rounded-xl border border-border shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
       <div className="flex flex-wrap gap-3 items-center flex-1">
         {/* Lead ID Filter */}
         <div className="relative min-w-[180px] flex-1 sm:flex-initial">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-text-muted" />
           <input
             type="text"
             placeholder="Filter by Lead ID..."
             value={filter.leadId || ''}
             onChange={e => onFilterChange({ leadId: e.target.value || undefined })}
-            className="w-full pl-9 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -39,7 +39,7 @@ export function WebhookFilterBar({
           <select
             value={filter.endpointId || ''}
             onChange={e => onFilterChange({ endpointId: e.target.value || undefined })}
-            className="w-full py-2 px-3 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full py-2 px-3 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-surface"
           >
             <option value="">All Endpoints</option>
             {endpoints.map(ep => (
@@ -55,7 +55,7 @@ export function WebhookFilterBar({
           <select
             value={filter.status || 'all'}
             onChange={e => onFilterChange({ status: e.target.value as WebhookLogsFilter['status'] })}
-            className="w-full py-2 px-3 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full py-2 px-3 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-surface"
           >
             <option value="all">All Statuses</option>
             <option value="success">Success (2xx)</option>
@@ -71,14 +71,14 @@ export function WebhookFilterBar({
             type="date"
             value={filter.startDate || ''}
             onChange={e => onFilterChange({ startDate: e.target.value || undefined })}
-            className="py-1.5 px-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600"
+            className="py-1.5 px-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-text-muted"
           />
-          <span className="text-gray-400 text-xs">to</span>
+          <span className="text-text-muted text-xs">to</span>
           <input
             type="date"
             value={filter.endDate || ''}
             onChange={e => onFilterChange({ endDate: e.target.value || undefined })}
-            className="py-1.5 px-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600"
+            className="py-1.5 px-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-text-muted"
           />
         </div>
 
@@ -87,7 +87,7 @@ export function WebhookFilterBar({
           <select
             value={filter.limit || 25}
             onChange={e => onFilterChange({ limit: Number(e.target.value), page: 1 })}
-            className="w-full py-2 px-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-600"
+            className="w-full py-2 px-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-surface text-text-muted"
           >
             <option value={10}>10 / page</option>
             <option value={25}>25 / page</option>
@@ -108,7 +108,7 @@ export function WebhookFilterBar({
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="p-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition"
+          className="p-2 border border-border text-text-muted rounded-lg hover:bg-surface-2 transition"
           title="Refresh Logs"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />

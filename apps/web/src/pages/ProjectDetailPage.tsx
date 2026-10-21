@@ -67,7 +67,7 @@ export const ProjectDetailPage: React.FC = () => {
 
   // Matched Interested Leads
   const interestedLeads = [
-    { name: 'Amit Patel', score: 94, budget: '₹2.4 Cr', phone: '+91 98201 44589', tone: 'bg-[#F0D9CC] text-[#B84A22]' },
+    { name: 'Amit Patel', score: 94, budget: '₹2.4 Cr', phone: '+91 98201 44589', tone: 'bg-[#F0D9CC] text-accent' },
     { name: 'Sana Kapoor', score: 92, budget: '₹2.2 Cr', phone: '+91 98112 55231', tone: 'bg-[#F6EED8] text-[#A9822B]' },
     { name: 'Vikram Mehta', score: 86, budget: '₹2.6 Cr', phone: '+91 99203 88120', tone: 'bg-[#E3EEEA] text-[#2F5D50]' },
   ];

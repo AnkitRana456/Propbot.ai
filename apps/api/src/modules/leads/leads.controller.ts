@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import {
   captureLeadInputSchema,
+  updateLeadInputSchema,
   updateLeadStatusInputSchema,
   mergeLeadInputSchema,
   scoringConfigSchema,
@@ -104,6 +105,30 @@ export class LeadsController {
         res.status(404).json({
           error: { code: 'NOT_FOUND', message: 'Lead not found' },
         });
+        return;
+      }
+      next(err);
+    }
+  }
+
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = req.tenant?.companyId;
+      if (!companyId) {
+        res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+        return;
+      }
+      const input = updateLeadInputSchema.parse(req.body);
+      const updated = await leadsService.updateLead(companyId, req.params.id as string, input);
+      res.json({ data: updated });
+    } catch (err: unknown) {
+      const e = err as { message?: string; statusCode?: number; code?: string };
+      if (e.message === 'Lead not found') {
+        res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Lead not found' } });
+        return;
+      }
+      if (e.statusCode === 400 || e.statusCode === 409) {
+        res.status(e.statusCode).json({ error: { code: e.code ?? 'BAD_REQUEST', message: e.message } });
         return;
       }
       next(err);

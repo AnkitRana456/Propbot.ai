@@ -79,7 +79,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
   // Avatar tone based on lead name
   const nameHash = (lead.name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const tones = [
-    'bg-[#F0D9CC] text-[#B84A22] dark:bg-[#3A241A] dark:text-[#E07A4C]', // Terracotta
+    'bg-[#F0D9CC] text-accent dark:bg-[#3A241A] dark:text-[#E07A4C]', // Terracotta
     'bg-[#F6EED8] text-[#A9822B] dark:bg-[#342A16] dark:text-[#D1A94E]', // Brass
     'bg-[#E3EEEA] text-[#2F5D50] dark:bg-[#1E332D] dark:text-[#6FA593]', // Pine
   ];

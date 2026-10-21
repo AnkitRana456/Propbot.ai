@@ -66,12 +66,12 @@ const OrderRow: React.FC<{ o: PaymentOrderItem }> = ({ o }) => {
       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
         {open && o.paymentLinkUrl && (
           <>
-            <button type="button" onClick={() => void navigator.clipboard?.writeText(o.paymentLinkUrl!)} className="inline-flex items-center gap-1 font-semibold text-[#B84A22] cursor-pointer"><Copy className="h-3.5 w-3.5" /> Copy payment link</button>
+            <button type="button" onClick={() => void navigator.clipboard?.writeText(o.paymentLinkUrl!)} className="inline-flex items-center gap-1 font-semibold text-accent cursor-pointer"><Copy className="h-3.5 w-3.5" /> Copy payment link</button>
             {o.provider === 'manual' && <button type="button" onClick={() => void run(() => simulate.mutateAsync(o.id))} className="text-slate-500 cursor-pointer">Mark paid (test mode)</button>}
             <button type="button" onClick={() => window.confirm('Cancel this payment link?') && void run(() => cancel.mutateAsync(o.id))} className="text-slate-500 hover:text-rose-600 cursor-pointer">Cancel link</button>
           </>
         )}
-        {o.receiptNo && <a href={`/api/payments/orders/${o.id}/receipt`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-[#B84A22]"><Receipt className="h-3.5 w-3.5" /> Receipt {o.receiptNo}</a>}
+        {o.receiptNo && <a href={`/api/payments/orders/${o.id}/receipt`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-accent"><Receipt className="h-3.5 w-3.5" /> Receipt {o.receiptNo}</a>}
         {o.kind === 'booking_token' && (o.status === 'paid' || o.status === 'partially_refunded') && <button type="button" onClick={() => setRefunding(r => !r)} className="inline-flex items-center gap-1 text-slate-500 hover:text-rose-600 cursor-pointer"><Undo2 className="h-3.5 w-3.5" /> Refund</button>}
       </div>
       {refunding && (
@@ -98,17 +98,17 @@ const PaymentsTab: React.FC = () => {
   const [note, setNote] = useState('');
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3"><p className="text-xs text-slate-500">Send a booking-token payment link in chat or WhatsApp. Receipts are numbered automatically and carry the project&apos;s RERA number.</p><button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> Payment link</button></div>
+      <div className="flex items-center justify-between gap-3"><p className="text-xs text-slate-500">Send a booking-token payment link in chat or WhatsApp. Receipts are numbered automatically and carry the project&apos;s RERA number.</p><button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> Payment link</button></div>
       {adding && (
         <form onSubmit={e => { e.preventDefault(); void run(async () => { await create.mutateAsync({ leadId, amountInr: amount, expiresInHours: 24, ...(note ? { note } : {}) }); setAdding(false); setLeadId(''); setSearch(''); }); }} className={`${card} grid gap-3 sm:grid-cols-2`}>
           <div className="sm:col-span-2">
             <label htmlFor="pl-search" className="text-xs font-semibold">Buyer</label>
             <input id="pl-search" value={search} onChange={e => { setSearch(e.target.value); setLeadId(''); }} placeholder="Search a lead by name or phone" className={`${inputCls} mt-1 w-full`} />
-            {search && !leadId && <ul className="mt-1 space-y-1">{(leads?.items ?? []).map(l => <li key={l.id}><button type="button" onClick={() => { setLeadId(l.id); setSearch(l.name); }} className="text-xs font-semibold text-[#B84A22] cursor-pointer">{l.name} · {l.phone}</button></li>)}</ul>}
+            {search && !leadId && <ul className="mt-1 space-y-1">{(leads?.items ?? []).map(l => <li key={l.id}><button type="button" onClick={() => { setLeadId(l.id); setSearch(l.name); }} className="text-xs font-semibold text-accent cursor-pointer">{l.name} · {l.phone}</button></li>)}</ul>}
           </div>
           <div><label htmlFor="pl-amt" className="text-xs font-semibold">Token amount (₹)</label><input id="pl-amt" type="number" min={1000} max={1000000} step={1000} value={amount} onChange={e => setAmount(Number(e.target.value))} className={`${inputCls} mt-1 w-full`} /></div>
           <div><label htmlFor="pl-note" className="text-xs font-semibold">Note (optional)</label><input id="pl-note" maxLength={200} value={note} onChange={e => setNote(e.target.value)} className={`${inputCls} mt-1 w-full`} /></div>
-          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}><X className="h-3.5 w-3.5" /> Cancel</button><button type="submit" disabled={!leadId || create.isPending} className={`${btn} bg-[#B84A22] text-white`}>Create link</button></div>
+          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}><X className="h-3.5 w-3.5" /> Cancel</button><button type="submit" disabled={!leadId || create.isPending} className={`${btn} bg-accent text-white`}>Create link</button></div>
         </form>
       )}
       <Err error={error} />
@@ -137,7 +137,7 @@ const CreditsTab: React.FC = () => {
         {data.packs.map(p => (
           <div key={p.id} className={card}>
             <p className="text-sm font-bold">{p.label}</p><p className="text-xs text-slate-500">₹{p.priceInr.toLocaleString('en-IN')}</p>
-            <button type="button" disabled={topup.isPending} onClick={() => void run(() => topup.mutateAsync(p.id))} className={`${btn} mt-2 bg-[#B84A22] text-white`}><Coins className="h-3.5 w-3.5" /> Buy</button>
+            <button type="button" disabled={topup.isPending} onClick={() => void run(() => topup.mutateAsync(p.id))} className={`${btn} mt-2 bg-accent text-white`}><Coins className="h-3.5 w-3.5" /> Buy</button>
           </div>
         ))}
       </div>
@@ -165,7 +165,7 @@ const DetailsTab: React.FC = () => {
       <div><label htmlFor="bp-pan" className="text-xs font-semibold">PAN</label><input id="bp-pan" value={f.pan} onChange={e => setF({ ...f, pan: e.target.value.toUpperCase() })} maxLength={10} className={`${inputCls} mt-1 w-full font-mono`} /></div>
       <div><label htmlFor="bp-mail" className="text-xs font-semibold">Billing e-mail</label><input id="bp-mail" type="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} className={`${inputCls} mt-1 w-full`} /></div>
       <div><label htmlFor="bp-city" className="text-xs font-semibold">City</label><input id="bp-city" value={f.city} onChange={e => setF({ ...f, city: e.target.value })} className={`${inputCls} mt-1 w-full`} /></div>
-      <div className="flex items-center gap-3 sm:col-span-2"><button type="submit" disabled={save.isPending} className={`${btn} bg-[#B84A22] text-white`}>Save details</button>{saved && <span className="text-xs text-emerald-600" role="status">Saved.</span>}<Err error={error} /></div>
+      <div className="flex items-center gap-3 sm:col-span-2"><button type="submit" disabled={save.isPending} className={`${btn} bg-accent text-white`}>Save details</button>{saved && <span className="text-xs text-emerald-600" role="status">Saved.</span>}<Err error={error} /></div>
     </form>
   );
 };
@@ -177,10 +177,10 @@ export const BillingPage: React.FC = () => {
     <div className="space-y-6 pb-12">
       <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
         <h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Payments &amp; credits</h1>
-        <p className="mt-1 text-xs text-slate-500 sm:text-sm">Collect booking tokens, manage prepaid credits and your GST details. Plans and invoices are on the <Link to="/subscription" className="font-semibold text-[#B84A22]">Subscription</Link> page.</p>
+        <p className="mt-1 text-xs text-slate-500 sm:text-sm">Collect booking tokens, manage prepaid credits and your GST details. Plans and invoices are on the <Link to="/subscription" className="font-semibold text-accent">Subscription</Link> page.</p>
       </div>
       <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist">
-        {tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500'}`}>{label}</button>)}
+        {tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-accent text-accent' : 'border-transparent text-slate-500'}`}>{label}</button>)}
       </div>
       {tab === 'payments' ? <PaymentsTab /> : tab === 'credits' ? <CreditsTab /> : <DetailsTab />}
     </div>

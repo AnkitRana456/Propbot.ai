@@ -1,234 +1,195 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Bell, Sun, Moon, LogOut, Menu, ChevronRight, Settings } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Bell, ChevronRight, LogOut, Menu, Search, Settings } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext.js';
-import { useTheme } from '../../contexts/ThemeContext.js';
+import { breadcrumbFor } from '../../config/navigation.js';
+import { useMarkNotificationsRead, useNotificationCentre } from '../../services/controls.service.js';
 import { CommandPalette } from '../ui/CommandPalette.js';
+import { ThemeToggle } from '../ui/ThemeToggle.js';
 
 interface TopBarProps {
   onOpenMobileMenu: () => void;
-  unreadNotificationsCount?: number;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({
-  onOpenMobileMenu,
-  unreadNotificationsCount = 3,
-}) => {
+const ROLE_LABEL: Record<string, string> = {
+  'ps-owner': 'Platform owner',
+  company_admin: 'Agency admin',
+  sales_manager: 'Sales manager',
+  agent: 'Agent',
+  viewer: 'Viewer',
+};
+
+/** Closes a popover on outside click and on Escape. */
+function usePopover() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+  return { open, setOpen, ref };
+}
+
+const ago = (iso: string) => {
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  if (m < 1440) return `${Math.round(m / 60)}h ago`;
+  return `${Math.round(m / 1440)}d ago`;
+};
+
+export const TopBar: React.FC<TopBarProps> = ({ onOpenMobileMenu }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, company, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-
   const [isCommandOpen, setIsCommandOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(unreadNotificationsCount);
-
-  const menuRef = useRef<HTMLDivElement>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
+  const notif = usePopover();
+  const menu = usePopover();
+  const { data: centre } = useNotificationCentre();
+  const markRead = useMarkNotificationsRead();
+  const unread = centre?.unreadCount ?? 0;
+  const crumbs = breadcrumbFor(location.pathname);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandOpen(o => !o);
       }
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setIsNotifOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
-
-  const sampleNotifications = [
-    {
-      id: '1',
-      title: 'High-Intent Lead Captured (94%)',
-      message: 'Amit Patel requested 3BHK brochure on Prestige Lakeside.',
-      time: '5m ago',
-      unread: true,
-      icon: '🔥',
-    },
-    {
-      id: '2',
-      title: 'Site Visit Confirmed',
-      message: 'Rajesh Nambiar scheduled a physical site visit for Sat 11 AM.',
-      time: '24m ago',
-      unread: true,
-      icon: '📍',
-    },
-    {
-      id: '3',
-      title: 'Tier-2 Approval Queued',
-      message: 'Quote revision requires partner verification.',
-      time: '1h ago',
-      unread: true,
-      icon: '🛡️',
-    },
-  ];
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  // Breadcrumb segment title
-  const pathName = location.pathname.replace('/', '') || 'dashboard';
-  const formattedPageName = pathName.charAt(0).toUpperCase() + pathName.slice(1);
-
   return (
     <>
-      <header className="topbar-premium sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-[var(--border)] px-4 sm:px-6 lg:px-8">
-        {/* Left Section: Breadcrumb & Mobile Hamburger */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onOpenMobileMenu}
-            className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)] hover:shadow-[var(--shadow-sm)] transition-all duration-200 md:hidden"
-            aria-label="Open sidebar"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs font-mono text-[var(--text-muted)]">
-            <span className="text-[var(--text)] font-semibold truncate max-w-[120px] sm:max-w-none">
-              {company?.name || 'Prestige Realty'}
-            </span>
-            <ChevronRight className="h-3 w-3 text-[var(--border)]" />
-            <span className="text-[var(--accent)] font-medium flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] opacity-60" />
-              {formattedPageName}
-            </span>
-          </nav>
-        </div>
-
-        {/* Center: Search (Cmd+K) */}
-        <div
-          onClick={() => setIsCommandOpen(true)}
-          className="relative w-full max-w-sm mx-4 cursor-pointer group hidden sm:block"
+      <header className="topbar-premium sticky top-0 z-30 flex h-16 w-full items-center gap-3 border-b border-border px-4 sm:px-6 lg:px-8">
+        <button
+          type="button"
+          onClick={onOpenMobileMenu}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-text md:hidden"
+          aria-label="Open navigation"
         >
-          <Search className="absolute top-1/2 left-3.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-faint)] group-hover:text-[var(--accent)] transition-colors duration-200 stroke-[1.5]" />
-          <input
-            type="text"
-            readOnly
-            placeholder="Search leads, units, ledger... (Ctrl+K)"
-            className="w-full cursor-pointer rounded-[10px] border border-[var(--border)] bg-[var(--surface)] py-2 pr-14 pl-10 text-xs font-mono text-[var(--text)] placeholder:text-[var(--text-faint)] focus:outline-none transition-all duration-200 group-hover:border-[var(--text-faint)] group-hover:shadow-[var(--shadow-sm)]"
-          />
-          <kbd className="absolute top-1/2 right-3 -translate-y-1/2 rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-faint)] shadow-[var(--shadow-xs)]">
-            ⌘K
-          </kbd>
-        </div>
+          <Menu className="h-4 w-4" />
+        </button>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-2">
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] hover:shadow-[var(--shadow-sm)] transition-all duration-200"
-            aria-label="Toggle theme"
-            title={`Switch to ${theme === 'light' ? 'Walnut Dark' : 'Limestone Light'}`}
-          >
-            {theme === 'light' ? (
-              <Moon className="h-4 w-4 stroke-[1.5] transition-transform duration-300 hover:rotate-[-15deg]" />
-            ) : (
-              <Sun className="h-4 w-4 stroke-[1.5] text-[var(--brass)] transition-transform duration-300 hover:rotate-[45deg]" />
-            )}
-          </button>
+        <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
+          <ol className="flex items-center gap-1.5 text-sm text-text-muted">
+            <li className="hidden max-w-[160px] truncate font-semibold text-text sm:block">{company?.name || 'Your agency'}</li>
+            {crumbs.map((c, i) => {
+              const last = i === crumbs.length - 1;
+              return (
+                <li key={`${c.label}-${i}`} className="flex min-w-0 items-center gap-1.5">
+                  <ChevronRight aria-hidden className={`h-3.5 w-3.5 shrink-0 text-text-faint ${i === 0 ? 'hidden sm:block' : ''}`} />
+                  {c.to && !last ? (
+                    <Link to={c.to} className="truncate hover:text-text">{c.label}</Link>
+                  ) : (
+                    <span aria-current={last ? 'page' : undefined} className={`truncate ${last ? 'font-semibold text-accent' : ''}`}>{c.label}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
 
-          {/* Notifications */}
-          <div className="relative" ref={notifRef}>
+        <button
+          type="button"
+          onClick={() => setIsCommandOpen(true)}
+          className="hidden w-full max-w-xs items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-left text-sm text-text-muted transition-colors hover:border-text-faint sm:flex"
+          aria-label="Search leads, pages and actions"
+        >
+          <Search aria-hidden className="h-4 w-4 text-text-faint" />
+          <span className="flex-1 truncate">Search leads, pages…</span>
+          <kbd className="rounded border border-border bg-surface-2 px-1.5 text-[11px] text-text-faint">Ctrl K</kbd>
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsCommandOpen(true)}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-text sm:hidden"
+          aria-label="Search"
+        >
+          <Search className="h-4 w-4" />
+        </button>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle className="hidden sm:inline-flex" />
+
+          <div className="relative" ref={notif.ref}>
             <button
-              onClick={() => setIsNotifOpen(prev => !prev)}
-              className="relative flex h-9 w-9 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] hover:shadow-[var(--shadow-sm)] transition-all duration-200"
-              aria-label="Notifications"
+              type="button"
+              onClick={() => notif.setOpen(o => !o)}
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+              aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+              aria-haspopup="dialog"
+              aria-expanded={notif.open}
             >
-              <Bell className="h-4 w-4 stroke-[1.5]" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-hover)] text-[8px] font-bold text-white shadow-[var(--shadow-sm)]">
-                  {unreadCount}
-                </span>
-              )}
+              <Bell className="h-4 w-4" />
+              {unread > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-on-accent">{unread > 9 ? '9+' : unread}</span>}
             </button>
-
-            {/* Notification Dropdown */}
-            {isNotifOpen && (
-              <div className="dropdown-elevated absolute right-0 mt-2.5 w-[340px] p-3 z-50 space-y-2.5">
-                <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
-                  <span className="blueprint-label text-[var(--text-muted)]">Dispatch Ledger</span>
-                  <button
-                    onClick={() => setUnreadCount(0)}
-                    className="text-[10px] font-mono text-[var(--accent)] hover:underline transition-colors"
-                  >
-                    Clear All
-                  </button>
+            {notif.open && (
+              <div role="dialog" aria-label="Notifications" className="dropdown-elevated absolute right-0 z-50 mt-2 w-[min(340px,calc(100vw-2rem))] p-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-sm font-semibold text-text">Notifications</span>
+                  <button type="button" disabled={unread === 0 || markRead.isPending} onClick={() => markRead.mutate(undefined)} className="text-xs font-semibold text-accent disabled:opacity-40">Mark all read</button>
                 </div>
-                <div className="space-y-2 max-h-72 overflow-y-auto stagger-children">
-                  {sampleNotifications.map(n => (
-                    <div
-                      key={n.id}
-                      className="p-3 rounded-[8px] bg-[var(--surface-2)] border border-[var(--border)] text-xs font-mono space-y-1.5 transition-all duration-200 hover:border-[var(--accent-soft)] hover:shadow-[var(--shadow-xs)] cursor-pointer animate-fade-in-up"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{n.icon}</span>
-                          <span className="text-[11px] font-semibold text-[var(--text)] leading-tight">{n.title}</span>
-                        </div>
-                        <span className="text-[10px] text-[var(--text-faint)] whitespace-nowrap">{n.time}</span>
-                      </div>
-                      <p className="text-[11px] text-[var(--text-muted)] leading-relaxed pl-6">
-                        {n.message}
-                      </p>
-                    </div>
+                <ul className="mt-2 max-h-72 space-y-1.5 overflow-y-auto">
+                  {(centre?.items ?? []).slice(0, 8).map(n => (
+                    <li key={n.id} className={`rounded-lg border p-2.5 text-xs ${n.isRead ? 'border-border' : 'border-accent/30 bg-accent-soft/40'}`}>
+                      <div className="flex justify-between gap-2"><span className="font-semibold text-text">{n.title}</span><span className="shrink-0 text-text-faint">{ago(n.createdAt)}</span></div>
+                      <p className="mt-0.5 text-text-muted">{n.message}</p>
+                      {n.linkUrl && <Link to={n.linkUrl} onClick={() => notif.setOpen(false)} className="mt-1 inline-block font-semibold text-accent">Open</Link>}
+                    </li>
                   ))}
-                </div>
+                  {(centre?.items ?? []).length === 0 && <li className="py-6 text-center text-xs text-text-muted">You are all caught up.</li>}
+                </ul>
+                <Link to="/controls" onClick={() => notif.setOpen(false)} className="mt-2 block border-t border-border pt-2 text-center text-xs font-semibold text-text-muted hover:text-text">Manage alerts</Link>
               </div>
             )}
           </div>
 
-          {/* User Profile */}
-          <div className="relative" ref={menuRef}>
+          <div className="relative" ref={menu.ref}>
             <button
-              onClick={() => setIsMenuOpen(prev => !prev)}
-              className="flex items-center gap-2.5 p-1.5 rounded-[8px] border border-[var(--border)] hover:bg-[var(--surface-2)] hover:shadow-[var(--shadow-sm)] transition-all duration-200"
+              type="button"
+              onClick={() => menu.setOpen(o => !o)}
+              className="flex items-center gap-2 rounded-lg border border-border p-1 pr-2 transition-colors hover:bg-surface-2"
+              aria-haspopup="menu"
+              aria-expanded={menu.open}
+              aria-label="Account menu"
             >
-              <div className="w-8 h-8 rounded-[6px] bg-gradient-to-br from-[var(--accent)] to-[var(--accent-hover)] text-[var(--surface)] flex items-center justify-center font-serif text-sm font-medium shadow-[var(--shadow-xs),inset_0_1px_0_rgba(255,255,255,0.15)]">
-                {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
-              </div>
-              <div className="hidden lg:flex flex-col text-left">
-                <span className="text-xs font-serif font-medium text-[var(--text)] leading-none truncate max-w-[90px]">
-                  {user?.name || 'Rahul V.'}
-                </span>
-                <span className="font-mono text-[9px] text-[var(--text-faint)] leading-tight uppercase tracking-wider">
-                  Advisor
-                </span>
-              </div>
+              <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-sm font-semibold text-on-accent">{user?.name ? user.name.charAt(0).toUpperCase() : 'A'}</span>
+              <span className="hidden text-left lg:block">
+                <span className="block max-w-[110px] truncate text-xs font-semibold leading-tight text-text">{user?.name ?? 'Account'}</span>
+                <span className="block text-[11px] leading-tight text-text-muted">{ROLE_LABEL[user?.role ?? ''] ?? 'Team member'}</span>
+              </span>
             </button>
-
-            {/* User Dropdown */}
-            {isMenuOpen && (
-              <div className="dropdown-elevated absolute right-0 mt-2.5 w-52 p-2 z-50 space-y-1.5 font-mono text-xs">
-                <div className="px-3 py-2 border-b border-[var(--border)]">
-                  <div className="font-serif text-sm font-medium text-[var(--text)]">
-                    {user?.name || 'Rahul Verma'}
-                  </div>
-                  <div className="text-[10px] text-[var(--text-faint)] mt-0.5">
-                    {user?.email || 'advisor@propbot.pro'}
-                  </div>
+            {menu.open && (
+              <div role="menu" className="dropdown-elevated absolute right-0 z-50 mt-2 w-60 p-1.5 text-sm">
+                <div className="border-b border-border px-3 py-2">
+                  <p className="truncate font-semibold text-text">{user?.name ?? 'Account'}</p>
+                  <p className="truncate text-xs text-text-muted">{user?.email}</p>
+                  <p className="mt-1 text-xs text-text-muted">{company?.name ?? 'Your agency'} · {ROLE_LABEL[user?.role ?? ''] ?? 'Team member'}</p>
                 </div>
-                <button
-                  onClick={() => navigate('/settings')}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[6px] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] transition-all duration-200"
-                >
-                  <Settings className="w-3.5 h-3.5" />
-                  <span>Settings</span>
+                <div className="px-3 py-2 sm:hidden"><ThemeToggle /></div>
+                <button type="button" role="menuitem" onClick={() => { menu.setOpen(false); navigate('/settings'); }} className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-text-muted hover:bg-surface-2 hover:text-text">
+                  <Settings className="h-4 w-4" /> Settings
                 </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[6px] text-[var(--danger)] hover:bg-[var(--surface-2)] transition-all duration-200"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Sign Out</span>
+                <button type="button" role="menuitem" onClick={handleLogout} className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-danger hover:bg-surface-2">
+                  <LogOut className="h-4 w-4" /> Sign out
                 </button>
               </div>
             )}
@@ -236,7 +197,6 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </header>
 
-      {/* Global Command Palette */}
       {isCommandOpen && <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} />}
     </>
   );

@@ -162,6 +162,19 @@ export const updateLeadStatusInputSchema = z
   );
 export type UpdateLeadStatusInput = z.infer<typeof updateLeadStatusInputSchema>;
 
+/** Inline edits from the leads grid. Every field is optional but at least one must be present. */
+export const updateLeadInputSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required').max(100).optional(),
+    phone: z.string().min(7, 'Valid phone number is required').max(30).optional(),
+    email: z.string().email('Invalid email address').or(z.literal('')).optional(),
+    /** Upper budget in rupees; null clears it. */
+    budgetMax: z.number().int().min(0).max(100_000_000_000).nullable().optional(),
+    nextFollowUpAt: z.string().datetime().nullable().optional(),
+  })
+  .refine(v => Object.keys(v).length > 0, { message: 'Nothing to update' });
+export type UpdateLeadInput = z.infer<typeof updateLeadInputSchema>;
+
 export const mergeLeadInputSchema = z.object({
   sourceLeadId: z.string().uuid(),
   targetLeadId: z.string().uuid(),

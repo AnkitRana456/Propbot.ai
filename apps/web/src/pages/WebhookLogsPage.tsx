@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Settings } from 'lucide-react';
+import { PageHeader } from '../components/layout/PageHeader.js';
+import { Button } from '../components/ui/Button.js';
 import type { WebhookLogItem, WebhookLogsFilter } from '@propbot/shared';
 import {
   useWebhookKpis,
@@ -67,25 +69,16 @@ export function WebhookLogsPage() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Webhook Delivery Logs</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Real-time audit log of outbound webhook events, retry lifecycles, and dead-letter queues.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsEndpointModalOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 shadow-sm transition"
-          >
-            <Settings className="w-4 h-4" />
-            Configure Endpoints
-          </button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Webhook logs"
+        description="Every outbound event, its retries and any dead letters. Expand a row to see the exact JSON."
+        action={
+          <Button size="sm" onClick={() => setIsEndpointModalOpen(true)} leftIcon={<Settings className="h-4 w-4" />}>
+            Configure endpoints
+          </Button>
+        }
+      />
 
       {/* 4 KPI Cards */}
       <WebhookKpiCards kpis={kpis} isLoading={isKpisLoading} />
@@ -111,7 +104,7 @@ export function WebhookLogsPage() {
 
       {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-xs text-gray-500 pt-2 px-1">
+        <div className="flex items-center justify-between text-xs text-text-muted pt-2 px-1">
           <span>
             Showing {(currentPage - 1) * limit + 1} to {Math.min(currentPage * limit, total)} of {total} logs
           </span>
@@ -119,17 +112,17 @@ export function WebhookLogsPage() {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage <= 1}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 font-medium"
+              className="px-3 py-1.5 border border-border rounded-lg text-text hover:bg-surface-2 disabled:opacity-50 font-medium"
             >
               Previous
             </button>
-            <span className="font-semibold text-gray-700">
+            <span className="font-semibold text-text">
               Page {currentPage} of {totalPages}
             </span>
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage >= totalPages}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 font-medium"
+              className="px-3 py-1.5 border border-border rounded-lg text-text hover:bg-surface-2 disabled:opacity-50 font-medium"
             >
               Next
             </button>

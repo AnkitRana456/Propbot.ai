@@ -108,18 +108,18 @@ export function WebhookEndpointModal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-gray-200">
+      <div className="bg-surface rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-border">
         {/* Header */}
-        <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50/75">
+        <div className="p-5 border-b border-border flex items-center justify-between bg-surface-2">
           <div>
-            <h3 className="text-base font-bold text-gray-900">Webhook Endpoints Configuration</h3>
-            <p className="text-xs text-gray-500">
+            <h3 className="text-base font-bold text-text">Webhook Endpoints Configuration</h3>
+            <p className="text-xs text-text-muted">
               Configure external endpoints to receive real-time signed event dispatches.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text-muted hover:bg-surface-2 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,7 +130,7 @@ export function WebhookEndpointModal({
           {/* Active Endpoints List */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-text uppercase tracking-wider">
                 Active Endpoints ({endpoints.length})
               </h4>
               {!showForm && (
@@ -145,8 +145,8 @@ export function WebhookEndpointModal({
             </div>
 
             {endpoints.length === 0 ? (
-              <div className="p-6 bg-gray-50 border border-gray-200 rounded-xl text-center">
-                <p className="text-xs text-gray-500 mb-2">No webhook endpoints configured yet.</p>
+              <div className="p-6 bg-surface-2 border border-border rounded-xl text-center">
+                <p className="text-xs text-text-muted mb-2">No webhook endpoints configured yet.</p>
                 <button
                   onClick={() => setShowForm(true)}
                   className="text-xs text-blue-600 font-bold hover:underline"
@@ -159,25 +159,25 @@ export function WebhookEndpointModal({
                 {endpoints.map(ep => (
                   <div
                     key={ep.id}
-                    className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-col gap-2"
+                    className="p-4 bg-surface-2 rounded-xl border border-border flex flex-col gap-2"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="font-bold text-gray-900 text-xs block">{ep.name}</span>
-                        <span className="text-[11px] font-mono text-gray-600 break-all">{ep.url}</span>
+                        <span className="font-bold text-text text-xs block">{ep.name}</span>
+                        <span className="text-[11px] font-mono text-text-muted break-all">{ep.url}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleTestPing(ep.id)}
                           disabled={testingId === ep.id}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-surface border border-border rounded-lg hover:bg-surface-2 transition"
                         >
                           <Send className="w-3 h-3" />
                           {testingId === ep.id ? 'Pinging...' : 'Send Test Event'}
                         </button>
                         <button
                           onClick={() => onDelete(ep.id)}
-                          className="p-1 text-gray-400 hover:text-rose-600 transition"
+                          className="p-1 text-text-muted hover:text-rose-600 transition"
                           title="Delete Endpoint"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -185,12 +185,12 @@ export function WebhookEndpointModal({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1 border-t border-gray-200/60">
-                      <div className="flex items-center gap-1 font-mono text-gray-600">
-                        <Key className="w-3 h-3 text-gray-400" />
+                    <div className="flex items-center justify-between text-[10px] text-text-muted pt-1 border-t border-border/60">
+                      <div className="flex items-center gap-1 font-mono text-text-muted">
+                        <Key className="w-3 h-3 text-text-muted" />
                         Secret: {ep.maskedSecret}
                       </div>
-                      <div className="text-gray-500">
+                      <div className="text-text-muted">
                         Subscribed to: {ep.subscribedEvents.length} events
                       </div>
                     </div>
@@ -225,7 +225,7 @@ export function WebhookEndpointModal({
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="text-xs text-gray-400 hover:text-gray-600"
+                  className="text-xs text-text-muted hover:text-text-muted"
                 >
                   Cancel
                 </button>
@@ -238,44 +238,44 @@ export function WebhookEndpointModal({
               )}
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Endpoint Name</label>
+                <label className="block text-xs font-bold text-text-muted mb-1">Endpoint Name</label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="e.g. Zapier Ingestion or Agency CRM"
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Destination URL</label>
+                <label className="block text-xs font-bold text-text-muted mb-1">Destination URL</label>
                 <input
                   type="url"
                   value={url}
                   onChange={e => setUrl(e.target.value)}
                   placeholder="https://hooks.zapier.com/hooks/catch/..."
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-full px-3 py-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                   required
                 />
-                <p className="text-[10px] text-gray-500 mt-1">
+                <p className="text-[10px] text-text-muted mt-1">
                   Must be an accessible HTTP/HTTPS URL. Local and private network IP ranges are rejected by SSRF guard.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                <label className="block text-xs font-bold text-text-muted mb-1.5">
                   Subscribed Events ({selectedEvents.length} selected)
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-lg border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-surface rounded-lg border border-border">
                   {AVAILABLE_EVENTS.map(ev => (
-                    <label key={ev.id} className="flex items-center gap-2 text-xs cursor-pointer text-gray-700 hover:text-gray-900">
+                    <label key={ev.id} className="flex items-center gap-2 text-xs cursor-pointer text-text-muted hover:text-text">
                       <input
                         type="checkbox"
                         checked={selectedEvents.includes(ev.id)}
                         onChange={() => handleToggleEvent(ev.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-border text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-[11px] font-medium">{ev.label}</span>
                     </label>
@@ -287,7 +287,7 @@ export function WebhookEndpointModal({
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-3 py-1.5 text-xs font-semibold text-text-muted bg-surface border border-border rounded-lg hover:bg-surface-2"
                 >
                   Cancel
                 </button>
@@ -304,10 +304,10 @@ export function WebhookEndpointModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+        <div className="p-4 border-t border-border bg-surface-2 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-white border border-gray-300 font-semibold text-gray-700 rounded-lg hover:bg-gray-100 transition text-xs"
+            className="px-4 py-2 bg-surface border border-border font-semibold text-text-muted rounded-lg hover:bg-surface-2 transition text-xs"
           >
             Close
           </button>

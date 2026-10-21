@@ -9,7 +9,7 @@ interface LeadsKanbanBoardProps {
 
 // 6 Required Stages with Muted Earthy Tones
 const PIPELINE_STAGES = [
-  { id: 'new', title: 'New', color: '#B84A22' },             // Terracotta
+  { id: 'new', title: 'New', color: '#0F766E' },             // Brand teal
   { id: 'contacted', title: 'Contacted', color: '#A9822B' }, // Brass
   { id: 'site_visit_scheduled', title: 'Site Visit', color: '#2F5D50' }, // Pine
   { id: 'negotiation', title: 'Negotiation', color: '#C58A1B' },         // Warm Ochre

@@ -12,8 +12,16 @@ import { voiceService } from '../../src/modules/voice/voice.service.js';
 import { modelRouter } from '../../src/modules/ai/router.js';
 import { runAction } from '../../src/modules/tools/actions.js';
 
-const IN_WINDOW = new Date('2026-10-21T05:30:00Z'); // Wednesday 11:00 IST
-const OUT_WINDOW = new Date('2026-10-21T20:00:00Z'); // Thursday 01:30 IST
+// Simulated clocks sit on the next Wednesday after today, so rows created with the real clock are never "in the future"
+const nextWednesday = (() => {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  do d.setUTCDate(d.getUTCDate() + 1);
+  while (d.getUTCDay() !== 3);
+  return d;
+})();
+const IN_WINDOW = new Date(nextWednesday.getTime() + 5.5 * 3_600_000); // Wednesday 11:00 IST
+const OUT_WINDOW = new Date(nextWednesday.getTime() + 20 * 3_600_000); // Thursday 01:30 IST
 
 describe('P5: voice studio', () => {
   const app = createApp();

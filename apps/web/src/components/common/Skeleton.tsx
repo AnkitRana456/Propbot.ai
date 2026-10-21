@@ -7,7 +7,7 @@ export const Skeleton: React.FC<{
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse rounded bg-slate-200 dark:bg-slate-700/60 ${className}`}
+      className={`animate-pulse rounded-md bg-surface-3 ${className}`}
       style={style}
     />
   );

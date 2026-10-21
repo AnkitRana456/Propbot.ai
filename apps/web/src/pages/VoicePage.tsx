@@ -111,7 +111,7 @@ const TestCallPanel: React.FC<{ agent: VoiceAgentItem; onClose: () => void }> = 
           {lines.length === 0 && <p className="text-xs text-slate-400">Press “Start call” to hear the greeting.</p>}
           {lines.map((l, i) => (
             <div key={i} className={`flex ${l.who === 'caller' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${l.who === 'caller' ? 'bg-[#B84A22] text-white' : 'bg-white text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100'}`}>{l.text}</div>
+              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${l.who === 'caller' ? 'bg-accent text-white' : 'bg-white text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100'}`}>{l.text}</div>
             </div>
           ))}
           <div ref={bottom} />
@@ -198,7 +198,7 @@ const AgentForm: React.FC<{ agent: VoiceAgentItem | null; onClose: () => void }>
           <div><label htmlFor="va-max" className="text-xs font-semibold">Max call length (seconds)</label><input id="va-max" type="number" min={30} max={3600} value={f.maxSeconds} onChange={e => setF({ ...f, maxSeconds: Number(e.target.value) || 600 })} className={inputCls} /></div>
         </div>
         {error && <p className="mt-3 text-xs text-rose-600" role="alert">{error}</p>}
-        <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={onClose} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending || update.isPending} className={`${btn} bg-gradient-to-r from-[#B84A22] to-[#c75528] text-white`}>Save voice agent</button></div>
+        <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={onClose} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending || update.isPending} className={`${btn} bg-gradient-to-r from-accent to-accent-hover text-white`}>Save voice agent</button></div>
       </form>
     </div>
   );
@@ -213,7 +213,7 @@ const AgentsTab: React.FC = () => {
   const [testing, setTesting] = useState<VoiceAgentItem | null>(null);
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between"><p className="text-xs text-slate-500">A voice agent is how your AI sounds and when it hands a call to a person. Every call starts with an AI disclosure.</p><button type="button" onClick={() => setEditing('new')} className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> New voice agent</button></div>
+      <div className="flex items-center justify-between"><p className="text-xs text-slate-500">A voice agent is how your AI sounds and when it hands a call to a person. Every call starts with an AI disclosure.</p><button type="button" onClick={() => setEditing('new')} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> New voice agent</button></div>
       {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
       {isLoading ? <Skeleton className="h-32 w-full" /> : (data ?? []).length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700"><EmptyState icon={<Bot className="h-7 w-7" />} title="No voice agents yet" description="Create one, then try it with a test call." actionLabel="New voice agent" onAction={() => setEditing('new')} /></div>
@@ -225,7 +225,7 @@ const AgentsTab: React.FC = () => {
               <p className="mt-1 text-[11px] text-slate-500">{a.voice.language} · {a.voice.tone} · max {Math.round(a.maxCallSeconds / 60)} min</p>
               <p className="mt-2 line-clamp-2 text-xs text-slate-600 dark:text-slate-300">{a.greeting || 'Default greeting'}</p>
               <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
-                <button type="button" onClick={() => setTesting(a)} className="inline-flex items-center gap-1 text-xs font-bold text-[#B84A22] cursor-pointer"><PhoneCall className="h-3.5 w-3.5" /> Test call</button>
+                <button type="button" onClick={() => setTesting(a)} className="inline-flex items-center gap-1 text-xs font-bold text-accent cursor-pointer"><PhoneCall className="h-3.5 w-3.5" /> Test call</button>
                 <button type="button" onClick={() => setEditing(a)} className="text-xs text-slate-500 cursor-pointer">Edit</button>
                 <button type="button" onClick={() => void run(() => update.mutateAsync({ id: a.id, input: { status: a.status === 'active' ? 'paused' : 'active' } }))} className="text-xs text-slate-500 cursor-pointer">{a.status === 'active' ? 'Pause' : 'Resume'}</button>
                 <button type="button" aria-label={`Delete ${a.name}`} onClick={() => window.confirm(`Delete ${a.name}?`) && void run(() => del.mutateAsync(a.id))} className="ml-auto text-slate-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-4 w-4" /></button>
@@ -260,7 +260,7 @@ const NumbersTab: React.FC = () => {
         <form onSubmit={e => { e.preventDefault(); void run(async () => { await add.mutateAsync({ provider: n.provider, number: n.number.trim(), direction: 'both' }); setN({ ...n, number: '' }); }); }} className="flex gap-2">
           <select aria-label="Provider" value={n.provider} onChange={e => setN({ ...n, provider: e.target.value as typeof n.provider })} className={`${inputCls} mt-0 w-28`}><option>exotel</option><option>plivo</option><option>twilio</option></select>
           <input aria-label="Phone number" required value={n.number} onChange={e => setN({ ...n, number: e.target.value })} placeholder="+918040001000" className={`${inputCls} mt-0 flex-1`} />
-          <button type="submit" className={`${btn} bg-[#B84A22] text-white`}>Add</button>
+          <button type="submit" className={`${btn} bg-accent text-white`}>Add</button>
         </form>
         {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
         <ul className="space-y-2">
@@ -312,7 +312,7 @@ const CampaignsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between"><p className="text-xs text-slate-500">Calls only consenting leads who are not on the DND list, inside your calling hours (IST by default), with retries for no-answers.</p><button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> New campaign</button></div>
+      <div className="flex items-center justify-between"><p className="text-xs text-slate-500">Calls only consenting leads who are not on the DND list, inside your calling hours (IST by default), with retries for no-answers.</p><button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> New campaign</button></div>
       {adding && (
         <form onSubmit={submit} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2">
           <div><label htmlFor="cp-name" className="text-xs font-semibold">Name</label><input id="cp-name" required minLength={2} value={f.name} onChange={e => setF({ ...f, name: e.target.value })} className={inputCls} /></div>
@@ -322,7 +322,7 @@ const CampaignsTab: React.FC = () => {
           <div><label htmlFor="cp-end" className="text-xs font-semibold">Call until (hour)</label><input id="cp-end" type="number" min={1} max={24} value={f.end} onChange={e => setF({ ...f, end: Number(e.target.value) })} className={inputCls} /></div>
           <div><label htmlFor="cp-conc" className="text-xs font-semibold">Calls at once</label><input id="cp-conc" type="number" min={1} max={20} value={f.concurrency} onChange={e => setF({ ...f, concurrency: Number(e.target.value) || 1 })} className={inputCls} /></div>
           <div><label htmlFor="cp-att" className="text-xs font-semibold">Attempts per person / gap (min)</label><div className="flex gap-2"><input id="cp-att" type="number" min={1} max={6} value={f.attempts} onChange={e => setF({ ...f, attempts: Number(e.target.value) || 1 })} className={inputCls} /><input aria-label="Gap minutes" type="number" min={5} value={f.gap} onChange={e => setF({ ...f, gap: Number(e.target.value) || 5 })} className={inputCls} /></div></div>
-          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending} className={`${btn} bg-[#B84A22] text-white`}>Create campaign</button></div>
+          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending} className={`${btn} bg-accent text-white`}>Create campaign</button></div>
         </form>
       )}
       {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
@@ -333,7 +333,7 @@ const CampaignsTab: React.FC = () => {
           {(data ?? []).map(c => (
             <li key={c.id} className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center justify-between gap-2"><span className="truncate font-serif text-sm font-bold text-slate-900 dark:text-white">{c.name}</span><Badge variant={c.status === 'running' ? 'mint' : c.status === 'completed' ? 'blue' : 'slate'} size="sm">{c.status}</Badge></div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuenow={bar(c)} aria-valuemin={0} aria-valuemax={100}><div className="h-full bg-[#B84A22]" style={{ width: `${bar(c)}%` }} /></div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuenow={bar(c)} aria-valuemin={0} aria-valuemax={100}><div className="h-full bg-accent" style={{ width: `${bar(c)}%` }} /></div>
               <p className="mt-2 text-[11px] text-slate-500">{c.progress.total} people · {c.progress.pending} waiting · {c.progress.calling} on a call · {c.progress.done} done · {c.progress.skipped} skipped (DND / no consent) · {c.progress.failed} unreachable</p>
               <p className="text-[11px] text-slate-400">{Object.entries(c.stats).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(' · ') || 'No results yet'}</p>
               <div className="mt-3 flex gap-2">
@@ -390,7 +390,7 @@ const CallsTab: React.FC = () => {
                   {detail.events.map(e => (
                     <li key={e.id} className={e.type === 'utterance' ? `flex ${e.speaker === 'caller' ? 'justify-end' : 'justify-start'}` : ''}>
                       {e.type === 'utterance' ? (
-                        <span className={`max-w-[85%] rounded-2xl px-3 py-2 ${e.speaker === 'caller' ? 'bg-[#B84A22] text-white' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100'}`}>{String((e.payload as { text?: string }).text ?? '')}</span>
+                        <span className={`max-w-[85%] rounded-2xl px-3 py-2 ${e.speaker === 'caller' ? 'bg-accent text-white' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100'}`}>{String((e.payload as { text?: string }).text ?? '')}</span>
                       ) : e.type === 'sentiment' ? null : (
                         <span className="block text-center text-[10px] text-slate-400">{e.type === 'transfer' ? `Handed to a person (${String(e.payload.reason)})` : `${String(e.payload.type)}: ${String(e.payload.value)}`}</span>
                       )}
@@ -424,8 +424,8 @@ const AnalyticsTab: React.FC = () => {
         {stat('Handed to a person', data.escalatedCount)}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <section><h2 className="text-sm font-bold text-slate-900 dark:text-white">Outcomes</h2><ul className="mt-2 space-y-1.5">{Object.entries(data.byOutcome).map(([k, v]) => <li key={k} className="flex items-center gap-2 text-xs"><span className="w-28 shrink-0 text-slate-600 dark:text-slate-300">{k.replace(/_/g, ' ')}</span><span className="h-2 rounded-full bg-[#B84A22]" style={{ width: `${(v / Math.max(1, data.totalCalls)) * 100}%`, minWidth: 4 }} /><span className="text-slate-500">{v}</span></li>)}{Object.keys(data.byOutcome).length === 0 && <li className="text-xs text-slate-400">No calls yet.</li>}</ul></section>
-        <section><h2 className="text-sm font-bold text-slate-900 dark:text-white">Calls per day</h2><div className="mt-2 flex h-32 items-end gap-1">{data.byDay.map(d => <div key={d.day} title={`${d.day}: ${d.calls}`} className="flex-1 rounded-t bg-[#B84A22]/80" style={{ height: `${(d.calls / max) * 100}%`, minHeight: 4 }} />)}</div></section>
+        <section><h2 className="text-sm font-bold text-slate-900 dark:text-white">Outcomes</h2><ul className="mt-2 space-y-1.5">{Object.entries(data.byOutcome).map(([k, v]) => <li key={k} className="flex items-center gap-2 text-xs"><span className="w-28 shrink-0 text-slate-600 dark:text-slate-300">{k.replace(/_/g, ' ')}</span><span className="h-2 rounded-full bg-accent" style={{ width: `${(v / Math.max(1, data.totalCalls)) * 100}%`, minWidth: 4 }} /><span className="text-slate-500">{v}</span></li>)}{Object.keys(data.byOutcome).length === 0 && <li className="text-xs text-slate-400">No calls yet.</li>}</ul></section>
+        <section><h2 className="text-sm font-bold text-slate-900 dark:text-white">Calls per day</h2><div className="mt-2 flex h-32 items-end gap-1">{data.byDay.map(d => <div key={d.day} title={`${d.day}: ${d.calls}`} className="flex-1 rounded-t bg-accent/80" style={{ height: `${(d.calls / max) * 100}%`, minHeight: 4 }} />)}</div></section>
       </div>
     </div>
   );
@@ -441,7 +441,7 @@ export const VoicePage: React.FC = () => {
         <p className="mt-1 text-xs text-slate-500 sm:text-sm">AI phone agents that call new leads within a minute, qualify them, and hand over to your team when it matters.</p>
       </div>
       <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist">
-        {tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500'}`}>{label}</button>)}
+        {tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-accent text-accent' : 'border-transparent text-slate-500'}`}>{label}</button>)}
       </div>
       {tab === 'agents' ? <AgentsTab /> : tab === 'numbers' ? <NumbersTab /> : tab === 'campaigns' ? <CampaignsTab /> : tab === 'calls' ? <CallsTab /> : <AnalyticsTab />}
     </div>

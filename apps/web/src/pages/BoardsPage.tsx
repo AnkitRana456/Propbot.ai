@@ -119,7 +119,7 @@ export const BoardsPage: React.FC = () => {
         <div><h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Boards</h1><p className="mt-1 text-xs text-slate-500 sm:text-sm">Track follow-ups, documentation and loan processing as simple boards. Drag a card to move it.</p></div>
         <form onSubmit={e => { e.preventDefault(); setErr(null); create.mutateAsync({ name, columns: [{ key: 'todo', label: 'To do' }, { key: 'doing', label: 'In progress' }, { key: 'done', label: 'Done' }] }).then(b => { setName(''); setSelected(b.id); }, x => setErr(errMsg(x, 'Could not create the board.'))); }} className="flex gap-2">
           <input aria-label="New board name" required minLength={2} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Loan processing" className={inputCls} />
-          <button type="submit" disabled={create.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-[#B84A22] px-3 text-xs font-bold text-white cursor-pointer"><Plus className="h-4 w-4" /> Board</button>
+          <button type="submit" disabled={create.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3 text-xs font-bold text-white cursor-pointer"><Plus className="h-4 w-4" /> Board</button>
         </form>
       </div>
       {(error || err) && <p className="text-sm text-rose-600" role="alert">{err ?? error?.message}</p>}

@@ -15,6 +15,7 @@ export * from './schemas/chatbots.js';
 export * from './schemas/knowledge.js';
 export * from './schemas/chat.js';
 export * from './schemas/leads.js';
+export * from './schemas/demo-requests.js';
 export * from './schemas/crm.js';
 export * from './schemas/inventory.js';
 export * from './schemas/appointments.js';

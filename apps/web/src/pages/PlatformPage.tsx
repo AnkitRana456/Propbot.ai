@@ -1,45 +1,32 @@
 import React from 'react';
-import { PlatformNav } from '../components/platform/PlatformNav.js';
-import { PlatformHero } from '../components/platform/PlatformHero.js';
-import { PlatformClientGrid } from '../components/platform/PlatformClientGrid.js';
-import { PlatformInteractiveDemo } from '../components/platform/PlatformInteractiveDemo.js';
-import { PlatformFeatureItem } from '../components/platform/PlatformFeatureItem.js';
-import { PlatformTimeline } from '../components/platform/PlatformTimeline.js';
-import { PlatformAudienceGrid } from '../components/platform/PlatformAudienceGrid.js';
-import { PlatformFaqAccordion } from '../components/platform/PlatformFaqAccordion.js';
-import { PlatformFooter } from '../components/platform/PlatformFooter.js';
+import { useDocumentMeta } from '../lib/use-document-meta.js';
+import { BuiltFor, ClosingDemo, Faq, FeatureRows, Hero, HowItWorks, MarketingFooter, MarketingNav, Pricing, ProofBand, TrustStrip, UseCases } from '../components/marketing/Sections.js';
 
+/** The public marketing site at "/". */
 export const PlatformPage: React.FC = () => {
+  useDocumentMeta({
+    title: 'PropBot Pro | AI chatbot and CRM that books site visits',
+    description: 'Answer every property enquiry in seconds on your website and WhatsApp, qualify buyers and book site visits automatically. Free trial, pricing in rupees.',
+    path: '/',
+  });
+
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-200 font-sans">
-      {/* 1. Architectural Header Nav with Login Option */}
-      <PlatformNav />
-
-      <main>
-        {/* 2. Hero Section with Live AI Copilot Dashboard */}
-        <PlatformHero />
-
-        {/* 3. Developer & Brokerage Showcase & Metrics */}
-        <PlatformClientGrid />
-
-        {/* 4. Interactive Live Product Demo */}
-        <PlatformInteractiveDemo />
-
-        {/* 5. Editorial Alternating Feature Showcase */}
-        <PlatformFeatureItem />
-
-        {/* 6. How It Works 4-Step Process */}
-        <PlatformTimeline />
-
-        {/* 7. Industry Audience Matrix */}
-        <PlatformAudienceGrid />
-
-        {/* 8. Case Study Framework & FAQ Accordion */}
-        <PlatformFaqAccordion />
+    <div className="min-h-screen bg-bg font-sans text-text">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-accent">Skip to content</a>
+      <MarketingNav />
+      <main id="main" tabIndex={-1} className="focus:outline-none">
+        <Hero />
+        <TrustStrip />
+        <ProofBand />
+        <UseCases />
+        <FeatureRows />
+        <BuiltFor />
+        <HowItWorks />
+        <Pricing />
+        <Faq />
+        <ClosingDemo />
       </main>
-
-      {/* 9. Conversion CTA & Enterprise Footer */}
-      <PlatformFooter />
+      <MarketingFooter />
     </div>
   );
 };

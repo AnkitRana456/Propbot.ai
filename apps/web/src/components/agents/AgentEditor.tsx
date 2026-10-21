@@ -17,7 +17,7 @@ import { useKnowledgeReferences, useSaveKnowledgeReference } from '../../service
 type Tab = 'behaviour' | 'model' | 'knowledge';
 
 const inputCls =
-  'mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#B84A22]/30 dark:border-slate-800 dark:bg-slate-800 dark:text-white';
+  'mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-accent/30 dark:border-slate-800 dark:bg-slate-800 dark:text-white';
 const labelCls = 'text-xs font-semibold text-slate-700 dark:text-slate-300';
 const hintCls = 'mt-1 text-[11px] text-slate-500';
 
@@ -84,7 +84,7 @@ export const AgentEditor: React.FC<Props> = ({ content, onChange, forms, models 
             type="button"
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold cursor-pointer ${
-              tab === t.id ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              tab === t.id ? 'border-accent text-accent' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             {t.icon}
@@ -278,7 +278,7 @@ const ModelTab: React.FC<{ content: AgentVersionContent; set: SetFn; models: Mod
           {models.map(m => (
             <label
               key={m.id}
-              className={`cursor-pointer rounded-xl border p-3 text-xs ${content.model === m.id ? 'border-[#B84A22] bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 dark:border-slate-800'}`}
+              className={`cursor-pointer rounded-xl border p-3 text-xs ${content.model === m.id ? 'border-accent bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 dark:border-slate-800'}`}
             >
               <input type="radio" name="model" className="sr-only" checked={content.model === m.id} onChange={() => set('model', m.id)} />
               <span className="flex items-center justify-between">

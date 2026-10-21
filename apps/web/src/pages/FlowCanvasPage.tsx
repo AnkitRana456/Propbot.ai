@@ -149,7 +149,7 @@ const StepNodeView: React.FC<NodeProps<StepNode>> = ({ data, selected }) => {
   const outs = outputsOf(data.kind, data.config);
   const errors = data.issues.filter(i => i.level === 'error');
   return (
-    <div className={`relative w-56 rounded-xl border bg-white p-3 shadow-sm dark:bg-slate-900 ${selected ? 'border-[#B84A22]' : 'border-slate-200 dark:border-slate-700'} ${data.runStatus ? RUN_RING[data.runStatus] ?? '' : ''}`}>
+    <div className={`relative w-56 rounded-xl border bg-white p-3 shadow-sm dark:bg-slate-900 ${selected ? 'border-accent' : 'border-slate-200 dark:border-slate-700'} ${data.runStatus ? RUN_RING[data.runStatus] ?? '' : ''}`}>
       {data.kind !== 'trigger' && <Handle type="target" position={Position.Left} className="!h-3 !w-3 !bg-slate-400" />}
       <div className="flex items-center gap-2">
         <span className={`flex h-6 w-6 items-center justify-center rounded-md ${meta.tint}`}>{meta.icon}</span>
@@ -360,7 +360,7 @@ const Canvas: React.FC<{ flowId: string; versions: FlowVersionItem[]; activeVers
           <button type="button" aria-label="Undo" disabled={history.current.past.length === 0} onClick={undo} className={`${btn} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200`}><Undo2 className="h-3.5 w-3.5" /></button>
           <button type="button" aria-label="Redo" disabled={history.current.future.length === 0} onClick={redo} className={`${btn} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200`}><Redo2 className="h-3.5 w-3.5" /></button>
           <button type="button" disabled={!dirty || save.isPending} onClick={() => void doSave()} className={`${btn} bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100`}><Save className="h-3.5 w-3.5" /> {save.isPending ? 'Saving…' : 'Save draft'}</button>
-          <button type="button" disabled={hasErrors || publish.isPending} onClick={() => void doPublish()} className={`${btn} bg-gradient-to-r from-[#B84A22] to-[#c75528] text-white`}><Rocket className="h-3.5 w-3.5" /> {publish.isPending ? 'Publishing…' : 'Publish'}</button>
+          <button type="button" disabled={hasErrors || publish.isPending} onClick={() => void doPublish()} className={`${btn} bg-gradient-to-r from-accent to-accent-hover text-white`}><Rocket className="h-3.5 w-3.5" /> {publish.isPending ? 'Publishing…' : 'Publish'}</button>
         </div>
       </div>
 
@@ -428,7 +428,7 @@ const Canvas: React.FC<{ flowId: string; versions: FlowVersionItem[]; activeVers
             <div>
               <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist">
                 {(['test', 'versions'] as const).map(t => (
-                  <button key={t} role="tab" aria-selected={panel === t} type="button" onClick={() => setPanel(t)} className={`border-b-2 px-3 py-2 text-xs font-semibold cursor-pointer ${panel === t ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500'}`}>{t === 'test' ? 'Test run' : 'Versions'}</button>
+                  <button key={t} role="tab" aria-selected={panel === t} type="button" onClick={() => setPanel(t)} className={`border-b-2 px-3 py-2 text-xs font-semibold cursor-pointer ${panel === t ? 'border-accent text-accent' : 'border-transparent text-slate-500'}`}>{t === 'test' ? 'Test run' : 'Versions'}</button>
                 ))}
               </div>
               <div className="pt-3">
@@ -464,7 +464,7 @@ const Canvas: React.FC<{ flowId: string; versions: FlowVersionItem[]; activeVers
                         {v.changeNote && <p className="text-slate-500">{v.changeNote}</p>}
                         <div className="mt-1 flex gap-2">
                           {v.status !== 'draft' && v.id !== activeVersionId && (
-                            <button type="button" onClick={() => window.confirm(`Roll back to v${v.version}?`) && void rollback.mutateAsync({ id: flowId, versionId: v.id }).catch(e => setNotice({ kind: 'err', text: errMsg(e, 'Rollback failed.') }))} className="font-semibold text-[#B84A22] cursor-pointer">Roll back</button>
+                            <button type="button" onClick={() => window.confirm(`Roll back to v${v.version}?`) && void rollback.mutateAsync({ id: flowId, versionId: v.id }).catch(e => setNotice({ kind: 'err', text: errMsg(e, 'Rollback failed.') }))} className="font-semibold text-accent cursor-pointer">Roll back</button>
                           )}
                           {v.status === 'draft' && versions.length > 1 && (
                             <button type="button" onClick={() => window.confirm(`Discard draft v${v.version}?`) && void discard.mutateAsync({ id: flowId, versionId: v.id }).catch(e => setNotice({ kind: 'err', text: errMsg(e, 'Could not discard.') }))} className="text-slate-500 hover:text-rose-600 cursor-pointer">Discard</button>

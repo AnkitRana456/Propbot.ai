@@ -23,7 +23,7 @@ export const AgentPicker: React.FC<{ chatbotId: string; agentId: string | null |
       <label htmlFor="agent-picker" className="text-xs font-bold text-slate-900 dark:text-white">AI agent</label>
       <p className="mt-1 text-[11px] text-slate-500">
         The agent decides how this chatbot behaves, what it knows and what it collects. Without one, the persona below is used.{' '}
-        <Link to="/agents" className="font-semibold text-[#B84A22] hover:underline">Manage agents</Link>
+        <Link to="/agents" className="font-semibold text-accent hover:underline">Manage agents</Link>
       </p>
       <select
         id="agent-picker"

@@ -18,7 +18,7 @@ export const ChangelogPage: React.FC = () => {
       {isLoading ? <Skeleton className="mt-6 h-40 w-full" /> : (
         <ol className="mt-8 space-y-6">
           {(data ?? []).map(e => (
-            <li key={e.id} className="border-l-2 border-[#B84A22]/40 pl-4">
+            <li key={e.id} className="border-l-2 border-accent/40 pl-4">
               <div className="flex items-center gap-2"><h2 className="font-serif text-lg font-bold text-slate-900 dark:text-white">{e.title}</h2><Badge variant={CATEGORY_VARIANT[e.category] ?? 'slate'} size="sm">{e.category}</Badge></div>
               <p className="text-[11px] text-slate-400">{new Date(e.publishedAt).toLocaleDateString()}</p>
               <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{e.bodyMd}</p>

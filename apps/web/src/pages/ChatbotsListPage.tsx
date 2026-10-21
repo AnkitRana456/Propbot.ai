@@ -93,8 +93,8 @@ export const ChatbotsListPage: React.FC = () => {
               <h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Real Estate Chatbots
               </h1>
-              <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-orange-500/10 to-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-[#B84A22] border border-orange-200 dark:border-orange-800/60 dark:text-orange-300 shadow-xs">
-                <Sparkles className="h-3 w-3 text-[#B84A22] dark:text-orange-400" />
+              <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-orange-500/10 to-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-accent border border-orange-200 dark:border-orange-800/60 dark:text-orange-300 shadow-xs">
+                <Sparkles className="h-3 w-3 text-accent dark:text-orange-400" />
                 <span>{totalBots} Deployed</span>
               </span>
             </div>
@@ -106,7 +106,7 @@ export const ChatbotsListPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/chatbots/new')}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-4 py-2.5 text-xs font-bold text-white shadow-button hover:shadow-button-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 self-start sm:self-auto cursor-pointer"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-accent to-accent-hover px-4 py-2.5 text-xs font-bold text-white shadow-button hover:shadow-button-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 self-start sm:self-auto cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Create Chatbot</span>
@@ -179,7 +179,7 @@ export const ChatbotsListPage: React.FC = () => {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search chatbots by name..."
-            className="w-full rounded-xl border border-slate-200/90 bg-white pl-9 pr-4 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#B84A22] focus:outline-none dark:border-slate-700 dark:bg-slate-800/80 dark:text-white shadow-xs transition-all"
+            className="w-full rounded-xl border border-slate-200/90 bg-white pl-9 pr-4 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-accent focus:outline-none dark:border-slate-700 dark:bg-slate-800/80 dark:text-white shadow-xs transition-all"
           />
         </div>
 
@@ -207,7 +207,7 @@ export const ChatbotsListPage: React.FC = () => {
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value as 'all' | 'web' | 'whatsapp')}
-            className="rounded-xl border border-slate-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-[#B84A22]/30"
+            className="rounded-xl border border-slate-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-accent/30"
           >
             <option value="all">All Platforms</option>
             <option value="web">Website Widget</option>
@@ -262,7 +262,7 @@ export const ChatbotsListPage: React.FC = () => {
         </div>
       ) : chatbots.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900/40">
-          <div className="h-16 w-16 rounded-2xl bg-orange-50 text-[#B84A22] dark:bg-orange-950/60 dark:text-orange-400 flex items-center justify-center mx-auto mb-4">
+          <div className="h-16 w-16 rounded-2xl bg-orange-50 text-accent dark:bg-orange-950/60 dark:text-orange-400 flex items-center justify-center mx-auto mb-4">
             <Bot className="h-8 w-8" />
           </div>
           <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">No Chatbots Found</h3>
@@ -272,7 +272,7 @@ export const ChatbotsListPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/chatbots/new')}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-5 py-2.5 text-xs font-bold text-white shadow-button hover:shadow-button-hover transition-all"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-accent to-accent-hover px-5 py-2.5 text-xs font-bold text-white shadow-button hover:shadow-button-hover transition-all"
           >
             <Plus className="h-4 w-4" />
             Launch Wizard
@@ -282,7 +282,7 @@ export const ChatbotsListPage: React.FC = () => {
         /* GRID CARDS VIEW WITH 3D DEPTH */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {chatbots.map(bot => {
-            const primaryColor = bot.config?.appearance?.primaryColor || '#B84A22';
+            const primaryColor = bot.config?.appearance?.primaryColor || '#0F766E';
             const botTitle = bot.config?.appearance?.botName || bot.name;
 
             return (
@@ -308,7 +308,7 @@ export const ChatbotsListPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => navigate(`/chatbots/${bot.id}/edit`)}
-                          className="font-serif font-bold text-sm text-slate-900 dark:text-white truncate text-left hover:text-[#B84A22] dark:hover:text-orange-400 transition-colors block max-w-full cursor-pointer"
+                          className="font-serif font-bold text-sm text-slate-900 dark:text-white truncate text-left hover:text-accent dark:hover:text-orange-400 transition-colors block max-w-full cursor-pointer"
                         >
                           {bot.name}
                         </button>
@@ -465,14 +465,14 @@ export const ChatbotsListPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEmbedModalBot(bot)}
-                      className="flex items-center gap-1 rounded-lg border border-slate-200/90 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-700 shadow-xs hover:border-[#B84A22] hover:text-[#B84A22] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-orange-400 transition-all cursor-pointer"
+                      className="flex items-center gap-1 rounded-lg border border-slate-200/90 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-700 shadow-xs hover:border-accent hover:text-accent dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-orange-400 transition-all cursor-pointer"
                     >
                       <Code2 className="h-3 w-3" />
                       <span>Embed</span>
                     </button>
                     <Link
                       to={`/chatbots/${bot.id}/edit`}
-                      className="flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-xs hover:bg-[#B84A22] dark:bg-slate-800 dark:hover:bg-[#B84A22] transition-all"
+                      className="flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-xs hover:bg-accent dark:bg-slate-800 dark:hover:bg-accent transition-all"
                     >
                       <span>Configure</span>
                       <ArrowUpRight className="h-3 w-3" />
@@ -541,7 +541,7 @@ export const ChatbotsListPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => navigate(`/chatbots/${bot.id}/edit`)}
-                      className="text-[#B84A22] hover:text-[#9c3e1c] dark:text-orange-400 font-bold cursor-pointer"
+                      className="text-accent hover:text-[#9c3e1c] dark:text-orange-400 font-bold cursor-pointer"
                     >
                       Edit
                     </button>
@@ -566,7 +566,7 @@ export const ChatbotsListPage: React.FC = () => {
           <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/10 text-[#B84A22] dark:bg-orange-500/20 dark:text-orange-400">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/10 text-accent dark:bg-orange-500/20 dark:text-orange-400">
                   <Code2 className="h-4 w-4" />
                 </div>
                 <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
@@ -585,7 +585,7 @@ export const ChatbotsListPage: React.FC = () => {
             <div className="mt-4 space-y-4">
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Copy and paste this snippet into the HTML of your website, right before the closing{' '}
-                <code className="text-[#B84A22] dark:text-orange-400 font-mono font-bold">&lt;/body&gt;</code> tag.
+                <code className="text-accent dark:text-orange-400 font-mono font-bold">&lt;/body&gt;</code> tag.
               </p>
 
               <div className="rounded-xl bg-slate-950 p-3.5 font-mono text-xs text-slate-300 overflow-x-auto border border-slate-800 relative group">
@@ -607,7 +607,7 @@ export const ChatbotsListPage: React.FC = () => {
                     setCopiedKey('modal');
                     setTimeout(() => setCopiedKey(null), 2000);
                   }}
-                  className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-slate-200 hover:bg-[#B84A22] transition-colors cursor-pointer"
+                  className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-slate-200 hover:bg-accent transition-colors cursor-pointer"
                 >
                   {copiedKey === 'modal' ? (
                     <>
@@ -627,7 +627,7 @@ export const ChatbotsListPage: React.FC = () => {
                 <span className="font-bold text-slate-800 dark:text-slate-200 block">
                   Installation Guides:
                 </span>
-                <div className="flex gap-3 text-[#B84A22] dark:text-orange-400 font-medium">
+                <div className="flex gap-3 text-accent dark:text-orange-400 font-medium">
                   <span className="cursor-pointer hover:underline">WordPress</span>
                   <span className="cursor-pointer hover:underline">Webflow</span>
                   <span className="cursor-pointer hover:underline">React / Next.js</span>
@@ -639,7 +639,7 @@ export const ChatbotsListPage: React.FC = () => {
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
               <Link
                 to={`/chatbots/${embedModalBot.id}/training`}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#B84A22] dark:text-orange-400 hover:underline"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-accent dark:text-orange-400 hover:underline"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 Open RAG Test Studio
@@ -654,7 +654,7 @@ export const ChatbotsListPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEmbedModalBot(null)}
-                  className="rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-4 py-2 text-xs font-bold text-white shadow-button hover:shadow-button-hover transition-all cursor-pointer"
+                  className="rounded-xl bg-gradient-to-r from-accent to-accent-hover px-4 py-2 text-xs font-bold text-white shadow-button hover:shadow-button-hover transition-all cursor-pointer"
                 >
                   Close
                 </button>

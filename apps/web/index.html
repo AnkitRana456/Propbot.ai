@@ -2,12 +2,34 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M12 2L2 12h3v8h14v-8h3L12 2z'/></svg>" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230f766e'><path d='M12 2L2 12h3v8h14v-8h3L12 2z'/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PropBot Pro — Real Estate AI & CRM Platform</title>
+    <meta name="theme-color" content="#0F766E" />
+    <meta name="description" content="PropBot: AI chatbot, WhatsApp bot and CRM that turn property enquiries into booked site visits." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PropBot Pro" />
+    <meta property="og:title" content="PropBot Pro | AI chatbot and CRM that books site visits" />
+    <meta property="og:description" content="PropBot: AI chatbot, WhatsApp bot and CRM that turn property enquiries into booked site visits." />
+    <meta property="og:image" content="/images/og-image.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Apply the saved theme before first paint so there is no flash of the wrong theme.
+      (function () {
+        try {
+          var pref = localStorage.getItem('propbot_theme');
+          if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.setAttribute('data-theme', dark ? 'dark' : 'light');
+          if (dark) root.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+    <title>PropBot Pro | Real Estate AI and CRM Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"></noscript>
   </head>
   <body>
     <div id="root"></div>

@@ -388,3 +388,4 @@ export * from './voice-studio.js';
 export * from './intelligence.js';
 export * from './controls.js';
 export * from './payments.js';
+export * from './demo-requests.js';

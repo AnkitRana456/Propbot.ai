@@ -277,7 +277,7 @@ export const PlatformInteractiveDemo: React.FC = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {DEMO_PREVIEW_DATA.crm.stages.map((st: { name: string; count: number; highlight: string }, i: number) => {
-                const colors = ['border-t-[#B84A22]', 'border-t-[#A9822B]', 'border-t-[#2F5D50]', 'border-t-[#C58A1B]', 'border-t-[#2F5D50]', 'border-t-[#6B6355]'];
+                const colors = ['border-t-accent', 'border-t-[#A9822B]', 'border-t-[#2F5D50]', 'border-t-[#C58A1B]', 'border-t-[#2F5D50]', 'border-t-[#6B6355]'];
                 return (
                   <div
                     key={i}

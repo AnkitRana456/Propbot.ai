@@ -27,28 +27,28 @@ export function WebhookPayloadDrawer({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 flex justify-end">
-      <div className="w-full max-w-xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+      <div className="w-full max-w-xl bg-surface h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
         {/* Drawer Header */}
-        <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50/75">
+        <div className="p-5 border-b border-border flex items-center justify-between bg-surface-2">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-blue-100 text-blue-800 font-bold">
                 {log.eventType}
               </span>
-              <span className="text-xs text-gray-500 font-mono">
+              <span className="text-xs text-text-muted font-mono">
                 {new Date(log.createdAt).toLocaleString()}
               </span>
             </div>
-            <h3 className="text-sm font-bold text-gray-900 truncate max-w-md">
+            <h3 className="text-sm font-bold text-text truncate max-w-md">
               {log.endpointName}
             </h3>
-            <p className="text-[11px] font-mono text-gray-500 truncate max-w-md">
+            <p className="text-[11px] font-mono text-text-muted truncate max-w-md">
               {log.endpointUrl}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text-muted hover:bg-surface-2 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -57,28 +57,28 @@ export function WebhookPayloadDrawer({
         {/* Drawer Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
           {/* Metadata Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-surface-2 p-3 rounded-lg border border-border">
             <div>
-              <span className="text-gray-400 block text-[10px] uppercase font-semibold">Status</span>
-              <span className="font-bold text-gray-800">
+              <span className="text-text-muted block text-[10px] uppercase font-semibold">Status</span>
+              <span className="font-bold text-text">
                 {log.statusCode ? `${log.statusCode} OK` : log.status}
               </span>
             </div>
             <div>
-              <span className="text-gray-400 block text-[10px] uppercase font-semibold">Duration</span>
-              <span className="font-bold text-gray-800">
+              <span className="text-text-muted block text-[10px] uppercase font-semibold">Duration</span>
+              <span className="font-bold text-text">
                 {log.durationMs !== null ? `${log.durationMs} ms` : '—'}
               </span>
             </div>
             <div>
-              <span className="text-gray-400 block text-[10px] uppercase font-semibold">Attempt</span>
-              <span className="font-bold text-gray-800">
+              <span className="text-text-muted block text-[10px] uppercase font-semibold">Attempt</span>
+              <span className="font-bold text-text">
                 {log.attempt} / {log.maxAttempts}
               </span>
             </div>
             <div>
-              <span className="text-gray-400 block text-[10px] uppercase font-semibold">Lead</span>
-              <span className="font-bold text-gray-800 truncate block">
+              <span className="text-text-muted block text-[10px] uppercase font-semibold">Lead</span>
+              <span className="font-bold text-text truncate block">
                 {log.leadName || '—'}
               </span>
             </div>
@@ -97,7 +97,7 @@ export function WebhookPayloadDrawer({
 
           {/* Request Headers */}
           <div>
-            <h4 className="text-xs font-bold text-gray-900 mb-1.5 uppercase tracking-wider text-[10px]">
+            <h4 className="text-xs font-bold text-text mb-1.5 uppercase tracking-wider text-[10px]">
               Request Headers (Redacted)
             </h4>
             <pre className="p-3 bg-gray-900 text-gray-100 rounded-lg font-mono text-[11px] overflow-x-auto">
@@ -108,7 +108,7 @@ export function WebhookPayloadDrawer({
           {/* Request Payload */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider text-[10px]">
+              <h4 className="text-xs font-bold text-text uppercase tracking-wider text-[10px]">
                 Request Payload
               </h4>
               <button
@@ -126,17 +126,17 @@ export function WebhookPayloadDrawer({
 
           {/* Response Body */}
           <div>
-            <h4 className="text-xs font-bold text-gray-900 mb-1.5 uppercase tracking-wider text-[10px]">
+            <h4 className="text-xs font-bold text-text mb-1.5 uppercase tracking-wider text-[10px]">
               Response Body ({log.statusCode || 'No Status'})
             </h4>
-            <pre className="p-3 bg-gray-100 border border-gray-200 text-gray-800 rounded-lg font-mono text-[11px] overflow-x-auto max-h-48">
+            <pre className="p-3 bg-surface-2 border border-border text-text rounded-lg font-mono text-[11px] overflow-x-auto max-h-48">
               {log.responseBody || '— (Empty response)'}
             </pre>
           </div>
         </div>
 
         {/* Drawer Footer Actions */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+        <div className="p-4 border-t border-border bg-surface-2 flex items-center justify-between">
           <button
             onClick={() => onReplay(log.id)}
             disabled={isReplaying}
@@ -147,7 +147,7 @@ export function WebhookPayloadDrawer({
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-white border border-gray-300 font-semibold text-gray-700 rounded-lg hover:bg-gray-50 transition text-xs"
+            className="px-4 py-2 bg-surface border border-border font-semibold text-text-muted rounded-lg hover:bg-surface-2 transition text-xs"
           >
             Close
           </button>

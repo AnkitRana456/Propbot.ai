@@ -98,7 +98,7 @@ const GroupsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between"><p className="text-xs text-slate-500">Groups update themselves from rules, e.g. “3 BHK, budget 80 L to 1.2 Cr, no site visit yet”. Use them as campaign audiences.</p><button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> New group</button></div>
+      <div className="flex items-center justify-between"><p className="text-xs text-slate-500">Groups update themselves from rules, e.g. “3 BHK, budget 80 L to 1.2 Cr, no site visit yet”. Use them as campaign audiences.</p><button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> New group</button></div>
       {adding && (
         <form onSubmit={e => { e.preventDefault(); void run(async () => { await create.mutateAsync({ name, rules: rules(), isDynamic: true }); setAdding(false); setName(''); }); }} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
           <div><label htmlFor="g-name" className="text-xs font-semibold">Name</label><input id="g-name" required minLength={2} value={name} onChange={e => setName(e.target.value)} className={inputCls} /></div>
@@ -116,7 +116,7 @@ const GroupsTab: React.FC = () => {
             <button type="button" onClick={() => setRows([...rows, { field: 'status', key: '', op: 'equals', raw: '' }])} className={`${btn} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200`}><Plus className="h-3.5 w-3.5" /> Add rule</button>
             <button type="button" disabled={preview.isPending} onClick={() => void run(async () => setCount((await preview.mutateAsync(rules())).count))} className={`${btn} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200`}><Search className="h-3.5 w-3.5" /> Preview</button>
             {count !== null && <span className="text-xs text-slate-600" role="status">{count} {count === 1 ? 'person matches' : 'people match'}</span>}
-            <button type="submit" disabled={create.isPending} className={`${btn} ml-auto bg-[#B84A22] text-white`}>Save group</button>
+            <button type="submit" disabled={create.isPending} className={`${btn} ml-auto bg-accent text-white`}>Save group</button>
           </div>
         </form>
       )}
@@ -130,13 +130,13 @@ const GroupsTab: React.FC = () => {
               <div className="flex items-center justify-between gap-2"><span className="truncate font-serif text-sm font-bold text-slate-900 dark:text-white">{g.name}</span><Badge variant="mint" size="sm">{g.memberCount} people</Badge></div>
               <p className="mt-1 text-[11px] text-slate-500">{g.rules.length} rule(s){g.refreshedAt ? ` · updated ${new Date(g.refreshedAt).toLocaleString()}` : ''}</p>
               <div className="mt-3 flex items-center gap-3 text-xs">
-                <button type="button" onClick={() => setOpen(open === g.id ? null : g.id)} className="font-bold text-[#B84A22] cursor-pointer">{open === g.id ? 'Hide people' : 'Show people'}</button>
+                <button type="button" onClick={() => setOpen(open === g.id ? null : g.id)} className="font-bold text-accent cursor-pointer">{open === g.id ? 'Hide people' : 'Show people'}</button>
                 <button type="button" disabled={refresh.isPending} onClick={() => void run(() => refresh.mutateAsync(g.id))} className="inline-flex items-center gap-1 text-slate-500 cursor-pointer"><RefreshCw className="h-3.5 w-3.5" /> Refresh</button>
                 <button type="button" aria-label={`Delete ${g.name}`} onClick={() => window.confirm(`Delete ${g.name}?`) && void run(() => del.mutateAsync(g.id))} className="ml-auto text-slate-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-4 w-4" /></button>
               </div>
               {open === g.id && (
                 <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-xs">
-                  {(members ?? []).map(m => <li key={m.contactId} className="flex items-center gap-2"><Link to={`/contacts/${m.contactId}`} className="font-semibold text-slate-800 hover:text-[#B84A22] dark:text-slate-200">{m.name}</Link><span className="text-slate-400">{m.status?.replace(/_/g, ' ')}</span></li>)}
+                  {(members ?? []).map(m => <li key={m.contactId} className="flex items-center gap-2"><Link to={`/contacts/${m.contactId}`} className="font-semibold text-slate-800 hover:text-accent dark:text-slate-200">{m.name}</Link><span className="text-slate-400">{m.status?.replace(/_/g, ' ')}</span></li>)}
                   {(members ?? []).length === 0 && <li className="text-slate-400">Nobody matches right now.</li>}
                 </ul>
               )}
@@ -153,7 +153,7 @@ const TagsTab: React.FC = () => {
   const create = useCreateTag();
   const del = useDeleteTag();
   const { error, run } = useRun();
-  const [f, setF] = useState({ name: '', color: '#B84A22', entityType: 'lead' as 'lead' | 'contact' | 'conversation', aiLabel: '' });
+  const [f, setF] = useState({ name: '', color: '#0F766E', entityType: 'lead' as 'lead' | 'contact' | 'conversation', aiLabel: '' });
   return (
     <div className="space-y-4">
       <form onSubmit={e => { e.preventDefault(); void run(async () => { await create.mutateAsync({ name: f.name, color: f.color, entityType: f.entityType, autoRule: f.aiLabel ? { aiLabel: f.aiLabel } : null }); setF({ ...f, name: '', aiLabel: '' }); }); }} className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-12">
@@ -161,7 +161,7 @@ const TagsTab: React.FC = () => {
         <input aria-label="Colour" type="color" value={f.color} onChange={e => setF({ ...f, color: e.target.value })} className="h-9 rounded-xl border border-slate-200 sm:col-span-1" />
         <select aria-label="Applies to" value={f.entityType} onChange={e => setF({ ...f, entityType: e.target.value as typeof f.entityType })} className={`${inputCls} mt-0 sm:col-span-2`}><option value="lead">Leads</option><option value="contact">Contacts</option><option value="conversation">Conversations</option></select>
         <select aria-label="Apply automatically when the AI sees" value={f.aiLabel} onChange={e => setF({ ...f, aiLabel: e.target.value })} className={`${inputCls} mt-0 sm:col-span-4`}><option value="">Manual only</option>{['price_enquiry', 'site_visit', 'loan', 'resale', 'rental', 'complaint', 'broker'].map(l => <option key={l} value={l}>Auto-tag: {l.replace(/_/g, ' ')}</option>)}</select>
-        <button type="submit" className={`${btn} bg-[#B84A22] text-white sm:col-span-2`}>Add tag</button>
+        <button type="submit" className={`${btn} bg-accent text-white sm:col-span-2`}>Add tag</button>
       </form>
       {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
       {isLoading ? <Skeleton className="h-16 w-full" /> : (data ?? []).length === 0 ? (
@@ -205,7 +205,7 @@ const SurveysTab: React.FC = () => {
         <input aria-label="Survey name" required minLength={2} value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="e.g. Post-visit satisfaction" className={`${inputCls} mt-0 sm:col-span-5`} />
         <select aria-label="Survey type" value={f.kind} onChange={e => setF({ ...f, kind: e.target.value as typeof f.kind })} className={`${inputCls} mt-0 sm:col-span-3`}><option value="csat">CSAT (1-5)</option><option value="nps">NPS (0-10)</option></select>
         <input aria-label="Send after minutes" type="number" min={0} value={f.delay} onChange={e => setF({ ...f, delay: Number(e.target.value) || 0 })} className={`${inputCls} mt-0 sm:col-span-2`} />
-        <button type="submit" className={`${btn} bg-[#B84A22] text-white sm:col-span-2`}>Add survey</button>
+        <button type="submit" className={`${btn} bg-accent text-white sm:col-span-2`}>Add survey</button>
       </form>
       {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
       {isLoading ? <Skeleton className="h-16 w-full" /> : (data ?? []).length === 0 ? (
@@ -241,7 +241,7 @@ const KbTab: React.FC = () => {
       <form onSubmit={e => { e.preventDefault(); void run(async () => setLast(await test.mutateAsync({ chatbotId: chosen, question: q }))); }} className="flex flex-wrap gap-2">
         <select aria-label="Chatbot" value={chosen} onChange={e => setBotId(e.target.value)} className={`${inputCls} mt-0 w-48`}>{(bots?.chatbots ?? []).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
         <input aria-label="Question" required minLength={2} value={q} onChange={e => setQ(e.target.value)} placeholder="Is there a swimming pool?" className={`${inputCls} mt-0 min-w-0 flex-1`} />
-        <button type="submit" disabled={!chosen || test.isPending} className={`${btn} bg-[#B84A22] text-white`}><FlaskConical className="h-4 w-4" /> {test.isPending ? 'Searching…' : 'Test'}</button>
+        <button type="submit" disabled={!chosen || test.isPending} className={`${btn} bg-accent text-white`}><FlaskConical className="h-4 w-4" /> {test.isPending ? 'Searching…' : 'Test'}</button>
       </form>
       {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
       {last && (
@@ -268,7 +268,7 @@ export const DataHubPage: React.FC = () => {
         <p className="mt-1 text-xs text-slate-500 sm:text-sm">Segment buyers, label conversations, measure satisfaction and check what your chatbot knows.</p>
       </div>
       <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist">
-        {tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500'}`}>{label}</button>)}
+        {tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-accent text-accent' : 'border-transparent text-slate-500'}`}>{label}</button>)}
       </div>
       {tab === 'groups' ? <GroupsTab /> : tab === 'tags' ? <TagsTab /> : tab === 'surveys' ? <SurveysTab /> : <KbTab />}
     </div>

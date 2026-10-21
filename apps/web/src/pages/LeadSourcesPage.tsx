@@ -87,7 +87,7 @@ const CreateModal: React.FC<{ onClose: () => void; onCreated: (key: string) => v
         {error && <p className="mt-3 text-xs text-rose-600" role="alert">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 cursor-pointer">Cancel</button>
-          <button type="submit" disabled={create.isPending} className="rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">{create.isPending ? 'Creating…' : 'Create source'}</button>
+          <button type="submit" disabled={create.isPending} className="rounded-xl bg-gradient-to-r from-accent to-accent-hover px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">{create.isPending ? 'Creating…' : 'Create source'}</button>
         </div>
       </form>
     </div>
@@ -126,7 +126,7 @@ const SourceCard: React.FC<{ s: LeadSourceItem; onKey: (k: string) => void }> = 
       <div className="mt-3 flex flex-wrap gap-1.5"><Badge variant="slate" size="sm">{s.totalReceived} received</Badge>{s.lastReceivedAt && <Badge variant="outline" size="sm">Last {new Date(s.lastReceivedAt).toLocaleDateString()}</Badge>}</div>
       {error && <p className="mt-2 text-[11px] text-rose-600" role="alert">{error}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
-        <button type="button" onClick={() => setOpen(o => !o)} className="font-bold text-[#B84A22] cursor-pointer">{open ? 'Hide' : 'Activity & import'}</button>
+        <button type="button" onClick={() => setOpen(o => !o)} className="font-bold text-accent cursor-pointer">{open ? 'Hide' : 'Activity & import'}</button>
         <button type="button" onClick={() => window.confirm('Rotating invalidates the current key immediately. Continue?') && void run(async () => onKey((await rotate.mutateAsync(s.id)).apiKey))} className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800 cursor-pointer"><KeyRound className="h-3.5 w-3.5" /> New key</button>
         <button type="button" aria-label={`Delete ${s.name}`} onClick={() => window.confirm(`Delete "${s.name}"?`) && void run(() => del.mutateAsync(s.id))} className="ml-auto text-slate-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-4 w-4" /></button>
       </div>
@@ -161,7 +161,7 @@ export const LeadSourcesPage: React.FC = () => {
           <h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Lead sources</h1>
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">Pull in leads from Meta and Google ads, property portals, your website or a spreadsheet. Duplicates are merged automatically.</p>
         </div>
-        <button type="button" onClick={() => setCreating(true)} className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-4 py-2.5 text-xs font-bold text-white cursor-pointer sm:self-auto"><Plus className="h-4 w-4" /> New source</button>
+        <button type="button" onClick={() => setCreating(true)} className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-accent to-accent-hover px-4 py-2.5 text-xs font-bold text-white cursor-pointer sm:self-auto"><Plus className="h-4 w-4" /> New source</button>
       </div>
       {key && <KeyBanner apiKey={key} onClose={() => setKey(null)} />}
       {error && <p className="text-sm text-rose-600" role="alert">{error.message}</p>}

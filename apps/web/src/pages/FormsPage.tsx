@@ -134,7 +134,7 @@ const FormEditor: React.FC<{ form: FormItem | null; onClose: () => void }> = ({ 
         {error && <p className="px-5 pt-2 text-xs text-rose-600" role="alert">{error}</p>}
         <div className="flex justify-end gap-2 p-5">
           <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
-          <button type="submit" disabled={save.isPending} className="rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">
+          <button type="submit" disabled={save.isPending} className="rounded-xl bg-gradient-to-r from-accent to-accent-hover px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">
             {save.isPending ? 'Saving…' : 'Save form'}
           </button>
         </div>
@@ -166,7 +166,7 @@ export const FormsPage: React.FC = () => {
           <h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Forms</h1>
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">Define the details your agents collect (budget, BHK, timeline…). Answers are saved on the lead.</p>
         </div>
-        <button type="button" onClick={() => setEditing('new')} className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-4 py-2.5 text-xs font-bold text-white cursor-pointer sm:self-auto">
+        <button type="button" onClick={() => setEditing('new')} className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-accent to-accent-hover px-4 py-2.5 text-xs font-bold text-white cursor-pointer sm:self-auto">
           <Plus className="h-4 w-4" /> New form
         </button>
       </div>
@@ -193,7 +193,7 @@ export const FormsPage: React.FC = () => {
                 <Badge variant="slate" size="sm">{PURPOSES.find(p => p.id === f.purpose)?.label}</Badge>
               </div>
               <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-                <button type="button" onClick={() => setEditing(f)} className="text-xs font-bold text-[#B84A22] hover:underline cursor-pointer">Edit</button>
+                <button type="button" onClick={() => setEditing(f)} className="text-xs font-bold text-accent hover:underline cursor-pointer">Edit</button>
                 {!f.isSystem && (
                   <button type="button" aria-label={`Delete ${f.name}`} onClick={() => void remove(f)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 cursor-pointer">
                     <Trash2 className="h-4 w-4" />

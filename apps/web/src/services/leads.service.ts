@@ -6,6 +6,7 @@ import type {
   LeadStatus,
   ScoringConfig,
   CaptureLeadInput,
+  UpdateLeadInput,
 } from '@propbot/shared';
 
 export interface LeadFilterOptions {
@@ -62,6 +63,23 @@ export function useUpdateLeadStatus() {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead', variables.leadId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-leads'] });
+    },
+  });
+}
+
+export function useUpdateLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadItemResponse, Error, { leadId: string; patch: UpdateLeadInput }>({
+    mutationFn: ({ leadId, patch }) =>
+      apiRequest<LeadItemResponse>(`/api/leads/${leadId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead', variables.leadId] });
       queryClient.invalidateQueries({ queryKey: ['recent-leads'] });
     },
   });

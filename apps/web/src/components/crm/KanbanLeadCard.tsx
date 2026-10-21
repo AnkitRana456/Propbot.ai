@@ -36,11 +36,11 @@ export const KanbanLeadCard: React.FC<KanbanLeadCardProps> = ({
       {/* Top: Property Thumbnail icon + Buyer Name + Hot Tag */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700/80 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center text-[#B84A22] shrink-0 shadow-xs">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700/80 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center text-accent shrink-0 shadow-xs">
             <Building className="w-4 h-4 stroke-[1.75]" />
           </div>
           <div className="min-w-0 flex-1">
-            <h4 className="font-serif text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#B84A22] dark:group-hover:text-orange-400 transition-colors truncate">
+            <h4 className="font-serif text-xs font-bold text-slate-900 dark:text-white group-hover:text-accent dark:group-hover:text-orange-400 transition-colors truncate">
               {lead.name}
             </h4>
             <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
@@ -50,7 +50,7 @@ export const KanbanLeadCard: React.FC<KanbanLeadCardProps> = ({
         </div>
 
         {isHot && (
-          <span className="flex items-center gap-0.5 rounded-full bg-orange-100 dark:bg-orange-950/80 px-1.5 py-0.5 text-[9px] font-bold text-[#B84A22] dark:text-orange-300 border border-orange-200 dark:border-orange-800 shrink-0 shadow-xs">
+          <span className="flex items-center gap-0.5 rounded-full bg-orange-100 dark:bg-orange-950/80 px-1.5 py-0.5 text-[9px] font-bold text-accent dark:text-orange-300 border border-orange-200 dark:border-orange-800 shrink-0 shadow-xs">
             <Flame className="w-2.5 h-2.5 fill-current" />
             <span>Hot</span>
           </span>
@@ -64,7 +64,7 @@ export const KanbanLeadCard: React.FC<KanbanLeadCardProps> = ({
         </span>
         <div className="flex items-center gap-2">
           {lead.intentScore !== undefined && (
-            <span className="text-[10px] font-bold text-[#B84A22] dark:text-orange-400">
+            <span className="text-[10px] font-bold text-accent dark:text-orange-400">
               {lead.intentScore}%
             </span>
           )}

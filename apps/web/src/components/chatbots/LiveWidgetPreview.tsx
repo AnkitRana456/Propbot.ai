@@ -47,7 +47,7 @@ export const LiveWidgetPreview: React.FC<LiveWidgetPreviewProps> = ({ name, conf
   ]);
 
   const appearance = config.appearance || {
-    primaryColor: '#B84A22',
+    primaryColor: '#0F766E',
     textColor: '#ffffff',
     backgroundColor: '#ffffff',
     headerColor: '#14110E',
@@ -56,7 +56,7 @@ export const LiveWidgetPreview: React.FC<LiveWidgetPreviewProps> = ({ name, conf
     botName: 'Property Advisor AI',
   };
 
-  const primaryColor = appearance.primaryColor || '#B84A22';
+  const primaryColor = appearance.primaryColor || '#0F766E';
   const headerColor = appearance.headerColor || '#14110E';
   const borderRadius = appearance.borderRadius ?? 16;
   const position = appearance.position || 'bottom-right';

@@ -20,14 +20,10 @@ export const Card: React.FC<CardProps> = ({
   };
 
   const variantStyles = {
-    default:
-      'bg-white border border-slate-200/90 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-slate-900 dark:text-slate-100',
-    elevated:
-      'bg-white border border-slate-200/80 shadow-md dark:bg-slate-900 dark:border-slate-800/80 text-slate-900 dark:text-slate-100',
-    glass:
-      'bg-white/70 backdrop-blur-md border border-slate-200/60 shadow-sm dark:bg-slate-900/70 dark:border-slate-800/60 text-slate-900 dark:text-slate-100',
-    subtle:
-      'bg-slate-50 border border-slate-200/60 dark:bg-slate-900/40 dark:border-slate-800/50 text-slate-900 dark:text-slate-100',
+    default: 'bg-surface border border-border shadow-sm text-text',
+    elevated: 'bg-surface border border-border shadow-md text-text',
+    glass: 'bg-surface/70 backdrop-blur-md border border-border/60 shadow-sm text-text',
+    subtle: 'bg-surface-2 border border-border/60 text-text',
   };
 
   const hoverStyle = hoverEffect

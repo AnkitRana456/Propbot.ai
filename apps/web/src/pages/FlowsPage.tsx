@@ -46,13 +46,13 @@ const CreateFlowModal: React.FC<{ onClose: () => void; onCreated: (id: string) =
           <button type="button" aria-label="Close" onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"><X className="h-4 w-4" /></button>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <button type="button" onClick={() => setTemplate('')} className={`rounded-xl border p-3 text-left cursor-pointer ${template === '' ? 'border-[#B84A22] bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 dark:border-slate-800'}`}>
+          <button type="button" onClick={() => setTemplate('')} className={`rounded-xl border p-3 text-left cursor-pointer ${template === '' ? 'border-accent bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 dark:border-slate-800'}`}>
             <span className="text-sm font-semibold text-slate-900 dark:text-white">Blank canvas</span>
             <p className="mt-1 text-[11px] text-slate-500">Build from scratch.</p>
           </button>
           {templates?.map(t => (
-            <button key={t.id} type="button" onClick={() => setTemplate(t.id)} className={`rounded-xl border p-3 text-left cursor-pointer ${template === t.id ? 'border-[#B84A22] bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 dark:border-slate-800'}`}>
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white"><Sparkles className="h-3.5 w-3.5 text-[#B84A22]" /> {t.name}</span>
+            <button key={t.id} type="button" onClick={() => setTemplate(t.id)} className={`rounded-xl border p-3 text-left cursor-pointer ${template === t.id ? 'border-accent bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 dark:border-slate-800'}`}>
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white"><Sparkles className="h-3.5 w-3.5 text-accent" /> {t.name}</span>
               <p className="mt-1 text-[11px] leading-snug text-slate-500">{t.description}</p>
             </button>
           ))}
@@ -62,7 +62,7 @@ const CreateFlowModal: React.FC<{ onClose: () => void; onCreated: (id: string) =
         {error && <p className="mt-2 text-xs text-rose-600" role="alert">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
-          <button type="submit" disabled={create.isPending} className="rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">{create.isPending ? 'Creating…' : 'Create & open canvas'}</button>
+          <button type="submit" disabled={create.isPending} className="rounded-xl bg-gradient-to-r from-accent to-accent-hover px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">{create.isPending ? 'Creating…' : 'Create & open canvas'}</button>
         </div>
       </form>
     </div>
@@ -85,7 +85,7 @@ const FlowCard: React.FC<{ flow: FlowItem; onOpen: () => void }> = ({ flow, onOp
     <div className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover dark:border-slate-800 dark:bg-slate-900">
       <div>
         <div className="flex items-start justify-between gap-2">
-          <button type="button" onClick={onOpen} className="min-w-0 text-left cursor-pointer"><h3 className="truncate font-serif text-sm font-bold text-slate-900 hover:text-[#B84A22] dark:text-white">{flow.name}</h3></button>
+          <button type="button" onClick={onOpen} className="min-w-0 text-left cursor-pointer"><h3 className="truncate font-serif text-sm font-bold text-slate-900 hover:text-accent dark:text-white">{flow.name}</h3></button>
           {flow.status === 'archived' ? <Badge variant="slate" size="sm">Archived</Badge> : flow.activeVersion ? <Badge variant="mint" size="sm">Live v{flow.activeVersion}</Badge> : <Badge variant="gold" size="sm">Not published</Badge>}
         </div>
         <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{flow.description || 'No description yet.'}</p>
@@ -97,7 +97,7 @@ const FlowCard: React.FC<{ flow: FlowItem; onOpen: () => void }> = ({ flow, onOp
       </div>
       {error && <p className="mt-3 text-[11px] text-rose-600" role="alert">{error}</p>}
       <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-        <button type="button" onClick={onOpen} className="text-xs font-bold text-[#B84A22] hover:underline cursor-pointer">Open canvas</button>
+        <button type="button" onClick={onOpen} className="text-xs font-bold text-accent hover:underline cursor-pointer">Open canvas</button>
         <div className="flex gap-1">
           <button type="button" aria-label={flow.status === 'archived' ? 'Restore flow' : 'Archive flow'} onClick={() => run(() => update.mutateAsync({ id: flow.id, input: { status: flow.status === 'archived' ? 'active' : 'archived' } }))} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 cursor-pointer">
             {flow.status === 'archived' ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
@@ -123,7 +123,7 @@ export const FlowsPage: React.FC = () => {
           <h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Flows</h1>
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">Automate follow-ups: reply to new leads in a minute, remind buyers about visits, win back cold leads. Every run is traced step by step.</p>
         </div>
-        <button type="button" onClick={() => setCreating(true)} className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-4 py-2.5 text-xs font-bold text-white cursor-pointer sm:self-auto"><Plus className="h-4 w-4" /> New flow</button>
+        <button type="button" onClick={() => setCreating(true)} className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-accent to-accent-hover px-4 py-2.5 text-xs font-bold text-white cursor-pointer sm:self-auto"><Plus className="h-4 w-4" /> New flow</button>
       </div>
       <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} /> Show archived</label>
       {error && <p className="text-sm text-rose-600" role="alert">{error.message}</p>}

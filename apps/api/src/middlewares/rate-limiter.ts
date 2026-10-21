@@ -112,6 +112,14 @@ export const otpRateLimiter = new MemoryRateLimiter({
   skipInTests: true,
 });
 
+/** Public demo form: a handful of submissions per IP per hour is plenty for a real person. */
+export const demoRequestRateLimiter = new MemoryRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: Number(process.env.DEMO_REQUEST_RATE_LIMIT_MAX) || 5,
+  message: 'You have sent several requests already. Please try again in an hour.',
+  skipInTests: false,
+});
+
 export const publicSessionRateLimiter = new MemoryRateLimiter({
   windowMs: 60 * 1000, // 1 min
   max: 30, // 30 new visitor sessions / min / IP

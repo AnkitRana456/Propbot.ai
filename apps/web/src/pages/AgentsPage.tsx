@@ -63,7 +63,7 @@ const CreateAgentModal: React.FC<{ onClose: () => void; onCreated: (id: string) 
               type="button"
               onClick={() => setTemplate(t.id)}
               className={`rounded-xl border p-3 text-left transition-colors cursor-pointer ${
-                template === t.id ? 'border-[#B84A22] bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
+                template === t.id ? 'border-accent bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ const CreateAgentModal: React.FC<{ onClose: () => void; onCreated: (id: string) 
           <button
             type="submit"
             disabled={create.isPending}
-            className="rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer"
+            className="rounded-xl bg-gradient-to-r from-accent to-accent-hover px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer"
           >
             {create.isPending ? 'Creating…' : 'Create & open studio'}
           </button>
@@ -126,7 +126,7 @@ const AgentCard: React.FC<{ agent: AgentItem; onOpen: () => void }> = ({ agent, 
       <div>
         <div className="flex items-start justify-between gap-2">
           <button type="button" onClick={onOpen} className="min-w-0 text-left cursor-pointer">
-            <h3 className="truncate font-serif text-sm font-bold text-slate-900 hover:text-[#B84A22] dark:text-white">{agent.name}</h3>
+            <h3 className="truncate font-serif text-sm font-bold text-slate-900 hover:text-accent dark:text-white">{agent.name}</h3>
           </button>
           {agent.status === 'archived' ? (
             <Badge variant="slate" size="sm">Archived</Badge>
@@ -150,7 +150,7 @@ const AgentCard: React.FC<{ agent: AgentItem; onOpen: () => void }> = ({ agent, 
 
       {error && <p className="mt-3 text-[11px] text-rose-600" role="alert">{error}</p>}
       <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-        <button type="button" onClick={onOpen} className="text-xs font-bold text-[#B84A22] hover:underline cursor-pointer">
+        <button type="button" onClick={onOpen} className="text-xs font-bold text-accent hover:underline cursor-pointer">
           Open studio
         </button>
         <div className="flex items-center gap-1">
@@ -196,7 +196,7 @@ export const AgentsPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">AI Agents</h1>
-              <span className="flex items-center gap-1 rounded-full border border-orange-200 bg-orange-500/10 px-2.5 py-0.5 text-xs font-bold text-[#B84A22] dark:border-orange-800/60 dark:text-orange-300">
+              <span className="flex items-center gap-1 rounded-full border border-orange-200 bg-orange-500/10 px-2.5 py-0.5 text-xs font-bold text-accent dark:border-orange-800/60 dark:text-orange-300">
                 <Layers className="h-3 w-3" /> {live} live
               </span>
             </div>
@@ -207,7 +207,7 @@ export const AgentsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-4 py-2.5 text-xs font-bold text-white shadow-button hover:-translate-y-0.5 transition-all cursor-pointer sm:self-auto"
+            className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-accent to-accent-hover px-4 py-2.5 text-xs font-bold text-white shadow-button hover:-translate-y-0.5 transition-all cursor-pointer sm:self-auto"
           >
             <Plus className="h-4 w-4" /> New agent
           </button>

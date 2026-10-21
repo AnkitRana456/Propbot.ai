@@ -201,3 +201,13 @@ export function useRevokeSessionMutation() {
     },
   });
 }
+
+/** Active people a lead can be assigned to (real team members, never placeholders). */
+export function useAssignableAgents(enabled = true) {
+  return useQuery({
+    queryKey: ['users', 'assignable'],
+    queryFn: () => apiRequest<UserItem[]>('/api/users?status=active&limit=100'),
+    enabled,
+    staleTime: 60_000,
+  });
+}

@@ -43,7 +43,7 @@ const ConversationRow: React.FC<{ c: InboxConversationItem; active: boolean; onS
     <button type="button" onClick={onSelect} aria-current={active} className={`flex w-full flex-col gap-1 border-b border-slate-100 px-3 py-3 text-left cursor-pointer dark:border-slate-800 ${active ? 'bg-orange-50/70 dark:bg-orange-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}>
       <div className="flex items-center gap-2">
         <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">{c.contactName}</span>
-        {c.awaitingReply > 0 && <span className="ml-1 rounded-full bg-[#B84A22] px-1.5 text-[10px] font-bold text-white" aria-label={`${c.awaitingReply} awaiting reply`}>{c.awaitingReply}</span>}
+        {c.awaitingReply > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white" aria-label={`${c.awaitingReply} awaiting reply`}>{c.awaitingReply}</span>}
         <span className="ml-auto shrink-0 text-[10px] text-slate-400">{ago(c.lastMessageAt)}</span>
       </div>
       <p className="line-clamp-1 text-xs text-slate-500">{c.lastSender && c.lastSender !== 'visitor' ? 'You: ' : ''}{c.lastMessage}</p>
@@ -110,7 +110,7 @@ const Thread: React.FC<{ id: string }> = ({ id }) => {
             {data.aiPaused || data.status === 'open' ? (
               <button type="button" disabled={back.isPending} onClick={() => void run(() => back.mutateAsync(id))} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"><Bot className="h-3.5 w-3.5" /> Hand back to AI</button>
             ) : (
-              <button type="button" disabled={take.isPending} onClick={() => void run(() => take.mutateAsync(id))} className="inline-flex items-center gap-1 rounded-lg bg-[#B84A22] px-2.5 py-1.5 text-xs font-semibold text-white cursor-pointer"><Hand className="h-3.5 w-3.5" /> Take control</button>
+              <button type="button" disabled={take.isPending} onClick={() => void run(() => take.mutateAsync(id))} className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white cursor-pointer"><Hand className="h-3.5 w-3.5" /> Take control</button>
             )}
             {data.status !== 'resolved' && data.status !== 'closed' && (
               <button type="button" onClick={() => void run(() => update.mutateAsync({ id, input: { status: 'resolved' } }))} className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 cursor-pointer"><CheckCircle2 className="h-3.5 w-3.5" /> Resolve</button>
@@ -124,7 +124,7 @@ const Thread: React.FC<{ id: string }> = ({ id }) => {
             const mine = m.senderType !== 'visitor';
             return (
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-xs ${mine ? (m.senderType === 'bot' ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100' : 'bg-[#B84A22] text-white') : 'bg-white text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100'}`}>
+                <div className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-xs ${mine ? (m.senderType === 'bot' ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100' : 'bg-accent text-white') : 'bg-white text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100'}`}>
                   {m.content}
                   <span className="mt-1 block text-[9px] opacity-60">{m.senderType === 'bot' ? 'AI' : m.senderType === 'agent' ? 'Team' : 'Visitor'} · {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
@@ -154,7 +154,7 @@ const Thread: React.FC<{ id: string }> = ({ id }) => {
               )}
               <div className="flex gap-2">
                 <textarea aria-label="Reply" rows={2} value={text} onChange={e => setText(e.target.value)} maxLength={4000} placeholder="Type your reply…" className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800 dark:text-white" />
-                <button type="button" aria-label="Send reply" disabled={!text.trim() || reply.isPending || (needsTemplate && !template)} onClick={() => void send()} className="self-end rounded-xl bg-[#B84A22] p-2.5 text-white disabled:opacity-40 cursor-pointer"><Send className="h-4 w-4" /></button>
+                <button type="button" aria-label="Send reply" disabled={!text.trim() || reply.isPending || (needsTemplate && !template)} onClick={() => void send()} className="self-end rounded-xl bg-accent p-2.5 text-white disabled:opacity-40 cursor-pointer"><Send className="h-4 w-4" /></button>
               </div>
             </div>
           ) : (

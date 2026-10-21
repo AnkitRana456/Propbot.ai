@@ -131,7 +131,7 @@ const ToolEditor: React.FC<{ tool: ToolItem | null; onClose: () => void }> = ({ 
           {!tool && (
             <div className="grid grid-cols-2 gap-2">
               {([['api', 'API tool', 'Call your CRM, ERP or any HTTPS endpoint.'], ['gpt', 'AI tool', 'A prompt that returns structured data (e.g. extract budget and BHK).']] as const).map(([id, title, desc]) => (
-                <button key={id} type="button" onClick={() => setType(id)} className={`rounded-xl border p-3 text-left text-xs cursor-pointer ${type === id ? 'border-[#B84A22] bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 dark:border-slate-800'}`}>
+                <button key={id} type="button" onClick={() => setType(id)} className={`rounded-xl border p-3 text-left text-xs cursor-pointer ${type === id ? 'border-accent bg-orange-50/60 dark:bg-orange-950/20' : 'border-slate-200 dark:border-slate-800'}`}>
                   <span className="font-semibold text-slate-900 dark:text-white">{title}</span>
                   <span className="mt-0.5 block text-[11px] text-slate-500">{desc}</span>
                 </button>
@@ -233,7 +233,7 @@ const ToolEditor: React.FC<{ tool: ToolItem | null; onClose: () => void }> = ({ 
         {error && <p className="px-5 pt-2 text-xs text-rose-600" role="alert">{error}</p>}
         <div className="flex justify-end gap-2 p-5">
           <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">Close</button>
-          <button type="submit" disabled={save.isPending} className="rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">{save.isPending ? 'Saving…' : 'Save tool'}</button>
+          <button type="submit" disabled={save.isPending} className="rounded-xl bg-gradient-to-r from-accent to-accent-hover px-5 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer">{save.isPending ? 'Saving…' : 'Save tool'}</button>
         </div>
       </form>
     </div>
@@ -265,7 +265,7 @@ const ActionCard: React.FC<{ action: ActionDefinitionItem }> = ({ action }) => {
       </div>
       <p className="mt-1 text-xs text-slate-500">{action.description}</p>
       <p className="mt-2 text-[10px] text-slate-400">Returns: {action.outputs.join(', ')}</p>
-      <button type="button" onClick={() => setOpen(o => !o)} className="mt-2 text-xs font-bold text-[#B84A22] cursor-pointer">{open ? 'Hide tester' : 'Try it'}</button>
+      <button type="button" onClick={() => setOpen(o => !o)} className="mt-2 text-xs font-bold text-accent cursor-pointer">{open ? 'Hide tester' : 'Try it'}</button>
       {open && (
         <div className="mt-2 space-y-2">
           {action.inputs.map(p => (
@@ -312,7 +312,7 @@ export const ToolsPage: React.FC = () => {
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">Connect your own systems and reuse ready-made real-estate actions. Agents also check live inventory automatically when buyers ask about availability.</p>
         </div>
         {tab === 'tools' && (
-          <button type="button" onClick={() => setEditing('new')} className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-[#B84A22] to-[#c75528] px-4 py-2.5 text-xs font-bold text-white cursor-pointer sm:self-auto">
+          <button type="button" onClick={() => setEditing('new')} className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-accent to-accent-hover px-4 py-2.5 text-xs font-bold text-white cursor-pointer sm:self-auto">
             <Plus className="h-4 w-4" /> New tool
           </button>
         )}
@@ -320,7 +320,7 @@ export const ToolsPage: React.FC = () => {
 
       <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist">
         {([['tools', 'My tools', '/tools'], ['actions', 'Action library', '/tools/actions']] as const).map(([id, label, path]) => (
-          <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => navigate(path)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500'}`}>
+          <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => navigate(path)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-accent text-accent' : 'border-transparent text-slate-500'}`}>
             {label}
           </button>
         ))}
@@ -350,7 +350,7 @@ export const ToolsPage: React.FC = () => {
                   {t.requiresApproval && <Badge variant="blue" size="sm">Needs approval</Badge>}
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-                  <button type="button" onClick={() => setEditing(t)} className="text-xs font-bold text-[#B84A22] hover:underline cursor-pointer">Edit &amp; test</button>
+                  <button type="button" onClick={() => setEditing(t)} className="text-xs font-bold text-accent hover:underline cursor-pointer">Edit &amp; test</button>
                   <button type="button" aria-label={`Delete ${t.name}`} onClick={() => void remove(t)} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 cursor-pointer"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>

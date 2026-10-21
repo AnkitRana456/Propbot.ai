@@ -63,7 +63,7 @@ const Connections: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-xs text-slate-500">WhatsApp is set up on its own page. Connect Instagram, Messenger and e-mail here. Tokens are stored encrypted.</p>
-        <button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> Connect</button>
+        <button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> Connect</button>
       </div>
       {adding && (
         <form onSubmit={submit} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2">
@@ -73,7 +73,7 @@ const Connections: React.FC = () => {
           <div><label htmlFor="cc-bot" className="text-xs font-semibold">Chatbot</label><select id="cc-bot" value={form.chatbotId} onChange={e => setForm({ ...form, chatbotId: e.target.value })} className={inputCls}><option value="">First chatbot</option>{(bots?.chatbots ?? []).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
           <div><label htmlFor="cc-tok" className="text-xs font-semibold">Access token</label><input id="cc-tok" type="password" autoComplete="off" value={form.token} onChange={e => setForm({ ...form, token: e.target.value })} className={inputCls} /></div>
           <div><label htmlFor="cc-sec" className="text-xs font-semibold">App secret (verifies webhooks)</label><input id="cc-sec" type="password" autoComplete="off" value={form.appSecret} onChange={e => setForm({ ...form, appSecret: e.target.value })} className={inputCls} /></div>
-          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending} className={`${btn} bg-[#B84A22] text-white`}>Save connection</button></div>
+          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending} className={`${btn} bg-accent text-white`}>Save connection</button></div>
         </form>
       )}
       {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
@@ -117,7 +117,7 @@ const Templates: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-xs text-slate-500">WhatsApp only allows free-form replies for 24 hours after the buyer writes. After that, use an approved template. Use {'{{1}}'}, {'{{2}}'} for personal details.</p>
-        <button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> New template</button>
+        <button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> New template</button>
       </div>
       {adding && (
         <form onSubmit={save} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
@@ -127,7 +127,7 @@ const Templates: React.FC = () => {
           </div>
           <div><label htmlFor="t-body" className="text-xs font-semibold">Message</label><textarea id="t-body" required rows={3} maxLength={1024} value={f.body} onChange={e => setF({ ...f, body: e.target.value })} className={inputCls} placeholder="Hi {{1}}, thanks for visiting {{2}}. Shall we plan the next step?" /></div>
           <div><label htmlFor="t-samples" className="text-xs font-semibold">Example values, separated by |</label><input id="t-samples" value={f.samples} onChange={e => setF({ ...f, samples: e.target.value })} className={inputCls} placeholder="Asha | Lakeside Habitat" /></div>
-          <div className="flex justify-end gap-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending} className={`${btn} bg-[#B84A22] text-white`}>Save draft</button></div>
+          <div className="flex justify-end gap-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending} className={`${btn} bg-accent text-white`}>Save draft</button></div>
         </form>
       )}
       {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
@@ -160,7 +160,7 @@ const Widgets: React.FC = () => {
   const del = useDeleteWidget();
   const { error, run } = useRun();
   const [adding, setAdding] = useState(false);
-  const [f, setF] = useState({ name: '', chatbotId: '', domains: '', color: '#B84A22', homeTitle: 'Hi there', quick: 'Book a site visit, See prices', nudgeMsg: '', nudgeUrl: '', nudgeDelay: 15 });
+  const [f, setF] = useState({ name: '', chatbotId: '', domains: '', color: '#0F766E', homeTitle: 'Hi there', quick: 'Book a site visit, See prices', nudgeMsg: '', nudgeUrl: '', nudgeDelay: 15 });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,7 +181,7 @@ const Widgets: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-xs text-slate-500">Each widget has its own look, home screen, proactive nudges and the websites it may run on.</p>
-        <button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-[#B84A22] text-white`}><Plus className="h-4 w-4" /> New widget</button>
+        <button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> New widget</button>
       </div>
       {adding && (
         <form onSubmit={save} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2">
@@ -192,7 +192,7 @@ const Widgets: React.FC = () => {
           <div><label htmlFor="w-title" className="text-xs font-semibold">Home title</label><input id="w-title" value={f.homeTitle} onChange={e => setF({ ...f, homeTitle: e.target.value })} className={inputCls} /></div>
           <div><label htmlFor="w-quick" className="text-xs font-semibold">Quick actions (comma separated)</label><input id="w-quick" value={f.quick} onChange={e => setF({ ...f, quick: e.target.value })} className={inputCls} /></div>
           <div className="sm:col-span-2"><label htmlFor="w-nudge" className="text-xs font-semibold">Proactive nudge (optional)</label><div className="mt-1 grid gap-2 sm:grid-cols-3"><input id="w-nudge" aria-label="Nudge message" value={f.nudgeMsg} onChange={e => setF({ ...f, nudgeMsg: e.target.value })} className={`${inputCls} mt-0 sm:col-span-1`} placeholder="Looking at pricing? Ask me." /><input aria-label="Nudge page contains" value={f.nudgeUrl} onChange={e => setF({ ...f, nudgeUrl: e.target.value })} className={`${inputCls} mt-0`} placeholder="/pricing" /><input aria-label="Nudge delay seconds" type="number" min={0} max={600} value={f.nudgeDelay} onChange={e => setF({ ...f, nudgeDelay: Number(e.target.value) || 0 })} className={`${inputCls} mt-0`} /></div></div>
-          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending} className={`${btn} bg-[#B84A22] text-white`}>Save widget</button></div>
+          <div className="flex justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => setAdding(false)} className={`${btn} text-slate-600`}>Cancel</button><button type="submit" disabled={create.isPending} className={`${btn} bg-accent text-white`}>Save widget</button></div>
         </form>
       )}
       {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
@@ -202,7 +202,7 @@ const Widgets: React.FC = () => {
         <ul className="grid gap-3 sm:grid-cols-2">
           {(data ?? []).map(w => (
             <li key={w.id} className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 truncate text-sm font-bold text-slate-900 dark:text-white"><span className="h-3 w-3 rounded-full" style={{ background: String(w.styling.brandColor ?? '#B84A22') }} />{w.name}</span><Badge variant={w.isActive ? 'mint' : 'slate'} size="sm">{w.isActive ? 'Active' : 'Off'}</Badge></div>
+              <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 truncate text-sm font-bold text-slate-900 dark:text-white"><span className="h-3 w-3 rounded-full" style={{ background: String(w.styling.brandColor ?? '#0F766E') }} />{w.name}</span><Badge variant={w.isActive ? 'mint' : 'slate'} size="sm">{w.isActive ? 'Active' : 'Off'}</Badge></div>
               <p className="mt-1 text-[11px] text-slate-500">{w.allowedDomains.length ? w.allowedDomains.join(', ') : 'Any website'} · {w.nudges.length} nudge(s)</p>
               <code className="mt-2 block break-all rounded-lg bg-slate-50 p-2 text-[10px] dark:bg-slate-950/50">GET /api/public/omni/widgets/{w.id}</code>
               <button type="button" aria-label={`Delete ${w.name}`} onClick={() => window.confirm(`Delete ${w.name}?`) && void run(() => del.mutateAsync(w.id))} className="mt-2 text-slate-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-4 w-4" /></button>
@@ -224,7 +224,7 @@ export const ChannelsPage: React.FC = () => {
         <p className="mt-1 text-xs text-slate-500 sm:text-sm">Where buyers reach you, and how you reach them back.</p>
       </div>
       <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist">
-        {tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500'}`}>{label}</button>)}
+        {tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`border-b-2 px-4 py-2 text-xs font-semibold cursor-pointer ${tab === id ? 'border-accent text-accent' : 'border-transparent text-slate-500'}`}>{label}</button>)}
       </div>
       {tab === 'connections' ? <Connections /> : tab === 'templates' ? <Templates /> : <Widgets />}
     </div>

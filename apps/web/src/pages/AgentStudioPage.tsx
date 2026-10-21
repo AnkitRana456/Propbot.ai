@@ -125,7 +125,7 @@ export const AgentStudioPage: React.FC = () => {
           <button type="button" disabled={!dirty || save.isPending} onClick={() => void saveDraft()} className={`${btn} bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100`}>
             <Save className="h-3.5 w-3.5" /> {save.isPending ? 'Saving…' : 'Save draft'}
           </button>
-          <button type="button" disabled={publish.isPending || (!dirty && latest.id === agent.activeVersionId)} onClick={() => void saveAndPublish()} className={`${btn} bg-gradient-to-r from-[#B84A22] to-[#c75528] text-white`}>
+          <button type="button" disabled={publish.isPending || (!dirty && latest.id === agent.activeVersionId)} onClick={() => void saveAndPublish()} className={`${btn} bg-gradient-to-r from-accent to-accent-hover text-white`}>
             <Rocket className="h-3.5 w-3.5" /> {publish.isPending ? 'Publishing…' : 'Publish'}
           </button>
         </div>
@@ -145,7 +145,7 @@ export const AgentStudioPage: React.FC = () => {
         <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
           <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist">
             {(['test', 'versions'] as RightTab[]).map(t => (
-              <button key={t} role="tab" aria-selected={rightTab === t} type="button" onClick={() => setRightTab(t)} className={`border-b-2 px-3 py-2 text-xs font-semibold capitalize cursor-pointer ${rightTab === t ? 'border-[#B84A22] text-[#B84A22]' : 'border-transparent text-slate-500'}`}>
+              <button key={t} role="tab" aria-selected={rightTab === t} type="button" onClick={() => setRightTab(t)} className={`border-b-2 px-3 py-2 text-xs font-semibold capitalize cursor-pointer ${rightTab === t ? 'border-accent text-accent' : 'border-transparent text-slate-500'}`}>
                 {t === 'test' ? 'Test' : 'Versions'}
               </button>
             ))}
@@ -215,7 +215,7 @@ const TestPanel: React.FC<{ agentId: string; versionId: string; variableKeys: st
       <div className="max-h-80 min-h-32 space-y-2 overflow-y-auto rounded-xl bg-slate-50 p-3 dark:bg-slate-950/40" aria-live="polite">
         {turns.length === 0 && <p className="text-xs text-slate-400">Say something as a visitor to try the agent.</p>}
         {turns.map((t, i) => (
-          <div key={i} className={`max-w-[88%] whitespace-pre-wrap rounded-xl px-3 py-2 text-xs ${t.role === 'visitor' ? 'ml-auto bg-[#B84A22] text-white' : 'bg-white text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100'}`}>
+          <div key={i} className={`max-w-[88%] whitespace-pre-wrap rounded-xl px-3 py-2 text-xs ${t.role === 'visitor' ? 'ml-auto bg-accent text-white' : 'bg-white text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100'}`}>
             {t.content}
           </div>
         ))}
@@ -252,7 +252,7 @@ const TestPanel: React.FC<{ agentId: string; versionId: string; variableKeys: st
           Save as test case
         </button>
         {last && (
-          <button type="button" onClick={() => setShowPrompt(s => !s)} className="ml-auto text-[11px] font-semibold text-[#B84A22] cursor-pointer">
+          <button type="button" onClick={() => setShowPrompt(s => !s)} className="ml-auto text-[11px] font-semibold text-accent cursor-pointer">
             {showPrompt ? 'Hide' : 'Show'} final prompt
           </button>
         )}
@@ -279,7 +279,7 @@ const TestPanel: React.FC<{ agentId: string; versionId: string; variableKeys: st
             <li key={c.id} className="flex items-center gap-2 rounded-lg px-2 py-1 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/50">
               <span className="truncate">{c.name}</span>
               <span className="ml-auto flex shrink-0 gap-1">
-                <button type="button" aria-label={`Run ${c.name}`} onClick={() => { setTurns([]); void send(c.messages[0] ?? '', []); }} className="rounded p-1 text-slate-500 hover:text-[#B84A22] cursor-pointer">
+                <button type="button" aria-label={`Run ${c.name}`} onClick={() => { setTurns([]); void send(c.messages[0] ?? '', []); }} className="rounded p-1 text-slate-500 hover:text-accent cursor-pointer">
                   <Play className="h-3.5 w-3.5" />
                 </button>
                 <button type="button" aria-label={`Delete ${c.name}`} onClick={() => delCase.mutate({ agentId, id: c.id })} className="rounded p-1 text-slate-400 hover:text-rose-600 cursor-pointer">
@@ -337,12 +337,12 @@ const VersionsPanel: React.FC<{ agentId: string; versions: AgentVersionItem[]; a
             <div className="mt-2 flex gap-2">
               {v.status === 'draft' && (
                 <>
-                  <button type="button" onClick={() => void run(() => publish.mutateAsync({ id: agentId, versionId: v.id }))} className="font-semibold text-[#B84A22] cursor-pointer">Publish</button>
+                  <button type="button" onClick={() => void run(() => publish.mutateAsync({ id: agentId, versionId: v.id }))} className="font-semibold text-accent cursor-pointer">Publish</button>
                   <button type="button" onClick={() => window.confirm(`Discard draft v${v.version}?`) && void run(() => discard.mutateAsync({ id: agentId, versionId: v.id }))} className="text-slate-500 hover:text-rose-600 cursor-pointer">Discard</button>
                 </>
               )}
               {v.status !== 'draft' && v.id !== activeId && (
-                <button type="button" onClick={() => window.confirm(`Roll back to v${v.version}?`) && void run(() => rollback.mutateAsync({ id: agentId, versionId: v.id }))} className="font-semibold text-[#B84A22] cursor-pointer">Roll back to this</button>
+                <button type="button" onClick={() => window.confirm(`Roll back to v${v.version}?`) && void run(() => rollback.mutateAsync({ id: agentId, versionId: v.id }))} className="font-semibold text-accent cursor-pointer">Roll back to this</button>
               )}
             </div>
           </li>

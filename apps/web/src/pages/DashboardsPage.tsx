@@ -22,7 +22,7 @@ const METRIC_LABEL: Record<MetricKey, string> = {
 };
 const inputCls = 'rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800 dark:text-white';
 const errMsg = (e: unknown, f: string) => (e instanceof Error ? e.message : f);
-const PALETTE = ['#B84A22', '#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#64748b'];
+const PALETTE = ['var(--accent)', '#2563eb', '#D97706', '#7c3aed', '#db2777', '#0891b2', '#16a34a', '#64748b'];
 
 const Chart: React.FC<{ type: DashboardWidgetItem['type']; data: MetricData }> = ({ type, data }) => {
   if (data.kind === 'number') {
@@ -37,7 +37,7 @@ const Chart: React.FC<{ type: DashboardWidgetItem['type']; data: MetricData }> =
     const h = 90;
     const step = pts.length > 1 ? w / (pts.length - 1) : w;
     const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - (p.value / max) * (h - 8) - 4).toFixed(1)}`).join(' ');
-    return <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Line chart"><path d={path} fill="none" stroke="#B84A22" strokeWidth="2" />{pts.map((p, i) => <circle key={i} cx={i * step} cy={h - (p.value / max) * (h - 8) - 4} r="2.5" fill="#B84A22"><title>{`${p.label}: ${p.value}`}</title></circle>)}</svg>;
+    return <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Line chart"><path d={path} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth="2" />{pts.map((p, i) => <circle key={i} cx={i * step} cy={h - (p.value / max) * (h - 8) - 4} r="2.5" style={{ fill: 'var(--accent)' }}><title>{`${p.label}: ${p.value}`}</title></circle>)}</svg>;
   }
   if (type === 'donut') {
     let acc = 0;
@@ -46,7 +46,7 @@ const Chart: React.FC<{ type: DashboardWidgetItem['type']; data: MetricData }> =
         <svg viewBox="0 0 36 36" className="h-24 w-24 -rotate-90" role="img" aria-label="Donut chart">
           {pts.map((p, i) => {
             const frac = (p.value / total) * 100;
-            const el = <circle key={i} cx="18" cy="18" r="15.9" fill="none" stroke={PALETTE[i % PALETTE.length]} strokeWidth="4" strokeDasharray={`${frac} ${100 - frac}`} strokeDashoffset={-acc}><title>{`${p.label}: ${p.value}`}</title></circle>;
+            const el = <circle key={i} cx="18" cy="18" r="15.9" fill="none" style={{ stroke: PALETTE[i % PALETTE.length] }} strokeWidth="4" strokeDasharray={`${frac} ${100 - frac}`} strokeDashoffset={-acc}><title>{`${p.label}: ${p.value}`}</title></circle>;
             acc += frac;
             return el;
           })}
@@ -65,7 +65,7 @@ const Chart: React.FC<{ type: DashboardWidgetItem['type']; data: MetricData }> =
       {pts.map((p, i) => (
         <li key={i} className="flex items-center gap-2 text-[11px]">
           <span className="w-24 shrink-0 truncate text-slate-600 dark:text-slate-300">{p.label.replace(/_/g, ' ')}</span>
-          <span className="h-3 rounded bg-[#B84A22]" style={{ width: `${Math.max(2, (p.value / base) * 100)}%`, opacity: type === 'funnel' ? 1 - i * 0.12 : 1 }} />
+          <span className="h-3 rounded bg-accent" style={{ width: `${Math.max(2, (p.value / base) * 100)}%`, opacity: type === 'funnel' ? 1 - i * 0.12 : 1 }} />
           <b>{p.value}</b>
         </li>
       ))}
@@ -105,7 +105,7 @@ export const DashboardsPage: React.FC = () => {
         <form onSubmit={e => { e.preventDefault(); setErr(null); create.mutateAsync({ name, isShared: shared }).then(d => { setName(''); setSelected(d.id); }, x => setErr(errMsg(x, 'Could not create the dashboard.'))); }} className="flex flex-wrap items-center gap-2">
           <input aria-label="New dashboard name" required minLength={2} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Weekly review" className={inputCls} />
           <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={shared} onChange={e => setShared(e.target.checked)} /> Share with team</label>
-          <button type="submit" disabled={create.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-[#B84A22] px-3 py-2 text-xs font-bold text-white cursor-pointer"><Plus className="h-4 w-4" /> Dashboard</button>
+          <button type="submit" disabled={create.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-bold text-white cursor-pointer"><Plus className="h-4 w-4" /> Dashboard</button>
         </form>
       </div>
       {(error || err) && <p className="text-sm text-rose-600" role="alert">{err ?? error?.message}</p>}

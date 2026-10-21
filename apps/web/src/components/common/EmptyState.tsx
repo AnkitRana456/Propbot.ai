@@ -18,16 +18,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-2 text-text-faint">
         {icon || <Inbox className="h-7 w-7" />}
       </div>
-      <h3 className="mb-1 text-base font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
-      <p className="mb-4 max-w-sm text-sm text-slate-500 dark:text-slate-400">{description}</p>
+      <h3 className="mb-1 text-base font-semibold text-text">{title}</h3>
+      <p className="mb-4 max-w-sm text-sm text-text-muted">{description}</p>
       {actionLabel && onAction && (
         <button
           type="button"
           onClick={onAction}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
           {actionLabel}
         </button>

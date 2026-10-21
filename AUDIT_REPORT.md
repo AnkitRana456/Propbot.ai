@@ -408,6 +408,27 @@ Uses the existing plan table (`SUBSCRIPTION_PLANS`, INR) and Stripe, as agreed; 
 - Razorpay checkout is still the old stub; GST invoice PDF generation; automatic charging for credit auto top-up (needs a saved payment method; today it reminds); unit blocking/stage change after a token is paid; WhatsApp/chat "send payment link" action for agents (the API exists); Stripe Tax/e-invoicing (IRN) for turnover above the e-invoice threshold.
 - Go-live hardening from the roadmap (load tests, backups, monitoring, security review, penetration-test fixes) is a separate workstream.
 
+## UI roadmap (Phases 0 to 6)
+
+Built on the existing stack (TypeScript, Tailwind, React Query, PostgreSQL), not the plain JS / MongoDB the roadmap sketches. Accent is now the roadmap's teal.
+
+**Delivered**
+- **P0 design system**: tokens in `styles/tokens.css` (light and dark via `[data-theme]`), Inter, 4px scale, `Input`, `Select`, `Modal`, `Toast`, `Tabs`, `ThemeToggle`, `StatusBadge`, restyled `Button`, `Card`, `Badge`; `/styleguide`. Legacy blue / orange / slate utilities map onto the new palette. AA contrast is enforced by `tests/tokens-contrast.test.ts`.
+- **P1 shell**: 240px collapsible sidebar (drawer under 768px, bottom tabs on phones), top bar with breadcrumbs and theme toggle, skip link, `PageHeader`.
+- **P2 leads and clients grid**: `DataGrid` (arrow keys, Enter / F2 / double-click to edit, Esc cancels, sortable headers, sticky header, density, skeleton, error with Retry), `LeadsTable` (inline edit of name, phone, budget in INR, follow-up; status pill menu with lost-reason; agent assign; bulk status; search and status filter; CSV export that neutralises spreadsheet formulas; detail drawer). `/clients` reuses it for booked and converted leads. New `PATCH /api/leads/:id` (7 tests).
+- **P3**: Overview from real data (stat cards with trends and sparklines, 30-day line chart, leads-by-source donut, recent leads, upcoming visits; Recharts reading CSS variables). Appointments week calendar from real appointments with status colours. Webhook logs: monospace table, status pills, expandable request and response JSON. Chatbot setup already had the stepper and live preview.
+- **P4 public site** (`/`): sticky nav, hero with browser and phone frames, trust strip, illustrative proof band (labelled), 6 use cases, alternating feature rows, built-for, 3 steps, pricing read from `SUBSCRIPTION_PLANS`, 8-question FAQ, demo form, footer. New `POST /api/demo-requests` (table `demo_requests`, migration 0021, validation, honeypot, 24 h duplicate guard, 5 / hour / IP limit; 5 tests).
+- **P5 imagery**: light and dark dashboard and chat illustrations in `public/images` (SVG, fictional data) shown through `<picture>` with width and height, lazy loading and alt text; CSS browser and phone frames.
+- **P6**: reduced-motion safe reveal, route code-splitting (already lazy), per-page titles and meta (`useDocumentMeta`), Open Graph tags, `robots.txt`, build-time sitemap, 404 page.
+
+**Verification**: web typecheck and eslint clean, 97 web tests, build OK. API 696 tests; two stale tests fixed (voice-studio pinned a date the real clock had passed, billing-security left a global event row that made every second run fail). Lighthouse on the production build: mobile 95 / 100 / 96 / 100, desktop 100 / 100 / 96 / 100 (performance, accessibility, best practices, SEO). The 96 is a 429 from the dev API caused by the repeated audit runs.
+
+**Not done**
+- Images are SVG, not WebP (no image tooling here); the Open Graph image is SVG, which many social crawlers ignore. Swap in a 1200x630 PNG or JPG and a real screenshot when you have them.
+- Sitemap needs `SITE_URL` at build time; without it the step is skipped.
+- Analytics page and `AnalyticsDashboard` still use their older hard-coded palettes. The old `components/platform/*` files are no longer used by the home page and can be deleted.
+- Authenticated screens were checked by build, types and tests, not by a logged-in visual pass at all four widths; the public site was checked at 360 and 1440 in both themes.
+
 ## Roadmap status
 
 P1 to P8 are implemented locally and uncommitted on `feat/business-logic-completion`. Deferred P0 leftovers: smoke suite on a separate test DB, removal of hardcoded dev JWT secrets, Redis rate limiter, Gemini billing + `check:gemini`. Nothing has been clicked through in a browser yet.

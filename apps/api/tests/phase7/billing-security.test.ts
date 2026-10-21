@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import crypto from 'crypto';
 import request from 'supertest';
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import { createApp } from '../../src/server.js';
 import { testDb, cleanupTestDatabase } from '../helpers/test-db.js';
 import { createAuthenticatedUser } from '../helpers/test-fixtures.js';
-import { companies, subscriptionInvoices } from '../../src/db/schema/index.js';
+import { companies, paymentEvents, subscriptionInvoices } from '../../src/db/schema/index.js';
 import { verifyStripeSignature, verifyHmacSha256Hex } from '../../src/modules/billing/webhook-signatures.js';
 
 const stripeHeader = (raw: string, secret: string, t = Math.floor(Date.now() / 1000)) =>
@@ -60,7 +60,11 @@ describe('billing webhooks & checkout over HTTP', () => {
 
   const planOf = async () => (await testDb.select().from(companies).where(eq(companies.id, companyId)))[0]!.plan;
 
+  // Recorded webhook events are global (not tenant rows), so clear this file's fixed ids or every second run sees a "duplicate"
+  const clearEvents = () => testDb.delete(paymentEvents).where(like(paymentEvents.eventId, 'evt_in_%'));
+
   beforeAll(async () => {
+    await clearEvents();
     const a = await createAuthenticatedUser('company_admin');
     companyId = a.company.id;
     adminAuth = a.authHeader;
@@ -72,6 +76,7 @@ describe('billing webhooks & checkout over HTTP', () => {
 
   afterAll(async () => {
     process.env = { ...savedEnv };
+    await clearEvents();
     await cleanupTestDatabase([companyId]);
   });
 

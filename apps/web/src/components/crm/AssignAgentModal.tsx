@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, UserCheck, RefreshCw, User } from 'lucide-react';
 import { useAssignLead, useBulkAssign, useRoundRobinAssign } from '../../services/crm.service.js';
 
+import { useAssignableAgents } from '../../services/users.service.js';
 interface AssignAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -9,13 +10,6 @@ interface AssignAgentModalProps {
   leadIds?: string[];
   currentAgentId?: string | null;
 }
-
-// Sample team members list; can also fetch from company users endpoint
-const TEAM_AGENTS = [
-  { id: '00000000-0000-0000-0000-000000000001', name: 'John Doe', role: 'Sales Director', email: 'john@example.com' },
-  { id: '00000000-0000-0000-0000-000000000002', name: 'Priya Sharma', role: 'Senior Property Advisor', email: 'priya@example.com' },
-  { id: '00000000-0000-0000-0000-000000000003', name: 'Rahul Verma', role: 'Relationship Manager', email: 'rahul@example.com' },
-];
 
 export const AssignAgentModal: React.FC<AssignAgentModalProps> = ({
   isOpen,
@@ -28,9 +22,9 @@ export const AssignAgentModal: React.FC<AssignAgentModalProps> = ({
   const bulkAssignMutation = useBulkAssign();
   const roundRobinMutation = useRoundRobinAssign();
 
-  const [selectedAgentId, setSelectedAgentId] = useState<string>(
-    currentAgentId || TEAM_AGENTS[0]?.id || '',
-  );
+  const { data: agents = [], isLoading: agentsLoading } = useAssignableAgents(isOpen);
+  const [pickedAgentId, setSelectedAgentId] = useState<string>(currentAgentId || '');
+  const selectedAgentId = pickedAgentId || agents[0]?.id || '';
 
   if (!isOpen) return null;
 
@@ -86,7 +80,9 @@ export const AssignAgentModal: React.FC<AssignAgentModalProps> = ({
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Select Agent:
             </label>
-            {TEAM_AGENTS.map(agent => (
+            {agentsLoading && <p className="text-xs text-slate-500">Loading your team…</p>}
+            {!agentsLoading && agents.length === 0 && <p className="text-xs text-slate-500">No active team members yet. Invite people under Users.</p>}
+            {agents.map(agent => (
               <label
                 key={agent.id}
                 className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 text-xs transition-colors ${
@@ -102,7 +98,7 @@ export const AssignAgentModal: React.FC<AssignAgentModalProps> = ({
                   <div>
                     <p className="font-bold">{agent.name}</p>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
-                      {agent.role} • {agent.email}
+                      {agent.role.replace('_', ' ')} • {agent.email}
                     </p>
                   </div>
                 </div>

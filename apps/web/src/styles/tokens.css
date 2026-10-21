@@ -1,65 +1,94 @@
 /**
- * Terracotta & Ink Design Tokens — Premium Edition
- * Architectural, editorial, warm property brochure & blueprint theme.
- * Light mode: "Limestone" | Dark mode: "Walnut"
- * Enhanced with 3D depth layers, ambient glow, and micro-animations.
+ * PropBot design tokens: the single source of truth for colour, type, radius and elevation.
+ * Light "Paper" and dark "Ink" themes. A theme applies to :root (set by ThemeProvider) or to any element
+ * carrying data-theme="light|dark", so a style guide can show both themes side by side.
+ * Components use only these variables: never hard-code a colour.
  */
 
-:root {
-  /* Color Palette — Light Mode ("Limestone") */
-  --bg: #F5F0E6;
-  --surface: #FBF8F2;
-  --surface-2: #EFE8DA;
-  --surface-3: #E8DFC9;
-  --border: #DDD3BF;
-  --border-subtle: #E8E0CE;
-  --text: #1C1A16;
-  --text-muted: #6B6355;
-  --text-faint: #9A9080;
-  --accent: #B84A22;
-  --accent-hover: #9C3C19;
-  --accent-soft: #F0D9CC;
-  --accent-glow: rgba(184, 74, 34, 0.12);
-  --accent-glow-strong: rgba(184, 74, 34, 0.22);
-  --brass: #A9822B;
-  --brass-glow: rgba(169, 130, 43, 0.1);
-  --success: #2F5D50;
-  --success-soft: rgba(47, 93, 80, 0.08);
-  --warning: #C58A1B;
-  --danger: #A3302A;
+:root,
+[data-theme='light'] {
+  /* RGB channels so Tailwind can apply opacity (bg-surface/70, border-danger/25, ...) */
+  --bg-rgb: 250 250 247; --surface-rgb: 255 255 255; --border-rgb: 230 231 226; --text-rgb: 20 24 31;
+  --success-rgb: 21 128 61; --warning-rgb: 180 83 9; --danger-rgb: 180 35 24; --brass-rgb: 217 119 6;
+
+  /* Surfaces */
+  --bg: #FAFAF7;
+  --surface: #FFFFFF;
+  --surface-2: #F3F4F1;
+  --surface-3: #E9EBE5;
+  --border: #E6E7E2;
+  --border-subtle: #EEEFEA;
+
+  /* Text */
+  --text: #14181F;
+  --text-muted: #667085;
+  --text-faint: #8A93A3; /* decorative only (placeholders, dividers); never for essential text */
+
+  /* Brand accent (deep teal) and secondary accent (warm amber). Swap --accent-rgb to re-brand everything. */
+  --accent-rgb: 15 118 110;
+  --accent: #0F766E;
+  --acc: var(--accent);
+  --accent-hover: #0B5F58;
+  --accent-soft: #DDF2EF;
+  --accent-glow: rgba(15, 118, 110, 0.12);
+  --accent-glow-strong: rgba(15, 118, 110, 0.22);
+  --on-accent: #FFFFFF;
+  --brass: #D97706;
+  --brass-glow: rgba(217, 119, 6, 0.1);
+
+  /* Feedback */
+  --success: #15803D;
+  --success-soft: rgba(21, 128, 61, 0.08);
+  --warning: #B45309;
+  --danger: #B42318;
+  --focus-ring: #0F766E;
+
+  /* Lead status pills: background + text pairs, every pair is >= 4.5:1 (enforced by tokens.contrast.test.ts) */
+  --status-new-bg: #E0ECFF;        --status-new-fg: #1D4ED8;
+  --status-contacted-bg: #FEF3C7;  --status-contacted-fg: #92400E;
+  --status-qualified-bg: #EDE9FE;  --status-qualified-fg: #5B21B6;
+  --status-site-visit-bg: #CCFBF1; --status-site-visit-fg: #115E59;
+  --status-negotiation-bg: #FFE4D5; --status-negotiation-fg: #9A3412;
+  --status-won-bg: #DCFCE7;        --status-won-fg: #166534;
+  --status-lost-bg: #FEE2E2;       --status-lost-fg: #991B1B;
 
   /* Typography */
-  --font-serif: 'Fraunces', Georgia, serif;
-  --font-sans: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: var(--font-sans); /* headings use Inter; the name is kept so existing classes keep working */
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Spacing scale: 4px base */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
 
   /* Radii */
   --radius-input: 8px;
   --radius-card: 12px;
   --radius-pill: 9999px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 
-  /* 3D Elevation System */
-  --shadow-xs: 0 1px 2px rgba(28, 26, 22, 0.04);
-  --shadow-sm: 0 1px 3px rgba(28, 26, 22, 0.06), 0 1px 2px rgba(28, 26, 22, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(28, 26, 22, 0.06), 0 2px 4px -2px rgba(28, 26, 22, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(28, 26, 22, 0.06), 0 4px 6px -4px rgba(28, 26, 22, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(28, 26, 22, 0.08), 0 8px 10px -6px rgba(28, 26, 22, 0.04);
-  --shadow-float: 0 25px 50px -12px rgba(28, 26, 22, 0.12);
-  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  --shadow-accent-glow: 0 0 20px rgba(184, 74, 34, 0.15), 0 0 40px rgba(184, 74, 34, 0.05);
+  /* Elevation: soft shadows in light mode */
+  --shadow-xs: 0 1px 2px rgba(20, 24, 31, 0.04);
+  --shadow-sm: 0 1px 3px rgba(20, 24, 31, 0.07), 0 1px 2px rgba(20, 24, 31, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(20, 24, 31, 0.07), 0 2px 4px -2px rgba(20, 24, 31, 0.04);
+  --shadow-lg: 0 12px 20px -4px rgba(20, 24, 31, 0.08), 0 4px 6px -4px rgba(20, 24, 31, 0.04);
+  --shadow-xl: 0 22px 30px -8px rgba(20, 24, 31, 0.10), 0 8px 10px -6px rgba(20, 24, 31, 0.05);
+  --shadow-float: 0 28px 56px -14px rgba(20, 24, 31, 0.16);
+  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-accent-glow: 0 0 20px rgba(15, 118, 110, 0.15), 0 0 40px rgba(15, 118, 110, 0.05);
 
-  /* 3D Card Depth */
   --card-shadow: var(--shadow-sm);
   --card-shadow-hover: var(--shadow-lg);
   --card-border: 1px solid var(--border);
   --card-border-hover: 1px solid var(--accent-soft);
 
-  /* Transition Easings */
+  /* Motion */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
 
-  /* Backward Compatibility Aliases */
+  /* Backward-compatible aliases */
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-border: var(--border);
@@ -67,53 +96,80 @@
   --color-text-muted: var(--text-muted);
   --color-primary: var(--accent);
   --color-primary-hover: var(--accent-hover);
+
+  color-scheme: light;
 }
 
-.dark {
-  /* Color Palette — Dark Mode ("Walnut") */
-  --bg: #0F0D0A;
-  --surface: #1A1612;
-  --surface-2: #241F19;
-  --surface-3: #302922;
-  --border: #3A332B;
-  --border-subtle: #2E2821;
-  --text: #EFE8D8;
-  --text-muted: #A39A88;
-  --text-faint: #6B6355;
-  --accent: #E07A4C;
-  --accent-hover: #EB906A;
-  --accent-soft: #3A241A;
-  --accent-glow: rgba(224, 122, 76, 0.15);
-  --accent-glow-strong: rgba(224, 122, 76, 0.25);
-  --brass: #D1A94E;
-  --brass-glow: rgba(209, 169, 78, 0.1);
-  --success: #6FA593;
-  --success-soft: rgba(111, 165, 147, 0.08);
-  --warning: #E0A53A;
-  --danger: #D9645C;
+.dark,
+[data-theme='dark'] {
+  /* RGB channels so Tailwind can apply opacity (bg-surface/70, border-danger/25, ...) */
+  --bg-rgb: 14 17 22; --surface-rgb: 22 27 34; --border-rgb: 42 49 59; --text-rgb: 232 236 241;
+  --success-rgb: 74 222 128; --warning-rgb: 251 191 36; --danger-rgb: 248 113 113; --brass-rgb: 251 191 36;
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
-  --shadow-float: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-accent-glow: 0 0 20px rgba(224, 122, 76, 0.2), 0 0 40px rgba(224, 122, 76, 0.08);
+  --bg: #0E1116;
+  --surface: #161B22;
+  --surface-2: #1D232C;
+  --surface-3: #262D38;
+  --border: #2A313B;
+  --border-subtle: #222831;
+
+  --text: #E8ECF1;
+  --text-muted: #8B96A5;
+  --text-faint: #667085;
+
+  --accent-rgb: 45 212 191;
+  --accent: #2DD4BF;
+  --accent-hover: #5EEAD4;
+  --accent-soft: #123B38;
+  --accent-glow: rgba(45, 212, 191, 0.14);
+  --accent-glow-strong: rgba(45, 212, 191, 0.24);
+  --on-accent: #0E1116;
+  --brass: #FBBF24;
+  --brass-glow: rgba(251, 191, 36, 0.1);
+
+  --success: #4ADE80;
+  --success-soft: rgba(74, 222, 128, 0.1);
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --focus-ring: #2DD4BF;
+
+  --status-new-bg: #1E2A4A;        --status-new-fg: #A5C0FF;
+  --status-contacted-bg: #3A2E10;  --status-contacted-fg: #FCD34D;
+  --status-qualified-bg: #2D2450;  --status-qualified-fg: #C4B5FD;
+  --status-site-visit-bg: #0F3B38; --status-site-visit-fg: #5EEAD4;
+  --status-negotiation-bg: #40230F; --status-negotiation-fg: #FDBA74;
+  --status-won-bg: #12351F;        --status-won-fg: #86EFAC;
+  --status-lost-bg: #43181A;       --status-lost-fg: #FCA5A5;
+
+  /* Elevation: 1px borders carry the depth in dark mode, shadows stay faint */
+  --shadow-xs: 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.03);
+  --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 4px 10px -4px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 20px -8px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 18px 30px -10px rgba(0, 0, 0, 0.55);
+  --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 28px 56px -14px rgba(0, 0, 0, 0.6);
+  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --shadow-accent-glow: 0 0 20px rgba(45, 212, 191, 0.18), 0 0 40px rgba(45, 212, 191, 0.06);
 
   --card-shadow: var(--shadow-sm);
-  --card-shadow-hover: var(--shadow-xl);
+  --card-shadow-hover: var(--shadow-lg);
 
   color-scheme: dark;
+}
 
-  /* Backward Compatibility Aliases in Dark */
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-border: var(--border);
-  --color-text: var(--text);
-  --color-text-muted: var(--text-muted);
-  --color-primary: var(--accent);
-  --color-primary-hover: var(--accent-hover);
+/* Visible keyboard focus everywhere */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Blueprint Grid Pattern — now with subtle parallax depth feel */

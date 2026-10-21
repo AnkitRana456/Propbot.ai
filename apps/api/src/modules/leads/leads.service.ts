@@ -12,6 +12,7 @@ import {
   chatbots,
 } from '../../db/schema/index.js';
 import type {
+  UpdateLeadInput,
   BuyerDna,
   CaptureLeadInput,
   LeadItemResponse,
@@ -675,6 +676,57 @@ export class LeadsService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * Inline edits from the leads grid: contact details, upper budget and the next follow-up.
+   * Phone numbers are validated like every other entry point, and a number already used by another contact is a 409.
+   */
+  async updateLead(companyId: string, leadId: string, input: UpdateLeadInput): Promise<LeadItemResponse> {
+    const existing = await db.query.leads.findFirst({ where: and(eq(leads.id, leadId), eq(leads.companyId, companyId), isNull(leads.deletedAt)) });
+    if (!existing) throw new Error('Lead not found');
+
+    const contactPatch: Partial<typeof contacts.$inferInsert> = {};
+    if (input.name !== undefined) {
+      const parts = input.name.trim().split(/\s+/);
+      contactPatch.firstName = parts[0] || 'Prospective';
+      contactPatch.lastName = parts.slice(1).join(' ') || null;
+    }
+    let phoneChanged = false;
+    if (input.phone !== undefined) {
+      const check = validatePhone(input.phone);
+      if (!check.valid || !check.e164) {
+        throw Object.assign(new Error('Please enter a valid phone number.'), { statusCode: 400, code: 'INVALID_PHONE', reason: check.reason });
+      }
+      contactPatch.phone = check.e164;
+      phoneChanged = true;
+    }
+    if (input.email !== undefined) contactPatch.email = input.email ? input.email.trim().toLowerCase() : null;
+
+    try {
+      await db.transaction(async tx => {
+        if (Object.keys(contactPatch).length > 0) {
+          await tx.update(contacts).set({ ...contactPatch, updatedAt: new Date() }).where(and(eq(contacts.id, existing.contactId), eq(contacts.companyId, companyId)));
+        }
+        const leadPatch: Partial<typeof leads.$inferInsert> = { updatedAt: new Date() };
+        if (phoneChanged) leadPatch.phoneVerified = false;
+        if (input.nextFollowUpAt !== undefined) leadPatch.nextFollowUpAt = input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null;
+        if (input.budgetMax !== undefined) {
+          const dna = (existing.buyerDna as BuyerDna) ?? buyerDnaService.getDefaultDna();
+          const explicit = new Set(dna.explicitFields ?? []);
+          explicit.add('budgetMax');
+          leadPatch.buyerDna = { ...dna, budgetMax: input.budgetMax, explicitFields: [...explicit] };
+        }
+        await tx.update(leads).set(leadPatch).where(eq(leads.id, leadId));
+        await tx.insert(leadActivities).values({ companyId, leadId, contactId: existing.contactId, activityType: 'edit', title: 'Lead details edited', description: Object.keys(input).join(', '), metadata: { fields: Object.keys(input) } });
+      });
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throw Object.assign(new Error('Another contact already uses that phone number or e-mail.'), { statusCode: 409, code: 'CONTACT_EXISTS' });
+      }
+      throw err;
+    }
+    return this.getLeadById(companyId, leadId);
   }
 
   /**

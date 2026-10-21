@@ -2,14 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { NAVIGATION_ITEMS, isNavVisible } from '../src/config/navigation.js';
 
 describe('Navigation & RBAC Filtering', () => {
-  it('defines all 16 required navigation items', () => {
-    expect(NAVIGATION_ITEMS).toHaveLength(16);
+  it('defines every navigation item, with the daily workspace first', () => {
+    expect(NAVIGATION_ITEMS.length).toBeGreaterThanOrEqual(16);
+    expect(NAVIGATION_ITEMS.slice(0, 7).map(i => i.section)).toEqual(Array(7).fill('CORE'));
+    expect(new Set(NAVIGATION_ITEMS.map(i => i.path)).size).toBe(NAVIGATION_ITEMS.length);
     const labels = NAVIGATION_ITEMS.map(i => i.label);
-    expect(labels).toContain('Dashboard');
+    expect(labels).toContain('Overview');
     expect(labels).toContain('Chatbots');
     expect(labels).toContain('WhatsApp Bot');
     expect(labels).toContain('Leads');
-    expect(labels).toContain('Contacts');
+    expect(labels).toContain('Clients');
     expect(labels).toContain('Properties');
     expect(labels).toContain('Appointments');
     expect(labels).toContain('Approvals');
@@ -25,23 +27,23 @@ describe('Navigation & RBAC Filtering', () => {
 
   it('allows company_admin to see all navigation items', () => {
     const visible = NAVIGATION_ITEMS.filter(item => isNavVisible('company_admin', item));
-    expect(visible).toHaveLength(16);
+    expect(visible).toHaveLength(NAVIGATION_ITEMS.length);
   });
 
   it('allows ps-owner to see all navigation items', () => {
     const visible = NAVIGATION_ITEMS.filter(item => isNavVisible('ps-owner', item));
-    expect(visible).toHaveLength(16);
+    expect(visible).toHaveLength(NAVIGATION_ITEMS.length);
   });
 
   it('allows sales_manager to see chatbots, leads, properties, appointments, contacts, workflows, campaigns, and analytics', () => {
     const visible = NAVIGATION_ITEMS.filter(item => isNavVisible('sales_manager', item));
     const labels = visible.map(i => i.label);
 
-    expect(labels).toContain('Dashboard');
+    expect(labels).toContain('Overview');
     expect(labels).toContain('Chatbots');
     expect(labels).toContain('WhatsApp Bot');
     expect(labels).toContain('Leads');
-    expect(labels).toContain('Contacts');
+    expect(labels).toContain('Clients');
     expect(labels).toContain('Properties');
     expect(labels).toContain('Appointments');
     expect(labels).toContain('Approvals');
@@ -60,9 +62,9 @@ describe('Navigation & RBAC Filtering', () => {
     const visible = NAVIGATION_ITEMS.filter(item => isNavVisible('agent', item));
     const labels = visible.map(i => i.label);
 
-    expect(labels).toContain('Dashboard');
+    expect(labels).toContain('Overview');
     expect(labels).toContain('Leads');
-    expect(labels).toContain('Contacts');
+    expect(labels).toContain('Clients');
     expect(labels).toContain('Properties');
     expect(labels).toContain('Appointments');
     expect(labels).toContain('Help & Support');
@@ -81,7 +83,7 @@ describe('Navigation & RBAC Filtering', () => {
     const visible = NAVIGATION_ITEMS.filter(item => isNavVisible('viewer', item));
     const labels = visible.map(i => i.label);
 
-    expect(labels).toContain('Dashboard');
+    expect(labels).toContain('Overview');
     expect(labels).toContain('Analytics');
     expect(labels).toContain('Properties');
     expect(labels).toContain('Help & Support');

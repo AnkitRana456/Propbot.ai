@@ -67,13 +67,13 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
       <div className="rounded-xl border border-orange-200/60 bg-gradient-to-r from-orange-50/70 via-amber-50/40 to-slate-50 p-4 dark:border-orange-900/40 dark:from-orange-950/30 dark:via-slate-900 dark:to-slate-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
-            <div className="rounded-lg bg-[#B84A22] p-2 text-white shadow-xs">
+            <div className="rounded-lg bg-accent p-2 text-white shadow-xs">
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                 AI Agent Copilot
-                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-[#B84A22] dark:bg-orange-950/60 dark:text-orange-300">
+                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-accent dark:bg-orange-950/60 dark:text-orange-300">
                   Real-time Intelligence
                 </span>
               </h4>
@@ -82,7 +82,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
               </p>
             </div>
           </div>
-          <span className="text-[11px] font-bold text-[#B84A22] dark:text-orange-400 flex items-center gap-1">
+          <span className="text-[11px] font-bold text-accent dark:text-orange-400 flex items-center gap-1">
             <Zap className="h-3 w-3" /> Live Intent: {lead.intentScore}%
           </span>
         </div>
@@ -93,7 +93,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
             onClick={() => handleSelectFeature('script')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
               activeFeature === 'script'
-                ? 'bg-[#B84A22] text-white shadow-xs'
+                ? 'bg-accent text-white shadow-xs'
                 : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
             }`}
           >
@@ -104,7 +104,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
             onClick={() => handleSelectFeature('summary')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
               activeFeature === 'summary'
-                ? 'bg-[#B84A22] text-white shadow-xs'
+                ? 'bg-accent text-white shadow-xs'
                 : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
             }`}
           >
@@ -115,7 +115,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
             onClick={() => handleSelectFeature('replies')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
               activeFeature === 'replies'
-                ? 'bg-[#B84A22] text-white shadow-xs'
+                ? 'bg-accent text-white shadow-xs'
                 : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
             }`}
           >
@@ -126,7 +126,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
             onClick={() => handleSelectFeature('rebuttals')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
               activeFeature === 'rebuttals'
-                ? 'bg-[#B84A22] text-white shadow-xs'
+                ? 'bg-accent text-white shadow-xs'
                 : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
             }`}
           >
@@ -141,12 +141,12 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
         <div className="rounded-xl border border-slate-200 bg-white p-4.5 dark:border-slate-800 dark:bg-slate-900 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <h5 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <PhoneCall className="h-3.5 w-3.5 text-[#B84A22]" /> Personalized Call Script
+              <PhoneCall className="h-3.5 w-3.5 text-accent" /> Personalized Call Script
             </h5>
             <button
               onClick={() => scriptMutation.mutate()}
               disabled={scriptMutation.isPending}
-              className="text-[11px] font-semibold text-[#B84A22] hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw className={`h-3 w-3 ${scriptMutation.isPending ? 'animate-spin' : ''}`} />
               Regenerate
@@ -155,7 +155,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
 
           {scriptMutation.isPending && (
             <div className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin text-[#B84A22]" />
+              <Loader2 className="h-5 w-5 animate-spin text-accent" />
               <span>Generating tailored call script from Buyer DNA...</span>
             </div>
           )}
@@ -242,7 +242,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
           {!scriptMutation.data && !scriptMutation.isPending && !scriptMutation.isError && (
             <button
               onClick={() => scriptMutation.mutate()}
-              className="w-full rounded-lg bg-[#B84A22] py-2 text-xs font-bold text-white hover:bg-[#a1401d] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full rounded-lg bg-accent py-2 text-xs font-bold text-white hover:bg-[#a1401d] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
             >
               <PhoneCall className="h-3.5 w-3.5" />
               <span>Generate 60s Call Script</span>
@@ -256,12 +256,12 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
         <div className="rounded-xl border border-slate-200 bg-white p-4.5 dark:border-slate-800 dark:bg-slate-900 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <h5 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5 text-[#B84A22]" /> Executive Buyer Brief
+              <FileText className="h-3.5 w-3.5 text-accent" /> Executive Buyer Brief
             </h5>
             <button
               onClick={() => summaryMutation.mutate()}
               disabled={summaryMutation.isPending}
-              className="text-[11px] font-semibold text-[#B84A22] hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw className={`h-3 w-3 ${summaryMutation.isPending ? 'animate-spin' : ''}`} />
               Refresh
@@ -270,7 +270,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
 
           {summaryMutation.isPending && (
             <div className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin text-[#B84A22]" />
+              <Loader2 className="h-5 w-5 animate-spin text-accent" />
               <span>Synthesizing buyer brief and purchase signals...</span>
             </div>
           )}
@@ -302,7 +302,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
                   <ul className="space-y-1 text-slate-600 dark:text-slate-400">
                     {summaryMutation.data.keyRequirements.map((r, i) => (
                       <li key={i} className="flex items-center gap-1.5">
-                        <ChevronRight className="h-3 w-3 text-[#B84A22] shrink-0" />
+                        <ChevronRight className="h-3 w-3 text-accent shrink-0" />
                         <span>{r}</span>
                       </li>
                     ))}
@@ -332,7 +332,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
           {!summaryMutation.data && !summaryMutation.isPending && !summaryMutation.isError && (
             <button
               onClick={() => summaryMutation.mutate()}
-              className="w-full rounded-lg bg-[#B84A22] py-2 text-xs font-bold text-white hover:bg-[#a1401d] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full rounded-lg bg-accent py-2 text-xs font-bold text-white hover:bg-[#a1401d] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
             >
               <FileText className="h-3.5 w-3.5" />
               <span>Generate 1-Click Executive Summary</span>
@@ -346,12 +346,12 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
         <div className="rounded-xl border border-slate-200 bg-white p-4.5 dark:border-slate-800 dark:bg-slate-900 shadow-xs space-y-3.5">
           <div className="flex items-center justify-between">
             <h5 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <MessageSquare className="h-3.5 w-3.5 text-[#B84A22]" /> Strategic Reply Options
+              <MessageSquare className="h-3.5 w-3.5 text-accent" /> Strategic Reply Options
             </h5>
             <button
               onClick={() => replyMutation.mutate({ tone: 'warm' })}
               disabled={replyMutation.isPending}
-              className="text-[11px] font-semibold text-[#B84A22] hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw className={`h-3 w-3 ${replyMutation.isPending ? 'animate-spin' : ''}`} />
               Generate More
@@ -360,7 +360,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
 
           {replyMutation.isPending && (
             <div className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin text-[#B84A22]" />
+              <Loader2 className="h-5 w-5 animate-spin text-accent" />
               <span>Formulating strategic reply suggestions...</span>
             </div>
           )}
@@ -388,8 +388,8 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
                   className="rounded-lg border border-slate-200 p-3 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-2 hover:border-orange-300 transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#B84A22] dark:text-orange-400">{sug.title}</span>
-                    <span className="text-[10px] bg-orange-100 text-[#B84A22] dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 rounded-full font-semibold">
+                    <span className="text-xs font-bold text-accent dark:text-orange-400">{sug.title}</span>
+                    <span className="text-[10px] bg-orange-100 text-accent dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 rounded-full font-semibold">
                       {sug.strategy}
                     </span>
                   </div>
@@ -397,7 +397,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
                   <div className="flex justify-end pt-1">
                     <button
                       onClick={() => handleCopy(sug.id, sug.text)}
-                      className="text-[11px] font-bold text-[#B84A22] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-[11px] font-bold text-accent hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       {copiedKey === sug.id ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
                       {copiedKey === sug.id ? 'Copied' : 'Copy Message'}
@@ -411,7 +411,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
           {!replyMutation.data && !replyMutation.isPending && !replyMutation.isError && (
             <button
               onClick={() => replyMutation.mutate({ tone: 'warm' })}
-              className="w-full rounded-lg bg-[#B84A22] py-2 text-xs font-bold text-white hover:bg-[#a1401d] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full rounded-lg bg-accent py-2 text-xs font-bold text-white hover:bg-[#a1401d] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               <span>Suggest Strategic Replies</span>
@@ -425,7 +425,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
         <div className="rounded-xl border border-slate-200 bg-white p-4.5 dark:border-slate-800 dark:bg-slate-900 shadow-xs space-y-3.5">
           <div className="flex items-center justify-between">
             <h5 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldAlert className="h-3.5 w-3.5 text-[#B84A22]" /> Real Estate Objection Rebuttals
+              <ShieldAlert className="h-3.5 w-3.5 text-accent" /> Real Estate Objection Rebuttals
             </h5>
           </div>
 
@@ -435,12 +435,12 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
               value={customObjection}
               onChange={e => setCustomObjection(e.target.value)}
               placeholder="Enter stated buyer objection..."
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:border-[#B84A22]"
+              className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:border-accent"
             />
             <button
               onClick={() => rebuttalMutation.mutate({ objection: customObjection })}
               disabled={rebuttalMutation.isPending || !customObjection.trim()}
-              className="rounded-lg bg-[#B84A22] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#a1401d] transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+              className="rounded-lg bg-accent px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#a1401d] transition-colors cursor-pointer shrink-0 disabled:opacity-50"
             >
               {rebuttalMutation.isPending ? 'Generating...' : 'Get Rebuttal'}
             </button>
@@ -448,7 +448,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
 
           {rebuttalMutation.isPending && (
             <div className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-slate-400">
-              <Loader2 className="h-5 w-5 animate-spin text-[#B84A22]" />
+              <Loader2 className="h-5 w-5 animate-spin text-accent" />
               <span>Consulting objection playbook and strategies...</span>
             </div>
           )}
@@ -479,7 +479,7 @@ export function AgentCopilotPanel({ lead }: AgentCopilotPanelProps) {
                   className="rounded-lg border border-slate-200 p-3 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#B84A22] dark:text-orange-400">
+                    <span className="text-xs font-bold text-accent dark:text-orange-400">
                       Framework: {reb.framework}
                     </span>
                     <button
