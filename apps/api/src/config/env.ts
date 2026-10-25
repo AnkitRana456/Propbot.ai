@@ -43,6 +43,7 @@ export const envSchema = z.object({
   // AI & LLM Providers (Optional for startup, required for live AI in R1)
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().optional(),
   GEMINI_EMBEDDING_MODEL: z.string().optional(),
@@ -94,14 +95,40 @@ export function validateEnv(customEnv?: Record<string, unknown>): ValidatedEnv {
 
   const validated = result.data;
 
-  // Strict check in production
+  // Strict checks in production: refuse to start with settings that are only safe on a laptop
   if (validated.NODE_ENV === 'production') {
-    if (!validated.ENCRYPTION_KEY || validated.ENCRYPTION_KEY.length < 32) {
-      throw new Error('ENCRYPTION_KEY is required in production and must be at least 32 characters');
+    const problems = productionProblems(envToValidate as Record<string, unknown>, validated);
+    if (problems.length) {
+      throw new Error(`Unsafe production configuration: ${problems.join(' ')}`);
     }
+    for (const w of productionWarnings(envToValidate as Record<string, unknown>, validated)) console.warn(`[CONFIG_WARNING] ${w}`);
   }
 
   return validated;
+}
+
+const truthy = (v: unknown) => String(v ?? '').toLowerCase() === 'true';
+
+/** Settings that must be fixed before a production server may start. */
+export function productionProblems(raw: Record<string, unknown>, env: ValidatedEnv): string[] {
+  const problems: string[] = [];
+  if (!env.ENCRYPTION_KEY || env.ENCRYPTION_KEY.length < 32) problems.push('ENCRYPTION_KEY is required in production and must be at least 32 characters.');
+  if (env.JWT_ACCESS_SECRET.length < 32 || env.JWT_REFRESH_SECRET.length < 32) problems.push('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must each be at least 32 characters.');
+  if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) problems.push('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different.');
+  const origins = (env.CORS_ORIGIN ?? '').split(',').map(o => o.trim()).filter(Boolean);
+  if (!origins.length || origins.includes('*')) problems.push('CORS_ORIGIN must list your web addresses (no "*").');
+  if (truthy(raw.ALLOW_OFFLINE_MOCK) || truthy(raw.MOCK_PROVIDERS)) problems.push('ALLOW_OFFLINE_MOCK and MOCK_PROVIDERS must be off.');
+  if (truthy(raw.ALLOW_UNSIGNED_WHATSAPP_WEBHOOKS)) problems.push('ALLOW_UNSIGNED_WHATSAPP_WEBHOOKS must be off.');
+  return problems;
+}
+
+/** Settings that are allowed in production but worth a second look. */
+export function productionWarnings(raw: Record<string, unknown>, env: ValidatedEnv): string[] {
+  const warnings: string[] = [];
+  if (!env.API_URL.startsWith('https://') || !env.WEB_URL.startsWith('https://')) warnings.push('API_URL and WEB_URL should use https.');
+  if (truthy(raw.ALLOW_SIMULATED_PROVIDERS)) warnings.push('ALLOW_SIMULATED_PROVIDERS is on: messages, calls and calendar events may be simulated instead of sent.');
+  if (!raw.SMTP_HOST) warnings.push('SMTP_HOST is not set, so e-mail notifications and replies cannot be sent.');
+  return warnings;
 }
 
 /**

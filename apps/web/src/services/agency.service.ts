@@ -12,8 +12,8 @@ export function useAgencyClients() {
   return useQuery({
     queryKey: ['agency', 'clients'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: AgencyClientItem[] }>(`/api/agency/clients`);
-      return res.data;
+      const res = await apiRequest<AgencyClientItem[]>(`/api/agency/clients`);
+      return res;
     },
   });
 }
@@ -68,8 +68,8 @@ export function useClientPortalData() {
   return useQuery({
     queryKey: ['agency', 'portal'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: ClientPortalData }>(`/api/agency/portal`);
-      return res.data;
+      const res = await apiRequest<ClientPortalData>(`/api/agency/portal`);
+      return res;
     },
   });
 }

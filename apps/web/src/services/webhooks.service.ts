@@ -16,8 +16,8 @@ export function useWebhookKpis() {
   return useQuery({
     queryKey: ['webhooks', 'kpis'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: WebhookKpis }>('/api/webhooks/logs/kpis');
-      return res.data;
+      const res = await apiRequest<WebhookKpis>('/api/webhooks/logs/kpis');
+      return res;
     },
     staleTime: 10000,
   });
@@ -27,8 +27,8 @@ export function useWebhookEndpoints() {
   return useQuery({
     queryKey: ['webhooks', 'endpoints'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: WebhookEndpointItem[] }>('/api/webhooks/endpoints');
-      return res.data;
+      const res = await apiRequest<WebhookEndpointItem[]>('/api/webhooks/endpoints');
+      return res;
     },
   });
 }
@@ -48,11 +48,8 @@ export function useWebhookLogs(filter: Partial<WebhookLogsFilter>) {
       if (filter.limit) params.append('limit', String(filter.limit));
 
       const queryStr = params.toString() ? `?${params.toString()}` : '';
-      const res = await apiRequest<{
-        success: boolean;
-        data: { items: WebhookLogItem[]; total: number; page: number; limit: number };
-      }>(`/api/webhooks/logs${queryStr}`);
-      return res.data;
+      const res = await apiRequest<{ items: WebhookLogItem[]; total: number; page: number; limit: number }>(`/api/webhooks/logs${queryStr}`);
+      return res;
     },
   });
 }
@@ -61,11 +58,11 @@ export function useCreateWebhookEndpoint() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateWebhookEndpointInput) => {
-      const res = await apiRequest<{ success: boolean; data: WebhookEndpointItem }>('/api/webhooks/endpoints', {
+      const res = await apiRequest<WebhookEndpointItem>('/api/webhooks/endpoints', {
         method: 'POST',
         body: JSON.stringify(input),
       });
-      return res.data;
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks', 'endpoints'] });
@@ -77,11 +74,11 @@ export function useUpdateWebhookEndpoint() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: UpdateWebhookEndpointInput }) => {
-      const res = await apiRequest<{ success: boolean; data: WebhookEndpointItem }>(`/api/webhooks/endpoints/${id}`, {
+      const res = await apiRequest<WebhookEndpointItem>(`/api/webhooks/endpoints/${id}`, {
         method: 'PUT',
         body: JSON.stringify(input),
       });
-      return res.data;
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks', 'endpoints'] });
@@ -107,13 +104,10 @@ export function useDeleteWebhookEndpoint() {
 export function useSendTestEvent() {
   return useMutation({
     mutationFn: async (endpointId: string) => {
-      const res = await apiRequest<{
-        success: boolean;
-        data: { success: boolean; statusCode: number | null; durationMs: number; status: string };
-      }>(`/api/webhooks/endpoints/${endpointId}/test`, {
+      const res = await apiRequest<{ success: boolean; statusCode: number | null; durationMs: number; status: string }>(`/api/webhooks/endpoints/${endpointId}/test`, {
         method: 'POST',
       });
-      return res.data;
+      return res;
     },
   });
 }
@@ -122,10 +116,10 @@ export function useReplayWebhook() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (logId: string) => {
-      const res = await apiRequest<{ success: boolean; data: WebhookLogItem }>(`/api/webhooks/logs/${logId}/replay`, {
+      const res = await apiRequest<WebhookLogItem>(`/api/webhooks/logs/${logId}/replay`, {
         method: 'POST',
       });
-      return res.data;
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks', 'logs'] });
@@ -138,8 +132,8 @@ export function useIntegrations() {
   return useQuery({
     queryKey: ['integrations'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: IntegrationItem[] }>('/api/integrations');
-      return res.data;
+      const res = await apiRequest<IntegrationItem[]>('/api/integrations');
+      return res;
     },
   });
 }
@@ -148,11 +142,11 @@ export function useUpdateIntegration() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ provider, input }: { provider: IntegrationProvider; input: UpdateIntegrationInput }) => {
-      const res = await apiRequest<{ success: boolean; data: IntegrationItem }>(`/api/integrations/${provider}`, {
+      const res = await apiRequest<IntegrationItem>(`/api/integrations/${provider}`, {
         method: 'PUT',
         body: JSON.stringify(input),
       });
-      return res.data;
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] });

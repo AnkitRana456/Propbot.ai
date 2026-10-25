@@ -1,5 +1,6 @@
 import type { TelephonyProvider, OutboundCallOptions, OutboundCallResult } from './telephony-provider.interface.js';
 import { pino } from 'pino';
+import { requireSimulation } from '../../../utils/simulation.js';
 
 const logger = pino({ name: 'exotel-telephony-provider', level: process.env.LOG_LEVEL ?? 'info' });
 
@@ -19,6 +20,7 @@ export class ExotelTelephonyProvider implements TelephonyProvider {
   async initiateCall(options: OutboundCallOptions): Promise<OutboundCallResult> {
     // If running in development/test without real credentials, safely return simulated sid
     if (this.apiKey.startsWith('mock_')) {
+      requireSimulation('Phone calling', 'Add EXOTEL_API_KEY, EXOTEL_API_TOKEN and EXOTEL_ACCOUNT_SID.');
       logger.info({ to: options.to }, 'Simulating Exotel outbound call in mock/dev mode');
       return {
         callSid: `exo_${Date.now()}`,

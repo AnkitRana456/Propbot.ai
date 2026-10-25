@@ -98,7 +98,7 @@ describe('Real Estate Funnel & Insights API', () => {
     await cleanupTestDatabase([companyId]);
   });
 
-  it('GET /api/analytics/real-estate-funnel returns 7 stages with accurate counts and drop-offs', async () => {
+  it('GET /api/analytics/real-estate-funnel returns 5 stages that start at captured leads, with no invented visitor count', async () => {
     const res = await request(app)
       .get('/api/analytics/real-estate-funnel?period=30d')
       .set('Authorization', `Bearer ${token}`);
@@ -107,10 +107,13 @@ describe('Real Estate Funnel & Insights API', () => {
     expect(res.body.success).toBe(true);
 
     const stages = res.body.data.stages;
-    expect(stages.length).toBe(7);
+    expect(stages.length).toBe(5);
+    expect(stages[0].stage).toBe('lead');
+    expect(stages[0].conversionFromTopPercent).toBe(100);
 
     const stageMap = new Map(stages.map((s: { stage: string; count: number }) => [s.stage, s.count]));
-    expect(stageMap.get('chat')).toBe(5);
+    expect(stageMap.has('visitor')).toBe(false);
+    expect(stageMap.has('chat')).toBe(false);
     expect(stageMap.get('lead')).toBe(3);
     // All 3 leads are qualified or higher
     expect(stageMap.get('qualified')).toBe(3);
@@ -120,7 +123,7 @@ describe('Real Estate Funnel & Insights API', () => {
     expect(stageMap.get('booked')).toBe(1);
   });
 
-  it('GET /api/analytics/cta-funnel returns 5 CTA stages (Shown, Clicked, Started, Completed, Failed)', async () => {
+  it('GET /api/analytics/cta-funnel only returns stages it can count and never exceeds 100%', async () => {
     const res = await request(app)
       .get('/api/analytics/cta-funnel?period=30d')
       .set('Authorization', `Bearer ${token}`);
@@ -129,12 +132,11 @@ describe('Real Estate Funnel & Insights API', () => {
     expect(res.body.success).toBe(true);
 
     const stages = res.body.data.stages;
-    expect(stages.length).toBe(5);
-    expect(stages[0].stage).toBe('shown');
-    expect(stages[1].stage).toBe('clicked');
-    expect(stages[2].stage).toBe('started');
-    expect(stages[3].stage).toBe('completed');
-    expect(stages[4].stage).toBe('failed');
+    expect(stages.map((s: { stage: string }) => s.stage)).toEqual(['started', 'completed', 'failed']);
+    const [started, completed, failed] = stages as Array<{ count: number; conversionFromTopPercent: number }>;
+    expect(completed!.count).toBeLessThanOrEqual(started!.count);
+    expect(completed!.count + failed!.count).toBe(started!.count);
+    for (const s of stages) expect(s.conversionFromTopPercent).toBeLessThanOrEqual(100);
   });
 
   it('GET /api/analytics/real-estate-insights aggregates demand by BHK, locality, and budget', async () => {

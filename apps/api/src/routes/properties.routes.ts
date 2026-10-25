@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { inventoryController } from '../modules/inventory/inventory.controller.js';
+import { costSheetService } from '../modules/inventory/cost-sheet.service.js';
 import { authenticate } from '../middlewares/authenticate.js';
 import { tenantGuard } from '../middlewares/tenant-guard.js';
 import { requirePermission } from '../middlewares/rbac.js';
@@ -100,4 +101,30 @@ propertiesRouter.post('/shortlist-rooms', requirePermission('view_leads', 'edit_
 
 propertiesRouter.get('/shortlist-rooms/lead/:leadId', requirePermission('view_leads'), (req, res, next) => {
   inventoryController.listRoomsForLead(req, res, next);
+});
+
+// ------------------------------------------
+// Cost Sheets
+// ------------------------------------------
+propertiesRouter.get('/projects/:projectId/cost-sheet-config', requirePermission('view_inventory'), (req, res, next) => {
+  const companyId = req.tenant?.companyId ?? '';
+  costSheetService.getConfig(companyId, req.params.projectId!).then(data => res.json({ data })).catch(next);
+});
+
+propertiesRouter.put('/projects/:projectId/cost-sheet-config', requirePermission('manage_inventory'), (req, res, next) => {
+  const companyId = req.tenant?.companyId ?? '';
+  costSheetService.updateConfig(companyId, req.params.projectId!, req.body as object).then(data => res.json({ data })).catch(next);
+});
+
+propertiesRouter.post('/projects/:projectId/cost-sheets', requirePermission('manage_inventory'), (req, res, next) => {
+  const companyId = req.tenant?.companyId ?? '';
+  const userId = req.tenant?.userId ?? '';
+  const body = req.body as { unitId: string; leadId?: string; discount?: number; parkingSlots?: number; notes?: string; validDays?: number };
+  costSheetService.createSheet(companyId, userId, { projectId: req.params.projectId!, ...body }).then(data => res.json({ data })).catch(next);
+});
+
+propertiesRouter.get('/projects/:projectId/cost-sheets', requirePermission('view_inventory'), (req, res, next) => {
+  const companyId = req.tenant?.companyId ?? '';
+  costSheetService.listSheets(companyId, { projectId: req.params.projectId!, ...(req.query.unitId ? { unitId: String(req.query.unitId) } : {}), ...(req.query.leadId ? { leadId: String(req.query.leadId) } : {}) })
+    .then(data => res.json({ data })).catch(next);
 });

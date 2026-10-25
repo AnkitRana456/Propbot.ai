@@ -96,34 +96,6 @@ export async function fetchNotifications(): Promise<{
       '/api/dashboard/notifications',
     );
   } catch {
-    return {
-      unreadCount: 3,
-      items: [
-        {
-          id: 'n1',
-          type: 'lead_hot',
-          title: '🔥 Hot Lead Alert',
-          message: 'Priya Sundaram scheduled a site visit for Prestige White Meadows (Score: 92)',
-          isRead: false,
-          createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 'n2',
-          type: 'visit_booked',
-          title: '📅 Site Visit Booked',
-          message: 'Aarav Malhotra requested a visit tomorrow at 3:00 PM',
-          isRead: false,
-          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 'n3',
-          type: 'brochure_opened',
-          title: '📄 Brochure Viewed',
-          message: 'Rohan Mehra downloaded the Prestige Falcon City brochure',
-          isRead: false,
-          createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        },
-      ],
-    };
+    return { unreadCount: 0, items: [] };
   }
 }

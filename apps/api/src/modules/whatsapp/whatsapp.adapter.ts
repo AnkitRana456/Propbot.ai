@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { pino } from 'pino';
+import { simulationAllowed } from '../../utils/simulation.js';
 import type {
   ChannelAdapter,
   NormalizedInboundEvent,
@@ -249,7 +250,16 @@ export class WhatsAppChannelAdapter implements ChannelAdapter {
       attempts++;
       try {
         if (!isLiveMeta) {
-          // Mock Provider fallback
+          if (!simulationAllowed()) {
+            return {
+              success: false,
+              messageId: '',
+              provider: 'meta_cloud_api',
+              status: 'failed',
+              error: 'WhatsApp is not connected on this server. Add the phone number ID and access token, and set META_LIVE_DISPATCH=true.',
+            };
+          }
+          // Simulated provider for development and tests
           const mockWamid = `wamid.HBg${Date.now()}${Math.random().toString(36).substring(2, 8)}`;
           whatsappLogger.info(
             {

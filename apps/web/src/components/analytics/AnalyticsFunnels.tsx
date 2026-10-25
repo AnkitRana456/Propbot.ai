@@ -34,11 +34,11 @@ export const AnalyticsFunnels: React.FC<AnalyticsFunnelsProps> = ({
               Real-Estate Conversion Funnel
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Visitor to closed deal progression and conversion velocity
+              From captured lead to booked unit, across every source
             </p>
           </div>
           <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
-            7 Stages
+            {realEstateFunnel?.stages.length ?? 0} Stages
           </span>
         </div>
 
@@ -91,7 +91,7 @@ export const AnalyticsFunnels: React.FC<AnalyticsFunnelsProps> = ({
               Chatbot Widget CTA Funnel
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Visitor intent: Widget Shown ➔ Clicked ➔ Started ➔ Captured
+              Chats that ended with the buyer's details captured
             </p>
           </div>
           <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800">
@@ -140,9 +140,9 @@ export const AnalyticsFunnels: React.FC<AnalyticsFunnelsProps> = ({
         </div>
 
         <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-          <span>Overall Widget Conversion</span>
+          <span>Chats that became leads</span>
           <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-            {ctaFunnel.stages[3] ? `${ctaFunnel.stages[3].conversionFromTopPercent}%` : '0%'}
+            {`${ctaFunnel.stages.find(x => x.stage === 'completed')?.conversionFromTopPercent ?? 0}%`}
           </span>
         </div>
       </div>

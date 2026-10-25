@@ -102,6 +102,7 @@ export const useTestConnection = () => useChannelMutation((id: string) => apiReq
 export const useDeleteConnection = () => useChannelMutation((id: string) => apiRequest<unknown>(`/api/channels/connections/${id}`, { method: 'DELETE' }));
 export const useCreateTemplate = () => useChannelMutation((input: CreateTemplateInput) => apiRequest<MessageTemplateItem>('/api/channels/templates', { method: 'POST', body: json(input) }));
 export const useSubmitTemplate = () => useChannelMutation((id: string) => apiRequest<MessageTemplateItem>(`/api/channels/templates/${id}/submit`, { method: 'POST', body: '{}' }));
+export const useSyncTemplate = () => useChannelMutation((id: string) => apiRequest<MessageTemplateItem>(`/api/channels/templates/${id}/sync`, { method: 'POST', body: '{}' }));
 export const useDeleteTemplate = () => useChannelMutation((id: string) => apiRequest<unknown>(`/api/channels/templates/${id}`, { method: 'DELETE' }));
 export const useCreateWidget = () => useChannelMutation((input: CreateWidgetInput) => apiRequest<WidgetItem>('/api/channels/widgets', { method: 'POST', body: json(input) }));
 export const useUpdateWidget = () => useChannelMutation((v: { id: string; input: UpdateWidgetInput }) => apiRequest<WidgetItem>(`/api/channels/widgets/${v.id}`, { method: 'PUT', body: json(v.input) }));

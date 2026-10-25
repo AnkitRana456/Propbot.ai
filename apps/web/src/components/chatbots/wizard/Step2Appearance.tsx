@@ -61,7 +61,7 @@ export const Step2Appearance: React.FC<Step2AppearanceProps> = ({ config, onChan
             type="text"
             value={appearance.botName || ''}
             onChange={e => updateAppearance({ botName: e.target.value })}
-            placeholder="e.g. Prestige Property Assistant"
+            placeholder="e.g. Aurora Homes Assistant"
             className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
           />
         </div>

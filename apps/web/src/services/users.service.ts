@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from './api-client.js';
+import { apiRequest, apiRequestEnvelope } from './api-client.js';
 import type {
   UserFilter,
   UserKpiMetrics,
@@ -29,7 +29,7 @@ export function useUsersList(filter?: UserFilter) {
   return useQuery({
     queryKey: ['users', 'list', filter],
     queryFn: async () => {
-      const res = await apiRequest<{
+      const res = await apiRequestEnvelope<{
         success: boolean;
         data: UserItem[];
         pagination: { total: number; page: number; limit: number; totalPages: number };
@@ -44,8 +44,8 @@ export function useUsersKpis() {
   return useQuery({
     queryKey: ['users', 'kpis'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: UserKpiMetrics }>(`/api/users/kpis`);
-      return res.data;
+      const res = await apiRequest<UserKpiMetrics>(`/api/users/kpis`);
+      return res;
     },
     staleTime: 10000,
   });
@@ -55,8 +55,8 @@ export function useUserInvitations() {
   return useQuery({
     queryKey: ['users', 'invitations'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: UserInvitationItem[] }>(`/api/users/invitations`);
-      return res.data;
+      const res = await apiRequest<UserInvitationItem[]>(`/api/users/invitations`);
+      return res;
     },
   });
 }
@@ -65,8 +65,8 @@ export function usePendingUsers() {
   return useQuery({
     queryKey: ['users', 'pending'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: UserItem[] }>(`/api/auth/users/pending`);
-      return res.data;
+      const res = await apiRequest<UserItem[]>(`/api/auth/users/pending`);
+      return res;
     },
   });
 }
@@ -99,7 +99,7 @@ export function useInviteUserMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: InviteUserInput) => {
-      return await apiRequest<{ success: boolean; data: { email: string; inviteUrl: string } }>(
+      return await apiRequest<{ email: string; inviteUrl: string }>(
         `/api/users/invite`,
         {
           method: 'POST',
@@ -170,7 +170,7 @@ export function useAuditLogs(filter?: AuditLogFilter) {
       if (filter?.page) params.append('page', String(filter.page));
       if (filter?.limit) params.append('limit', String(filter.limit));
       const str = params.toString();
-      const res = await apiRequest<{
+      const res = await apiRequestEnvelope<{
         success: boolean;
         data: AuditLogRecord[];
         pagination: { total: number; page: number; limit: number; totalPages: number };
@@ -184,8 +184,8 @@ export function useUserSessions() {
   return useQuery({
     queryKey: ['users', 'sessions'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: UserSessionRecord[] }>(`/api/users/sessions`);
-      return res.data;
+      const res = await apiRequest<UserSessionRecord[]>(`/api/users/sessions`);
+      return res;
     },
   });
 }

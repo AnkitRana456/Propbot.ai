@@ -128,3 +128,16 @@ export function safeCompareStrings(a: string, b: string): boolean {
   if (bufA.length !== bufB.length) return false;
   return crypto.timingSafeEqual(bufA, bufB);
 }
+
+/** Encrypts a secret for storage (vault:v1:...). Empty stays null; already sealed values are kept as they are. */
+export function sealSecret(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (value.startsWith('vault:v1:')) return value;
+  return packEncryptedSecret(encryptSecret(value));
+}
+
+/** Reads a stored secret, sealed or legacy plain text. */
+export function openSecret(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  return unpackEncryptedSecret(value) || undefined;
+}

@@ -3,8 +3,9 @@ import { db } from '../../db/index.js';
 import { channelConnections, contactIdentities, messageTemplates, whatsappConfigs } from '../../db/schema/index.js';
 import { whatsappAdapter } from '../whatsapp/whatsapp.adapter.js';
 import { emailChannelAdapter } from '../integrations/email.adapter.js';
-import { unpackEncryptedSecret } from '../../utils/crypto-vault.js';
+import { openSecret, unpackEncryptedSecret } from '../../utils/crypto-vault.js';
 import { ApiError, badRequest } from '../../utils/api-error.js';
+import { requireSimulation } from '../../utils/simulation.js';
 
 export interface DispatchInput {
   companyId: string;
@@ -44,6 +45,7 @@ async function sendSocial(channel: 'instagram' | 'messenger', companyId: string,
   if (!conn) throw badRequest('CHANNEL_NOT_CONNECTED', `Connect ${channel} under Channels before replying there.`);
 
   if (process.env.META_LIVE_DISPATCH !== 'true') {
+    requireSimulation(`Sending on ${channel}`, 'Set META_LIVE_DISPATCH=true once the Meta app is approved.');
     return { provider: `mock_${channel}`, providerMessageId: `mock_${channel}_${Date.now()}`, status: 'sent' };
   }
   const packed = conn.secrets.accessToken;
@@ -87,7 +89,7 @@ export async function dispatchReply(i: DispatchInput): Promise<DispatchResult> {
           : templateName
             ? { type: 'template', text: i.text, templateName, templateLanguage: i.templateLanguage }
             : { type: 'text', text: i.text },
-        cfg ? { phoneNumberId: cfg.phoneNumberId || undefined, accessToken: cfg.accessToken || undefined, templateName: cfg.templateName || undefined } : undefined,
+        cfg ? { phoneNumberId: cfg.phoneNumberId || undefined, accessToken: openSecret(cfg.accessToken), templateName: cfg.templateName || undefined } : undefined,
       );
       if (!r.success) throw new ApiError(502, 'CHANNEL_SEND_FAILED', r.error ?? 'WhatsApp rejected the message.');
       return { provider: r.provider, providerMessageId: r.messageId, status: r.status === 'failed' ? 'queued' : r.status, templateName };

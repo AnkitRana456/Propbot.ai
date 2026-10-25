@@ -76,10 +76,10 @@ export const CampaignsPage: React.FC = () => {
   const [launchingCampaign, setLaunchingCampaign] = useState(false);
 
   // RERA Assistant State
-  const [reraProjectName, setReraProjectName] = useState('Prestige Falcon City');
-  const [reraNumber, setReraNumber] = useState('PRM/KA/RERA/1251/310/PR/170915/000123');
-  const [targetAudience, setTargetAudience] = useState('High-net-worth homebuyers seeking luxury 3BHKs');
-  const [usps, setUsps] = useState('Metro adjacency, 80% open greens, ready-to-move-in luxury clubhouse');
+  const [reraProjectName, setReraProjectName] = useState('');
+  const [reraNumber, setReraNumber] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [usps, setUsps] = useState('');
   const [draftHeadline, setDraftHeadline] = useState('');
   const [draftBody, setDraftBody] = useState('');
   const [complianceResult, setComplianceResult] = useState<ReraComplianceResult | null>(null);

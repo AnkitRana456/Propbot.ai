@@ -1,5 +1,6 @@
 import type { IntegrationAdapter, SyncLeadPayload, SyncResult } from './integration.adapter.js';
 import { pino } from 'pino';
+import { simulationAllowed } from '../../utils/simulation.js';
 
 const logger = pino({ name: 'google-sheets-adapter', level: process.env.LOG_LEVEL || 'info' });
 
@@ -50,7 +51,10 @@ export class GoogleSheetsAdapter implements IntegrationAdapter {
       lead.source || 'website',
     ];
 
-    // Mock Provider append for dev & test
+    if (!simulationAllowed()) {
+      return { success: false, message: 'Google Sheets sync is not available yet. Use a webhook or a CRM connector instead.' };
+    }
+    // Simulated sheet for development and tests
     mockGoogleSheets.appendRow(spreadsheetId, row);
     logger.info({ companyId, spreadsheetId, leadId: lead.leadId }, 'Appended lead row to Google Sheets');
 

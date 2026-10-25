@@ -100,7 +100,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 </div>
               </td>
               <td className="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-300">
-                {u.company?.name || 'Prestige Realty'}
+                {u.company?.name ?? '—'}
               </td>
               <td className="px-6 py-4">
                 <span

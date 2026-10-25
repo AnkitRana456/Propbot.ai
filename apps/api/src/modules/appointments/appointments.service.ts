@@ -386,6 +386,7 @@ export class AppointmentsService {
         start: scheduledAt,
         end: new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000),
         attendeeEmail: lead.contact?.email || undefined,
+        withMeet: input.appointmentType === 'video_call',
       });
 
       const [inserted] = await tx

@@ -165,7 +165,7 @@ export const RealEstateInsightsTab: React.FC<RealEstateInsightsTabProps> = ({
               </p>
             </div>
             <span className="font-mono font-bold text-blue-700 dark:text-blue-300 text-sm">
-              {speedToLeadMinutes.median} min
+              {speedToLeadMinutes.median > 0 ? `${speedToLeadMinutes.median} min` : '—'}
             </span>
           </div>
         </div>
@@ -212,7 +212,7 @@ export const RealEstateInsightsTab: React.FC<RealEstateInsightsTabProps> = ({
             <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
               <div className="text-xs text-slate-400">Eval Accuracy Trend</div>
               <div className="text-lg font-bold text-emerald-400 mt-1">
-                {aiQuality.evalAccuracyTrend[aiQuality.evalAccuracyTrend.length - 1]?.accuracyPercent}%
+                {aiQuality.evalAccuracyTrend.length > 0 ? `${aiQuality.evalAccuracyTrend[aiQuality.evalAccuracyTrend.length - 1]?.accuracyPercent}%` : '—'}
               </div>
               <div className="text-[10px] text-emerald-400/80 mt-0.5 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" />

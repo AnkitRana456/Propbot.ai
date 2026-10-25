@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function request(endpoint: string, options: RequestInit): Promise<unknown> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('propbot_access_token') : null;
 
   const headers: Record<string, string> = {
@@ -48,5 +48,16 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     );
   }
 
-  return (data?.data ?? data) as T;
+  return data;
+}
+
+/** Returns the payload: `{ success, data }` responses are unwrapped to `data`. */
+export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const body = (await request(endpoint, options)) as { data?: unknown } | null;
+  return (body?.data ?? body) as T;
+}
+
+/** Returns the whole response body. Use it for list endpoints that send `{ success, data, pagination }`. */
+export async function apiRequestEnvelope<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  return (await request(endpoint, options)) as T;
 }

@@ -20,11 +20,11 @@ export const NextBestActionBanner: React.FC<NextBestActionBannerProps> = ({ lead
     setIsExecuting(true);
     setExecutionResult(null);
     try {
-      const res = await apiRequest<{ success: boolean; data: { status: string; message: string } }>(
+      const res = await apiRequest<{ status: string; message: string }>(
         `/api/crm/leads/${leadId}/next-best-action/execute`,
         { method: 'POST' },
       );
-      setExecutionResult(res.data.message || 'Action executed successfully');
+      setExecutionResult(res.message || 'Action executed successfully');
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['approvals-count'] });

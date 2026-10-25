@@ -174,37 +174,19 @@ export class AppointmentsController {
     }
   }
 
-  async handleCalendarCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+  /** Google sends the browser back here. Always answers with a redirect to the app, never a JSON error page. */
+  async handleCalendarCallback(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const webUrl = (process.env.WEB_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    if (req.query.error) {
+      res.redirect(`${webUrl}/appointments?calendar_error=${encodeURIComponent(String(req.query.error))}`);
+      return;
+    }
     try {
-      const { code, state } = req.query;
-      let companyId: string | undefined;
-      let userId: string | undefined;
-
-      if (state) {
-        try {
-          const parsedState = JSON.parse(Buffer.from(String(state), 'base64url').toString('utf8'));
-          companyId = parsedState.companyId;
-          userId = parsedState.userId;
-        } catch {
-          // ignore error
-        }
-      }
-
-      if (!companyId) {
-        companyId = req.tenant?.companyId;
-      }
-
-      if (!companyId) {
-        res.status(400).json({ error: { message: 'Missing company context in OAuth callback' } });
-        return;
-      }
-
-      await calendarSyncService.handleOAuthCallback(companyId, String(code || 'mock_code'), userId);
-
-      const webUrl = process.env.WEB_URL || 'http://localhost:5173';
+      await calendarSyncService.handleOAuthCallback(String(req.query.state ?? ''), String(req.query.code ?? ''));
       res.redirect(`${webUrl}/appointments?calendar_connected=true`);
     } catch (err) {
-      next(err);
+      const code = (err as { code?: string }).code ?? 'CALENDAR_CONNECT_FAILED';
+      res.redirect(`${webUrl}/appointments?calendar_error=${encodeURIComponent(code)}`);
     }
   }
 
@@ -218,19 +200,12 @@ export class AppointmentsController {
     }
   }
 
+  /** Development only: a simulated calendar so booking flows can be tried without Google. */
   async mockConnectCalendar(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const companyId = getCompanyId(req);
-      const email = req.body?.email || 'agent@proprealty.com';
-      await calendarSyncService.handleOAuthCallback(companyId, 'mock_code', req.user?.id);
-      const status = await calendarSyncService.getIntegrationStatus(companyId);
-      res.json({
-        success: true,
-        data: {
-          ...status,
-          email,
-        },
-      });
+      const status = await calendarSyncService.connectSimulated(companyId, req.user?.id);
+      res.json({ success: true, data: status });
     } catch (err) {
       next(err);
     }

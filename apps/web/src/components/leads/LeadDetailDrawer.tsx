@@ -14,7 +14,7 @@ import { AssignAgentModal } from '../crm/AssignAgentModal.js';
 import { AppointmentsPanel } from '../appointments/AppointmentsPanel.js';
 import { LeadCallHistoryTab } from '../voice/LeadCallHistoryTab.js';
 import { LeadConversationTab } from './LeadConversationTab.js';
-import { useUpdateLeadStatus, useMergeLead } from '../../services/leads.service.js';
+import { useUpdateLeadStatus, useMergeLead, useLeadTimeline } from '../../services/leads.service.js';
 
 interface LeadDetailDrawerProps {
   lead: LeadItemResponse | null;
@@ -89,21 +89,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
   // Format budget for display
   const budgetDisplay = lead.buyerDna?.budgetMin && lead.buyerDna?.budgetMax
     ? `₹${(lead.buyerDna.budgetMin / 10000000).toFixed(2)} Cr – ₹${(lead.buyerDna.budgetMax / 10000000).toFixed(2)} Cr`
-    : '₹1.80 Cr – ₹2.50 Cr';
+    : null;
 
-  // Sample Matched Inventory
-  const matchedInventory = [
-    { id: 'p1', name: 'Prestige Lakeside Habitat', unit: 'Tower B &bull; Unit 802', bhk: '3 BHK', price: '₹2.10 Cr', match: '98% Match' },
-    { id: 'p2', name: 'Sobha Dream Acres', unit: 'Wing C &bull; Unit 1404', bhk: '3 BHK', price: '₹2.35 Cr', match: '91% Match' },
-  ];
-
-  // Combined Activity Timeline (calls, messages, visits, notes)
-  const timelineEvents = [
-    { time: 'Today, 11:30 AM', type: 'call', title: 'AI Voice Call Completed (01:42)', desc: 'Confirmed budget at ₹2.2 Cr. Positive interest in 3BHK.' },
-    { time: 'Yesterday, 4:15 PM', type: 'message', title: 'WhatsApp Brochure Dispatched', desc: 'Prestige Lakeside PDF viewed 3x by client.' },
-    { time: '14 Oct, 2:00 PM', type: 'visit', title: 'Physical Site Visit Scheduled', desc: 'Booked for Saturday 11:00 AM with Advisor Anand.' },
-    { time: '12 Oct, 10:10 AM', type: 'note', title: 'Internal Note Added', desc: 'Buyer requires East-facing master bedroom and 2 covered parking slots.' },
-  ];
+  const { data: timelineData } = useLeadTimeline(lead.id);
 
   return (
     <>
@@ -287,7 +275,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
                           <div className="flex justify-between py-1 border-b border-[var(--border)]">
                             <span className="text-[var(--text-muted)]">Target Budget:</span>
                             <span className="font-semibold text-[var(--accent)] tabular-nums">
-                              {budgetDisplay}
+                              {budgetDisplay ?? '—'}
                             </span>
                           </div>
                           <div className="flex justify-between py-1 border-b border-[var(--border)]">
@@ -322,27 +310,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
                           <span className="font-mono text-[10px] text-[var(--success)]">Algorithm Grounded</span>
                         </div>
 
-                        <div className="space-y-2.5">
-                          {matchedInventory.map(item => (
-                            <div
-                              key={item.id}
-                              className="p-3 rounded-[6px] bg-[var(--surface-2)] border border-[var(--border)] space-y-1.5"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-serif font-medium text-xs text-[var(--text)]">
-                                  {item.name}
-                                </span>
-                                <span className="pill-badge bg-[#2F5D50]/15 text-[#2F5D50] text-[9px]">
-                                  {item.match}
-                                </span>
-                              </div>
-                              <div className="flex justify-between text-[11px] font-mono text-[var(--text-muted)]">
-                                <span dangerouslySetInnerHTML={{ __html: item.unit }} />
-                                <span className="font-semibold text-[var(--text)] tabular-nums">{item.price}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <p className="text-xs text-text-muted">
+                          Inventory matching is available from the unit catalogue once properties are configured.
+                        </p>
                       </div>
 
                       {/* Unified Activity Timeline (calls, messages, visits, notes) */}
@@ -353,17 +323,21 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
                         </div>
 
                         <div className="space-y-3 pt-1 font-mono text-xs">
-                          {timelineEvents.map((ev, i) => (
-                            <div key={i} className="flex gap-2.5 pb-2.5 border-b border-[var(--border)]/60 last:border-b-0">
+                          {(timelineData?.items ?? []).length === 0 ? (
+                            <p className="text-[var(--text-muted)] text-[11px]">No activity recorded yet.</p>
+                          ) : (timelineData?.items ?? []).map((ev) => (
+                            <div key={ev.id} className="flex gap-2.5 pb-2.5 border-b border-[var(--border)]/60 last:border-b-0">
                               <div className="w-2 h-2 rounded-full bg-[var(--accent)] mt-1 shrink-0" />
                               <div className="space-y-0.5 flex-1 min-w-0">
                                 <div className="flex justify-between text-[11px]">
                                   <span className="font-medium text-[var(--text)] truncate">{ev.title}</span>
-                                  <span className="text-[10px] text-[var(--text-muted)] shrink-0">{ev.time}</span>
+                                  <span className="text-[10px] text-[var(--text-muted)] shrink-0">
+                                    {new Date(ev.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                                  </span>
                                 </div>
-                                <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-                                  {ev.desc}
-                                </p>
+                                {ev.description && (
+                                  <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">{ev.description}</p>
+                                )}
                               </div>
                             </div>
                           ))}

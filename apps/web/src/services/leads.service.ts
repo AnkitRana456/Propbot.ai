@@ -7,6 +7,7 @@ import type {
   ScoringConfig,
   CaptureLeadInput,
   UpdateLeadInput,
+  VisitorTimelineResponse,
 } from '@propbot/shared';
 
 export interface LeadFilterOptions {
@@ -157,6 +158,14 @@ export function useLeadConversation(leadId: string | null) {
   return useQuery<LeadConversationResponse, Error>({
     queryKey: ['lead-conversation', leadId],
     queryFn: () => apiRequest<LeadConversationResponse>(`/api/leads/${leadId}/conversation`),
+    enabled: Boolean(leadId),
+  });
+}
+
+export function useLeadTimeline(leadId: string | null) {
+  return useQuery<VisitorTimelineResponse, Error>({
+    queryKey: ['lead-timeline', leadId],
+    queryFn: () => apiRequest<VisitorTimelineResponse>(`/api/crm/leads/${leadId}/timeline`),
     enabled: Boolean(leadId),
   });
 }

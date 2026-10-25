@@ -30,6 +30,8 @@ export type MetaCredentials = z.infer<typeof metaCredentialsSchema>;
 export const updateWhatsappConfigSchema = z.object({
   chatbotId: z.string().uuid().nullable().optional(),
   phoneNumberId: z.string().min(1, 'Phone Number ID is required'),
+  /** WhatsApp Business Account ID, needed to send message templates for review. */
+  businessAccountId: z.string().trim().max(64).optional(),
   businessPhoneNumber: z.string().min(1, 'Business WhatsApp Number is required'),
   accessToken: z.string().min(1, 'Access Token is required'),
   appSecret: z.string().optional(),
@@ -50,6 +52,7 @@ export const whatsappConfigResponseSchema = z.object({
   chatbotId: z.string().uuid().nullable().optional(),
   chatbotName: z.string().nullable().optional(),
   phoneNumberId: z.string().nullable().optional(),
+  businessAccountId: z.string().nullable().optional(),
   businessPhoneNumber: z.string().nullable().optional(),
   maskedAccessToken: z.string().nullable().optional(),
   hasAppSecret: z.boolean(),

@@ -43,7 +43,7 @@ export const Step1Identity: React.FC<Step1IdentityProps> = ({
             required
             value={name}
             onChange={e => onChangeName(e.target.value)}
-            placeholder="e.g. Prestige Sanctuary Luxury Concierge"
+            placeholder="e.g. Sunrise Homes Luxury Concierge"
             className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
           />
           <p className="text-xs text-slate-500 mt-1">

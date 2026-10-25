@@ -24,7 +24,7 @@ export const KanbanLeadCard: React.FC<KanbanLeadCardProps> = ({
     : lead.buyerDna?.budgetMin
       ? `₹${(lead.buyerDna.budgetMin / 10000000).toFixed(2)} Cr`
       : '₹1.85 Cr';
-  const propertyName = lead.buyerDna?.localities?.[0] || 'Prestige Lakeside';
+  const propertyName = lead.buyerDna?.localities?.[0] || null;
   const isHot = (lead.intentScore || 0) >= 70;
 
   return (
@@ -43,9 +43,11 @@ export const KanbanLeadCard: React.FC<KanbanLeadCardProps> = ({
             <h4 className="font-serif text-xs font-bold text-slate-900 dark:text-white group-hover:text-accent dark:group-hover:text-orange-400 transition-colors truncate">
               {lead.name}
             </h4>
-            <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
-              {propertyName}
-            </p>
+            {propertyName && (
+              <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
+                {propertyName}
+              </p>
+            )}
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Navigate, Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar.js';
 import { TopBar } from './TopBar.js';
 import { Calendar, Compass, LayoutDashboard, Sparkles, Users } from 'lucide-react';
@@ -16,7 +16,8 @@ const MOBILE_TABS = [
 ];
 
 export const AppShell: React.FC = () => {
-  const { isInitialized } = useAuth();
+  const { isInitialized, isAuthenticated } = useAuth();
+  const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === '1';
@@ -47,6 +48,11 @@ export const AppShell: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Signed-out visitors go to the login page and come back here afterwards
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
   }
 
   return (

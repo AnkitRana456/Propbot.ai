@@ -215,3 +215,63 @@ export function usePropertySearch() {
       }),
   });
 }
+
+// ── Cost sheets ──────────────────────────────────────────────────────────
+export interface CostSheetConfig {
+  floorRisePerFloor?: number;
+  plcCharges?: { label: string; amountPerSqft: number }[];
+  parkingCharge?: number;
+  clubhouseCharge?: number;
+  maintenanceDeposit?: number;
+  gstPercent?: number;
+  stampDutyPercent?: number;
+  registrationPercent?: number;
+}
+
+export interface CostSheetRecord {
+  id: string;
+  unitId: string;
+  leadId: string | null;
+  token: string;
+  lines: { label: string; amount: number; note?: string }[];
+  totals: Record<string, number>;
+  discount: string;
+  notes: string | null;
+  validUntil: string | null;
+  viewCount: number;
+  createdAt: string;
+}
+
+export function useCostSheetConfig(projectId: string | null) {
+  return useQuery<CostSheetConfig, Error>({
+    queryKey: ['cost-sheet-config', projectId],
+    queryFn: () => apiRequest<CostSheetConfig>(`/api/properties/projects/${projectId}/cost-sheet-config`),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useSaveCostSheetConfig(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation<CostSheetConfig, Error, CostSheetConfig>({
+    mutationFn: (config) =>
+      apiRequest<CostSheetConfig>(`/api/properties/projects/${projectId}/cost-sheet-config`, { method: 'PUT', body: JSON.stringify(config) }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['cost-sheet-config', projectId] }),
+  });
+}
+
+export function useCreateCostSheet(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation<CostSheetRecord, Error, { unitId: string; leadId?: string; discount?: number; parkingSlots?: number; notes?: string; validDays?: number }>({
+    mutationFn: (input) =>
+      apiRequest<CostSheetRecord>(`/api/properties/projects/${projectId}/cost-sheets`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['cost-sheets', projectId] }),
+  });
+}
+
+export function useCostSheets(projectId: string | null, unitId?: string) {
+  return useQuery<CostSheetRecord[], Error>({
+    queryKey: ['cost-sheets', projectId, unitId],
+    queryFn: () => apiRequest<CostSheetRecord[]>(`/api/properties/projects/${projectId}/cost-sheets${unitId ? `?unitId=${unitId}` : ''}`),
+    enabled: Boolean(projectId),
+  });
+}

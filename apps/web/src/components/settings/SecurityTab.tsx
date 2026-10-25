@@ -39,8 +39,8 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ initialIpAllowlist = [
   const handleStartSetup2Fa = async () => {
     try {
       const res = await setup2FaMutation.mutateAsync();
-      setTotpSecret(res.data.secret);
-      setOtpauthUrl(res.data.otpauthUrl);
+      setTotpSecret(res.secret);
+      setOtpauthUrl(res.otpauthUrl);
       setIsSettingUp2Fa(true);
     } catch (err: unknown) {
       alert((err as Error).message || 'Failed to initiate 2FA setup.');

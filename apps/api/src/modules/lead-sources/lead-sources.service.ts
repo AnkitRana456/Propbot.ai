@@ -179,3 +179,32 @@ class LeadSourcesService {
 }
 
 export const leadSourcesService = new LeadSourcesService();
+
+// ── Walk-in kiosk helpers ────────────────────────────────────────────────
+
+/** Find a lead source by its kiosk token (public, no companyId check). */
+export async function findKioskSource(token: string) {
+  const [row] = await db.select().from(leadSources).where(and(eq(leadSources.kioskToken, token), eq(leadSources.isActive, true), isNull(leadSources.deletedAt))).limit(1);
+  return row;
+}
+
+/** Generate (or regenerate) a kiosk token for a lead source. */
+export async function generateKioskToken(companyId: string, leadSourceId: string): Promise<string> {
+  const token = crypto.randomBytes(24).toString('base64url');
+  await db.update(leadSources).set({ kioskToken: token, updatedAt: new Date() }).where(and(eq(leadSources.id, leadSourceId), eq(leadSources.companyId, companyId)));
+  return token;
+}
+
+/** Accept a walk-in via kiosk token, returns the new lead id. */
+export async function acceptWalkIn(token: string, input: { name: string; phone: string; email?: string; projectInterest?: string }) {
+  const source = await findKioskSource(token);
+  if (!source) throw new ApiError(404, 'KIOSK_NOT_FOUND', 'Kiosk link not found or disabled');
+  const result = await leadSourcesService['ingest'](source, {
+    name: input.name,
+    phone: input.phone,
+    email: input.email,
+    source: 'Walk-in Kiosk',
+    projectInterest: input.projectInterest,
+  });
+  return result;
+}

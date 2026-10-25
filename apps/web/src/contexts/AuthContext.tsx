@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { UserRole, UserStatus } from '@propbot/shared';
 import { apiRequest } from '../services/api-client.js';
 
@@ -23,141 +23,82 @@ export interface AuthContextValue {
   company: AuthCompany | null;
   token: string | null;
   isAuthenticated: boolean;
+  /** True once the stored session has been checked with the server. */
   isInitialized: boolean;
   login: (token: string, user: AuthUser, company: AuthCompany) => void;
   logout: () => void;
-  switchRole: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// Initial default session for development and demo
-const DEFAULT_DEMO_USER: AuthUser = {
-  id: 'b561c28c-9892-4f9e-bc43-b1d5c7f8a123',
-  name: 'Vikram Mehta',
-  email: 'admin@prestige.com',
-  role: 'company_admin',
-  status: 'active',
-  companyId: 'd712e49c-1234-4a5b-9c8d-e1f2a3b4c5d6',
+const KEYS = { token: 'propbot_access_token', user: 'propbot_user', company: 'propbot_company' } as const;
+
+const read = <T,>(key: string): T | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
 };
 
-const DEFAULT_DEMO_COMPANY: AuthCompany = {
-  id: 'd712e49c-1234-4a5b-9c8d-e1f2a3b4c5d6',
-  name: 'Prestige Realty Group',
-  slug: 'prestige-realty',
-  plan: 'enterprise',
-};
-
+/**
+ * Holds the signed-in user. A stored session is checked with the server on load; nobody is ever signed in
+ * automatically, and an expired or rejected session simply signs the visitor out.
+ */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => {
-    return typeof window !== 'undefined' ? localStorage.getItem('propbot_access_token') : null;
-  });
-
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const cached = typeof window !== 'undefined' ? localStorage.getItem('propbot_user') : null;
-    return cached ? (JSON.parse(cached) as AuthUser) : (token ? DEFAULT_DEMO_USER : null);
-  });
-
-  const [company, setCompany] = useState<AuthCompany | null>(() => {
-    const cached = typeof window !== 'undefined' ? localStorage.getItem('propbot_company') : null;
-    return cached ? (JSON.parse(cached) as AuthCompany) : (token ? DEFAULT_DEMO_COMPANY : null);
-  });
-
+  const [token, setToken] = useState<string | null>(() => (typeof window !== 'undefined' ? localStorage.getItem(KEYS.token) : null));
+  const [user, setUser] = useState<AuthUser | null>(() => (token ? read<AuthUser>(KEYS.user) : null));
+  const [company, setCompany] = useState<AuthCompany | null>(() => (token ? read<AuthCompany>(KEYS.company) : null));
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-  const login = (newToken: string, newUser: AuthUser, newCompany: AuthCompany) => {
+  const login = useCallback((newToken: string, newUser: AuthUser, newCompany: AuthCompany) => {
     setToken(newToken);
     setUser(newUser);
     setCompany(newCompany);
+    setIsInitialized(true);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('propbot_access_token', newToken);
-      localStorage.setItem('propbot_user', JSON.stringify(newUser));
-      localStorage.setItem('propbot_company', JSON.stringify(newCompany));
+      localStorage.setItem(KEYS.token, newToken);
+      localStorage.setItem(KEYS.user, JSON.stringify(newUser));
+      localStorage.setItem(KEYS.company, JSON.stringify(newCompany));
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     setCompany(null);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('propbot_access_token');
-      localStorage.removeItem('propbot_user');
-      localStorage.removeItem('propbot_company');
+      localStorage.removeItem(KEYS.token);
+      localStorage.removeItem(KEYS.user);
+      localStorage.removeItem(KEYS.company);
     }
-  };
-
-  const switchRole = (newRole: UserRole) => {
-    if (user) {
-      const updatedUser = { ...user, role: newRole };
-      setUser(updatedUser);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('propbot_user', JSON.stringify(updatedUser));
-      }
-    }
-  };
+  }, []);
 
   useEffect(() => {
-    const existingToken = typeof window !== 'undefined' ? localStorage.getItem('propbot_access_token') : null;
-    const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
-
-    const performAutoLogin = () => {
-      fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'admin@prestige.com', password: 'Password123!' }),
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data?.data?.tokens?.accessToken) {
-            login(data.data.tokens.accessToken, data.data.user, data.data.company);
-          }
-        })
-        .catch(() => { })
-        .finally(() => setIsInitialized(true));
-    };
-
-    if (!existingToken) {
-      performAutoLogin();
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(KEYS.token) : null;
+    if (!stored) {
+      setIsInitialized(true);
     } else {
-      // Validate existing token
       apiRequest<{ user: AuthUser; tenant: { companyId: string } }>('/api/auth/me')
         .then(res => {
           if (res?.user) {
             setUser(res.user);
+            localStorage.setItem(KEYS.user, JSON.stringify(res.user));
           }
-          setIsInitialized(true);
         })
-        .catch(() => {
-          logout();
-          performAutoLogin();
-        });
+        .catch(() => logout())
+        .finally(() => setIsInitialized(true));
     }
 
-    const handleUnauthorized = () => {
-      logout();
-      performAutoLogin();
-    };
-
+    const handleUnauthorized = () => logout();
     window.addEventListener('propbot:unauthorized', handleUnauthorized);
-    return () => {
-      window.removeEventListener('propbot:unauthorized', handleUnauthorized);
-    };
-  }, []);
+    return () => window.removeEventListener('propbot:unauthorized', handleUnauthorized);
+  }, [logout]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        company,
-        token,
-        isAuthenticated: Boolean(token && user),
-        isInitialized,
-        login,
-        logout,
-        switchRole,
-      }}
-    >
+    <AuthContext.Provider value={{ user, company, token, isAuthenticated: Boolean(token && user), isInitialized, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,6 +5,8 @@ import type {
   OutboundChannelMessage,
   ChannelSendResult,
 } from '../whatsapp/channel.adapter.js';
+import { escapeHtml, isSmtpConfigured, sendMail } from '../delivery/mailer.js';
+import { simulationAllowed } from '../../utils/simulation.js';
 
 export class EmailChannelAdapter implements ChannelAdapter {
   readonly channelName = 'email';
@@ -39,17 +41,23 @@ export class EmailChannelAdapter implements ChannelAdapter {
     return this.normalize(rawPayload);
   }
 
-  async send(
-    _companyId: string,
-    _recipientAddress: string,
-    _message: OutboundChannelMessage,
-  ): Promise<ChannelSendResult> {
-    return {
-      success: true,
-      messageId: `email_out_${Date.now()}`,
-      provider: 'smtp_mock',
-      status: 'sent',
-    };
+  /** Sends through SMTP. Without SMTP settings only development and tests simulate a delivery. */
+  async send(_companyId: string, recipientAddress: string, message: OutboundChannelMessage): Promise<ChannelSendResult> {
+    const text = message.text ?? '';
+    if (!isSmtpConfigured()) {
+      if (!simulationAllowed()) {
+        return { success: false, messageId: '', provider: 'smtp', status: 'failed', error: 'E-mail is not set up on this server (SMTP_HOST).' };
+      }
+      return { success: true, messageId: `email_sim_${Date.now()}`, provider: 'smtp_simulated', status: 'sent' };
+    }
+    try {
+      const [firstLine, ...rest] = text.split('\n');
+      const subject = rest.length && firstLine && firstLine.length <= 120 ? firstLine : 'A message from your property advisor';
+      const r = await sendMail({ to: [recipientAddress], subject, text, html: `<div style="font-family:sans-serif;white-space:pre-wrap">${escapeHtml(text)}</div>` });
+      return r.sent ? { success: true, messageId: r.messageId, provider: 'smtp', status: 'sent' } : { success: false, messageId: '', provider: 'smtp', status: 'failed', error: r.reason };
+    } catch (err) {
+      return { success: false, messageId: '', provider: 'smtp', status: 'failed', error: err instanceof Error ? err.message : 'SMTP error' };
+    }
   }
 
   verifyWebhook(_query: Record<string, unknown>, _verifyToken: string): string | null {

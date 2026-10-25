@@ -36,6 +36,8 @@ const ProjectDetailPage = React.lazy(() => import('./pages/ProjectDetailPage.js'
 const ShortlistRoomPage = React.lazy(() => import('./pages/ShortlistRoomPage.js').then((m) => ({ default: m.ShortlistRoomPage })));
 const AppointmentsPage = React.lazy(() => import('./pages/AppointmentsPage.js').then((m) => ({ default: m.AppointmentsPage })));
 const AppointmentSurveyPage = React.lazy(() => import('./pages/AppointmentSurveyPage.js').then((m) => ({ default: m.AppointmentSurveyPage })));
+const PublicQuotePage = React.lazy(() => import('./pages/PublicQuotePage.js').then((m) => ({ default: m.PublicQuotePage })));
+const WalkInKioskPage = React.lazy(() => import('./pages/WalkInKioskPage.js').then((m) => ({ default: m.WalkInKioskPage })));
 const WhatsAppPage = React.lazy(() => import('./pages/WhatsAppPage.js').then((m) => ({ default: m.WhatsAppPage })));
 const WebhookLogsPage = React.lazy(() => import('./pages/WebhookLogsPage.js').then((m) => ({ default: m.WebhookLogsPage })));
 const AnalyticsPage = React.lazy(() => import('./pages/AnalyticsPage.js').then((m) => ({ default: m.AnalyticsPage })));
@@ -78,6 +80,8 @@ export const App: React.FC = () => {
       <Route path="/changelog" element={<ChangelogPage />} />
       <Route path="/room/:token" element={<ShortlistRoomPage />} />
       <Route path="/survey/:token" element={<AppointmentSurveyPage />} />
+      <Route path="/quote/:token" element={<PublicQuotePage />} />
+      <Route path="/walk-in/:token" element={<WalkInKioskPage />} />
 
       {/* 2. Authenticated CRM Application Shell */}
       <Route path="/app" element={<AppShell />}>

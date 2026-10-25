@@ -43,10 +43,10 @@ export function usePendingApprovals(options: { page?: number; limit?: number; st
       if (options.limit) params.set('limit', String(options.limit));
       if (options.status) params.set('status', options.status);
 
-      const res = await apiRequest<{ success: boolean; data: ApprovalsListResponse }>(
+      const res = await apiRequest<ApprovalsListResponse>(
         `/api/approvals?${params.toString()}`,
       );
-      return res.data;
+      return res;
     },
     enabled: hasToken,
     refetchInterval: hasToken ? 10000 : false,
@@ -114,10 +114,10 @@ export function useApprovalHistory(options: { page?: number; limit?: number; tie
       if (options.limit) params.set('limit', String(options.limit));
       if (options.tier) params.set('tier', options.tier);
 
-      const res = await apiRequest<{ success: boolean; data: ApprovalsListResponse }>(
+      const res = await apiRequest<ApprovalsListResponse>(
         `/api/approvals/history?${params.toString()}`,
       );
-      return res.data;
+      return res;
     },
   });
 }

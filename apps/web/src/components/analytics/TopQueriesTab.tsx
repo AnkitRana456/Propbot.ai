@@ -50,9 +50,11 @@ export const TopQueriesTab: React.FC<TopQueriesTabProps> = ({ topQueries, isLoad
                   {cluster.count} inquiries
                 </span>
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 italic">
-                Sample: "{cluster.sampleQueries[0]}"
-              </div>
+              {cluster.sampleQueries[0] && (
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                  Sample: "{cluster.sampleQueries[0]}"
+                </div>
+              )}
             </div>
           ))}
         </div>

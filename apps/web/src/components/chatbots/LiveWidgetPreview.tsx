@@ -131,7 +131,7 @@ export const LiveWidgetPreview: React.FC<LiveWidgetPreviewProps> = ({ name, conf
         metadata: {
           source: 'Website Chatbot Widget',
           capturedVia: 'Live Preview Interactive Test',
-          projectInterest: name || 'Prestige Lakeside Habitat',
+          projectInterest: name || undefined,
         },
       });
       setCapturedLeadData({

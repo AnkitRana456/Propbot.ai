@@ -25,6 +25,7 @@ export function WhatsAppConfigTab() {
 
   // Form State
   const [phoneNumberId, setPhoneNumberId] = useState('');
+  const [businessAccountId, setBusinessAccountId] = useState('');
   const [businessPhoneNumber, setBusinessPhoneNumber] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [appSecret, setAppSecret] = useState('');
@@ -49,6 +50,7 @@ export function WhatsAppConfigTab() {
   useEffect(() => {
     if (config) {
       setPhoneNumberId(config.phoneNumberId || '');
+      setBusinessAccountId(config.businessAccountId || '');
       setBusinessPhoneNumber(config.businessPhoneNumber || '');
       setAccessToken(config.maskedAccessToken || '');
       setTemplateName(config.templateName || 'property_inquiry_details');
@@ -73,6 +75,7 @@ export function WhatsAppConfigTab() {
     e.preventDefault();
     await updateConfigMutation.mutateAsync({
       phoneNumberId,
+      businessAccountId: businessAccountId || undefined,
       businessPhoneNumber,
       accessToken,
       appSecret: appSecret || undefined,
@@ -271,6 +274,18 @@ export function WhatsAppConfigTab() {
               required
               className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">WhatsApp Business Account ID (WABA ID)</label>
+            <input
+              type="text"
+              value={businessAccountId}
+              onChange={e => setBusinessAccountId(e.target.value)}
+              placeholder="e.g. 109876543210001"
+              className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">Required for submitting message templates for review</p>
           </div>
 
           <div>

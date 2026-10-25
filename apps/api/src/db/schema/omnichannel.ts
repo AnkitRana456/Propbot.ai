@@ -56,6 +56,7 @@ export const leadSources = pgTable('lead_sources', {
   formId: uuid('form_id').references(() => forms.id, { onDelete: 'set null' }),
   attribution: jsonb('attribution').$type<Record<string, string>>().notNull().default(sql`'{}'::jsonb`),
   isActive: boolean('is_active').notNull().default(true),
+  kioskToken: varchar('kiosk_token', { length: 64 }),
   totalReceived: integer('total_received').notNull().default(0),
   lastReceivedAt: timestamp('last_received_at', { withTimezone: true }),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),

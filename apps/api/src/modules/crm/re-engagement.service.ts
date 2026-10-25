@@ -10,6 +10,7 @@ import {
 } from '../../db/schema/index.js';
 import { whatsappAdapter } from '../whatsapp/whatsapp.adapter.js';
 import type { ReEngagementSweepResult, BuyerDna } from '@propbot/shared';
+import { openSecret } from '../../utils/crypto-vault.js';
 
 export interface SweepOptions {
   companyId?: string;
@@ -213,8 +214,8 @@ export class ReEngagementService {
             lead.contactPhone,
             { type: 'text', text: content },
             {
-              phoneNumberId: config.phoneNumberId || 'mock_phone_id',
-              accessToken: config.accessToken || 'mock_token',
+              phoneNumberId: config.phoneNumberId || undefined,
+              accessToken: openSecret(config.accessToken),
             },
           );
         }

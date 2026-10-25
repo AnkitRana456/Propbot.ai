@@ -21,7 +21,7 @@ import { requirePermission } from '../middlewares/rbac.js';
 import { publicChatRateLimiter } from '../middlewares/rate-limiter.js';
 import { inboxService } from '../modules/inbox/inbox.service.js';
 import { channelsService } from '../modules/inbox/channels.service.js';
-import { leadSourcesService } from '../modules/lead-sources/lead-sources.service.js';
+import { leadSourcesService, generateKioskToken } from '../modules/lead-sources/lead-sources.service.js';
 import { enforcePolicy } from '../modules/controls/policies.service.js';
 import { logAccess, maskEmail, maskPhone, privacySettingsService } from '../modules/controls/controls.service.js';
 import { handleSocialWebhook, verifySocialChallenge } from '../modules/inbox/social-inbound.js';
@@ -83,6 +83,7 @@ leadSourcesRouter.delete(
   }),
 );
 leadSourcesRouter.post('/:id/rotate-key', manage, h(async (req, res) => send(res, await leadSourcesService.rotateKey(company(req), param(req)))));
+leadSourcesRouter.post('/:id/kiosk-token', manage, h(async (req, res) => send(res, { token: await generateKioskToken(company(req), param(req)) })));
 leadSourcesRouter.get('/:id/events', manage, h(async (req, res) => send(res, await leadSourcesService.events(company(req), param(req)))));
 leadSourcesRouter.post('/:id/import-csv', manage, h(async (req, res) => send(res, await leadSourcesService.importCsv(company(req), param(req), csvImportSchema.parse(req.body).csv))));
 
@@ -106,6 +107,7 @@ channelsRouter.get('/templates', view, h(async (req, res) => send(res, await cha
 channelsRouter.post('/templates', manage, h(async (req, res) => send(res, await channelsService.createTemplate(company(req), user(req), createTemplateSchema.parse(req.body)), 201)));
 channelsRouter.put('/templates/:id', manage, h(async (req, res) => send(res, await channelsService.updateTemplate(company(req), param(req), updateTemplateSchema.parse(req.body)))));
 channelsRouter.post('/templates/:id/submit', manage, h(async (req, res) => send(res, await channelsService.submitTemplate(company(req), param(req)))));
+channelsRouter.post('/templates/:id/sync', manage, h(async (req, res) => send(res, await channelsService.syncTemplate(company(req), param(req)))));
 channelsRouter.delete(
   '/templates/:id',
   manage,

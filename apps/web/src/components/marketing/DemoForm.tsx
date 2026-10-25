@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { createDemoRequestSchema } from '@propbot/shared';
 import { apiRequest } from '../../services/api-client.js';
+import { useEmojiBurst } from './EmojiBurst.js';
 
 type Fields = { name: string; email: string; mobile: string; agency: string; listings: string; website: string };
 const EMPTY: Fields = { name: '', email: '', mobile: '', agency: '', listings: '', website: '' };
@@ -14,6 +15,8 @@ export const DemoForm: React.FC = () => {
   const [errors, setErrors] = useState<Partial<Record<keyof Fields, string>>>({});
   const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
   const [serverError, setServerError] = useState<string | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const { burstFrom } = useEmojiBurst();
 
   const set = (k: keyof Fields) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setValues(v => ({ ...v, [k]: e.target.value }));
 
@@ -33,6 +36,8 @@ export const DemoForm: React.FC = () => {
     try {
       await apiRequest('/api/demo-requests', { method: 'POST', body: JSON.stringify(parsed.data) });
       setState('done');
+      // the form is replaced by the thank-you card, so celebrate from the next frame
+      requestAnimationFrame(() => burstFrom(box.current ?? document.getElementById('demo'), 'party', 34));
     } catch (err) {
       setState('idle');
       setServerError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
@@ -41,7 +46,7 @@ export const DemoForm: React.FC = () => {
 
   if (state === 'done') {
     return (
-      <div role="status" className="rounded-2xl border border-border bg-surface p-8 text-center">
+      <div ref={box} role="status" className="rounded-2xl border border-border bg-surface p-8 text-center">
         <CheckCircle2 aria-hidden className="mx-auto h-10 w-10 text-success" />
         <h3 className="mt-3 text-xl font-semibold text-text">Thanks, we have your request</h3>
         <p className="mt-1 text-sm text-text-muted">Our team will call you within one working day to set up your demo.</p>

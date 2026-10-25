@@ -67,8 +67,15 @@ const TestCallPanel: React.FC<{ agent: VoiceAgentItem; onClose: () => void }> = 
   const say = (text: string) => {
     if (speak && typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
   };
-  useEffect(() => bottom.current?.scrollIntoView?.({ block: 'end' }), [lines.length]);
-  useEffect(() => () => void window.speechSynthesis?.cancel?.(), []);
+  useEffect(() => {
+    bottom.current?.scrollIntoView?.({ block: 'end' });
+  }, [lines.length]);
+  useEffect(
+    () => () => {
+      window.speechSynthesis?.cancel?.();
+    },
+    [],
+  );
 
   const begin = () =>
     run(async () => {

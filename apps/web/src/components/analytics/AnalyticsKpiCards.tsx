@@ -98,7 +98,7 @@ export const AnalyticsKpiCards: React.FC<AnalyticsKpiCardsProps> = ({ kpis, isLo
     },
     {
       title: 'Satisfaction Rate',
-      value: `${kpis.satisfactionRate.current}%`,
+      value: kpis.satisfactionRate.current > 0 ? `${kpis.satisfactionRate.current}%` : '—',
       icon: Smile,
       delta: kpis.satisfactionRate.deltaPercent,
       color: 'rose',

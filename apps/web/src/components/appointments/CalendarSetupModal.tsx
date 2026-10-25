@@ -12,20 +12,21 @@ export const CalendarSetupModal: React.FC<CalendarSetupModalProps> = ({ isOpen, 
   const { data: status, isLoading, refetch } = useCalendarStatus();
   const disconnectMutation = useDisconnectCalendar();
   const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleConnect = async () => {
     try {
       setConnecting(true);
-      const res = await apiRequest<{ success: boolean; data: { url: string } }>(
+      const res = await apiRequest<{ url: string }>(
         '/api/appointments/calendar/oauth-url',
       );
-      if (res.data?.url) {
-        window.location.href = res.data.url;
+      if (res?.url) {
+        window.location.href = res.url;
       }
     } catch (err) {
-      console.error('Failed to get calendar auth URL:', err);
+      setError(err instanceof Error ? err.message : 'Could not start the Google connection.');
       setConnecting(false);
     }
   };
@@ -57,6 +58,7 @@ export const CalendarSetupModal: React.FC<CalendarSetupModalProps> = ({ isOpen, 
         </div>
 
         <div className="mt-6 space-y-4">
+          {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
           {isLoading ? (
             <div className="flex items-center justify-center p-8">
               <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
@@ -70,11 +72,11 @@ export const CalendarSetupModal: React.FC<CalendarSetupModalProps> = ({ isOpen, 
                     Connected to Google Calendar
                   </h4>
                   <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
-                    All site visit bookings and reschedules are automatically mirrored to your calendar with Google Meet links.
+                    {status.simulated
+                      ? 'This is a simulated calendar for local testing. No events are created in Google.'
+                      : 'New visits, reschedules and cancellations are mirrored to this calendar. Video calls get a Google Meet link.'}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-2">
-                    Primary Calendar Active
-                  </p>
+                  <p className="text-[11px] text-slate-500 mt-2">{status.email ? `Account: ${status.email}` : 'Primary calendar'}</p>
                 </div>
               </div>
 

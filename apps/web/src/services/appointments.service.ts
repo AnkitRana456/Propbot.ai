@@ -37,10 +37,10 @@ export function useAppointments(params: AppointmentsQueryParams = {}) {
       if (params.page) searchParams.set('page', String(params.page));
       if (params.limit) searchParams.set('limit', String(params.limit));
 
-      const res = await apiRequest<{ success: boolean; data: AppointmentsListResponse }>(
+      const res = await apiRequest<AppointmentsListResponse>(
         `/api/appointments?${searchParams.toString()}`,
       );
-      return res.data;
+      return res;
     },
   });
 }
@@ -49,10 +49,10 @@ export function useAppointment(id: string | undefined) {
   return useQuery<AppointmentItem>({
     queryKey: ['appointment', id],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: AppointmentItem }>(
+      const res = await apiRequest<AppointmentItem>(
         `/api/appointments/${id}`,
       );
-      return res.data;
+      return res;
     },
     enabled: Boolean(id),
   });
@@ -66,10 +66,10 @@ export function useAvailableSlots(date: string | undefined, projectId?: string, 
       if (projectId) searchParams.set('projectId', projectId);
       if (agentId) searchParams.set('agentId', agentId);
 
-      const res = await apiRequest<{ success: boolean; data: AvailableSlotsResponse }>(
+      const res = await apiRequest<AvailableSlotsResponse>(
         `/api/appointments/available-slots?${searchParams.toString()}`,
       );
-      return res.data;
+      return res;
     },
     enabled: Boolean(date),
   });
@@ -79,10 +79,10 @@ export function useCalendarStatus() {
   return useQuery<CalendarIntegrationStatus>({
     queryKey: ['calendar-status'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: CalendarIntegrationStatus }>(
+      const res = await apiRequest<CalendarIntegrationStatus>(
         '/api/appointments/calendar/status',
       );
-      return res.data;
+      return res;
     },
   });
 }
@@ -91,14 +91,14 @@ export function useCreateAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateAppointmentInput) => {
-      const res = await apiRequest<{ success: boolean; data: AppointmentItem }>(
+      const res = await apiRequest<AppointmentItem>(
         '/api/appointments',
         {
           method: 'POST',
           body: JSON.stringify(input),
         },
       );
-      return res.data;
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
@@ -112,14 +112,14 @@ export function useRescheduleAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: RescheduleAppointmentInput }) => {
-      const res = await apiRequest<{ success: boolean; data: AppointmentItem }>(
+      const res = await apiRequest<AppointmentItem>(
         `/api/appointments/${id}/reschedule`,
         {
           method: 'PATCH',
           body: JSON.stringify(input),
         },
       );
-      return res.data;
+      return res;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
@@ -133,14 +133,14 @@ export function useUpdateAppointmentStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: UpdateAppointmentStatusInput }) => {
-      const res = await apiRequest<{ success: boolean; data: AppointmentItem }>(
+      const res = await apiRequest<AppointmentItem>(
         `/api/appointments/${id}/status`,
         {
           method: 'PATCH',
           body: JSON.stringify(input),
         },
       );
-      return res.data;
+      return res;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });

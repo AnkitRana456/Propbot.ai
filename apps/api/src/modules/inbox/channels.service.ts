@@ -11,9 +11,11 @@ import type {
   WidgetItem,
 } from '@propbot/shared';
 import { db } from '../../db/index.js';
-import { channelConnections, chatbots, messageTemplates, widgets } from '../../db/schema/index.js';
-import { encryptSecret, packEncryptedSecret, unpackEncryptedSecret } from '../../utils/crypto-vault.js';
+import { channelConnections, chatbots, messageTemplates, whatsappConfigs, widgets } from '../../db/schema/index.js';
+import { graphApiVersion } from '../whatsapp/whatsapp.adapter.js';
+import { encryptSecret, openSecret, packEncryptedSecret, unpackEncryptedSecret } from '../../utils/crypto-vault.js';
 import { ApiError, badRequest, conflict, notFound } from '../../utils/api-error.js';
+import { requireSimulation, simulationAllowed } from '../../utils/simulation.js';
 
 const isUnique = (e: unknown) => /duplicate key|unique/i.test(String((e as Error)?.message ?? '') + String((e as { cause?: Error })?.cause?.message ?? ''));
 const live = () => process.env.META_LIVE_DISPATCH === 'true';
@@ -88,6 +90,14 @@ function assertVariables(content: CreateTemplateInput['content'], samples: strin
   if (requireSamples && samples.length < vars.length) throw badRequest('TEMPLATE_SAMPLES', `Provide an example value for each of the ${vars.length} variable(s) before submitting.`);
 }
 
+/** Meta's review states mapped onto ours. */
+function metaStatus(s: string | undefined): 'pending' | 'approved' | 'rejected' {
+  const v = (s ?? '').toUpperCase();
+  if (v === 'APPROVED') return 'approved';
+  if (v === 'REJECTED' || v === 'DISABLED' || v === 'PAUSED') return 'rejected';
+  return 'pending';
+}
+
 /** Compliance phrases the mock reviewer rejects (mirrors what Meta flags for property marketing). */
 const MOCK_REJECT = /guaranteed returns|100% (?:safe|profit)|risk[- ]free/i;
 
@@ -154,6 +164,9 @@ class ChannelsService {
     else if (!c.secrets.accessToken && c.channel !== 'email') {
       status = 'error';
       lastError = 'Add an access token first.';
+    } else if (!live() && !simulationAllowed() && (c.channel === 'instagram' || c.channel === 'messenger')) {
+      status = 'error';
+      lastError = 'Live Meta sending is turned off on this server (META_LIVE_DISPATCH).';
     } else if (live() && (c.channel === 'instagram' || c.channel === 'messenger')) {
       try {
         const res = await fetch('https://graph.facebook.com/v19.0/me', { headers: { Authorization: `Bearer ${unpackEncryptedSecret(c.secrets.accessToken!)}` }, signal: AbortSignal.timeout(8000) });
@@ -210,6 +223,56 @@ class ChannelsService {
     return toTpl(r!);
   }
 
+  /** Credentials used to talk to Meta about templates: the company's own, or the server-wide ones. */
+  private async metaTemplateAccess(companyId: string): Promise<{ waba: string; token: string }> {
+    const cfg = await db.query.whatsappConfigs.findFirst({ where: eq(whatsappConfigs.companyId, companyId) });
+    const waba = cfg?.businessAccountId || process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID;
+    const token = openSecret(cfg?.accessToken) || process.env.META_WHATSAPP_TOKEN;
+    if (!waba || !token) throw badRequest('WHATSAPP_NOT_CONNECTED', 'Add your WhatsApp Business Account ID and access token under WhatsApp settings first.');
+    return { waba, token };
+  }
+
+  /** Sends a template to Meta for review. Meta answers PENDING, APPROVED or REJECTED. */
+  private async submitToMeta(companyId: string, cur: TplRow): Promise<MessageTemplateItem> {
+    const { waba, token } = await this.metaTemplateAccess(companyId);
+    const components = (cur.components as Array<Record<string, unknown>>).map(c =>
+      c.type === 'BODY' && cur.sampleValues.length ? { ...c, example: { body_text: [cur.sampleValues] } } : c,
+    );
+    const res = await fetch(`https://graph.facebook.com/${graphApiVersion()}/${waba}/message_templates`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: cur.name, language: cur.language, category: cur.category.toUpperCase(), components }),
+      signal: AbortSignal.timeout(15_000),
+    }).catch(() => null);
+    if (!res) throw new ApiError(502, 'TEMPLATE_SUBMIT_FAILED', 'Could not reach Meta. Try again in a minute.');
+    const body = (await res.json().catch(() => ({}))) as { id?: string; status?: string; error?: { message?: string; error_user_msg?: string } };
+    if (!res.ok) throw new ApiError(502, 'TEMPLATE_SUBMIT_FAILED', body.error?.error_user_msg || body.error?.message || `Meta returned HTTP ${res.status}.`);
+    const [r] = await db
+      .update(messageTemplates)
+      .set({ status: metaStatus(body.status), providerTemplateId: body.id ?? null, rejectionReason: null, updatedAt: new Date() })
+      .where(eq(messageTemplates.id, cur.id))
+      .returning();
+    return toTpl(r!);
+  }
+
+  /** Asks Meta for the latest review status of a submitted template. */
+  async syncTemplate(companyId: string, id: string): Promise<MessageTemplateItem> {
+    const cur = await this.mustTpl(companyId, id);
+    if (!cur.providerTemplateId) return toTpl(cur);
+    if (!live()) return toTpl(cur);
+    const { token } = await this.metaTemplateAccess(companyId);
+    const res = await fetch(`https://graph.facebook.com/${graphApiVersion()}/${encodeURIComponent(cur.providerTemplateId)}?fields=status,rejected_reason`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10_000),
+    }).catch(() => null);
+    if (!res?.ok) throw new ApiError(502, 'TEMPLATE_SYNC_FAILED', 'Could not get the review status from Meta.');
+    const body = (await res.json().catch(() => ({}))) as { status?: string; rejected_reason?: string };
+    const status = metaStatus(body.status);
+    const reason = status === 'rejected' && body.rejected_reason && body.rejected_reason !== 'NONE' ? body.rejected_reason.replace(/_/g, ' ').toLowerCase() : null;
+    const [r] = await db.update(messageTemplates).set({ status, rejectionReason: reason, updatedAt: new Date() }).where(eq(messageTemplates.id, id)).returning();
+    return toTpl(r!);
+  }
+
   async removeTemplate(companyId: string, id: string): Promise<void> {
     await this.mustTpl(companyId, id);
     await db.update(messageTemplates).set({ deletedAt: new Date() }).where(eq(messageTemplates.id, id));
@@ -221,10 +284,8 @@ class ChannelsService {
     if (cur.status === 'approved' || cur.status === 'pending') throw conflict('TEMPLATE_ALREADY_SUBMITTED', `This template is already ${cur.status}.`);
     const t = toTpl(cur);
     assertVariables(t.content, cur.sampleValues, true);
-    if (live()) {
-      const [r] = await db.update(messageTemplates).set({ status: 'pending', updatedAt: new Date() }).where(eq(messageTemplates.id, id)).returning();
-      return toTpl(r!);
-    }
+    if (live()) return this.submitToMeta(companyId, cur);
+    requireSimulation('WhatsApp template review', 'Set META_LIVE_DISPATCH=true and add your WhatsApp Business Account ID so templates go to Meta for review.');
     const rejected = MOCK_REJECT.test(`${t.content.header ?? ''} ${t.content.body}`);
     const [r] = await db
       .update(messageTemplates)

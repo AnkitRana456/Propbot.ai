@@ -1,428 +1,288 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Building2,
-  Lock,
-  Mail,
-  User,
-  ArrowRight,
-  ShieldCheck,
-  Sparkles,
-  Zap,
-  CheckCircle2,
-  AlertCircle,
-  Eye,
-  EyeOff,
-} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, ArrowRight, Building2, CalendarCheck, CheckCircle2, Compass, Eye, EyeOff, Flame, Lock, Mail, MailCheck, ShieldCheck, User, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext.js';
+import { ThemeToggle } from '../components/ui/ThemeToggle.js';
+import { Input } from '../components/ui/Input.js';
+import { BrowserFrame, FloatingCard, ThemedImage, Tilt } from '../components/marketing/Frames.js';
+import { useDocumentMeta } from '../lib/use-document-meta.js';
+
+type Mode = 'login' | 'register' | 'forgot';
+
+const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error?.message || 'Something went wrong. Please try again.');
+  return data.data as T;
+}
+
+type LoginFn = ReturnType<typeof useAuth>['login'];
+type AuthPayload = { tokens?: { accessToken: string }; user: Parameters<LoginFn>[1]; company: Parameters<LoginFn>[2]; pendingApproval?: boolean; message?: string };
+
+/** 0 to 4: length, mixed case, a digit, a symbol. */
+const strength = (pw: string) => [pw.length >= 8, /[a-z]/.test(pw) && /[A-Z]/.test(pw), /\d/.test(pw), /[^A-Za-z0-9]/.test(pw)].filter(Boolean).length;
+const STRENGTH_LABEL = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'];
+
+const DEMO_ACCOUNTS = [
+  { email: 'admin@prestige.com', role: 'Company admin', org: 'Prestige Realty', icon: ShieldCheck },
+  { email: 'manager@prestige.com', role: 'Sales manager', org: 'Prestige Realty', icon: User },
+  { email: 'agent@prestige.com', role: 'Sales agent', org: 'Prestige Realty', icon: Zap },
+  { email: 'admin@sobha.com', role: 'Second agency', org: 'Sobha Developers', icon: Building2 },
+];
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, isAuthenticated, isInitialized } = useAuth();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('admin@prestige.com');
-  const [password, setPassword] = useState('Password123!');
-  const [companyName, setCompanyName] = useState('Prestige Realty Group');
-  const [companySlug, setCompanySlug] = useState('prestige-realty');
-  const [adminName, setAdminName] = useState('Vikram Mehta');
+  const [mode, setMode] = useState<Mode>(location.pathname === '/register' ? 'register' : 'login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [companySlug, setCompanySlug] = useState('');
+  const [adminName, setAdminName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useDocumentMeta({ title: `${mode === 'register' ? 'Create your account' : mode === 'forgot' ? 'Reset your password' : 'Log in'} | PropBot Pro`, noindex: true });
+  const score = useMemo(() => strength(password), [password]);
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setErrorMessage(null);
+    setNotice(null);
+  };
+
+  const finish = (d: AuthPayload) => {
+    if (d.pendingApproval || !d.tokens) {
+      switchMode('login');
+      setNotice(d.message || 'Your account is waiting for approval. We will let you know once it is active.');
+      return;
+    }
+    login(d.tokens.accessToken, d.user, d.company);
+    // Only same-site paths, so a crafted link cannot send someone elsewhere after logging in
+    const from = (location.state as { from?: string } | null)?.from;
+    navigate(from && from.startsWith('/') && !from.startsWith('//') ? from : '/dashboard', { replace: true });
+  };
+
+  const run = async (fn: () => Promise<void>) => {
     setIsLoading(true);
     setErrorMessage(null);
-
-    const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
-
     try {
+      await fn();
+    } catch (err) {
+      setErrorMessage((err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void run(async () => {
       if (mode === 'login') {
-        const res = await fetch(`${API_URL}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data?.error?.message || 'Login failed. Please check credentials.');
-        }
-
-        login(data.data.tokens.accessToken, data.data.user, data.data.company);
-        navigate('/dashboard');
-      } else {
-        const res = await fetch(`${API_URL}/api/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        finish(await post<AuthPayload>('/api/auth/login', { email, password }));
+      } else if (mode === 'register') {
+        finish(
+          await post<AuthPayload>('/api/auth/register', {
             companyName,
             companySlug: companySlug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
             adminName,
             adminEmail: email,
             password,
           }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data?.error?.message || 'Registration failed.');
-        }
-
-        if (data.data.pendingApproval || !data.data.tokens) {
-          setMode('login');
-          setErrorMessage(data.data.message || 'Your account is pending approval. Please wait for admin activation.');
-          return;
-        }
-        login(data.data.tokens.accessToken, data.data.user, data.data.company);
-        navigate('/dashboard');
+        );
+      } else {
+        await post('/api/auth/forgot-password', { email });
+        setNotice('If an account exists for that email, a reset link is on its way.');
       }
-    } catch (err: unknown) {
-      setErrorMessage((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
-  const handleQuickDemoLogin = async (demoEmail: string, demoPass: string = 'Password123!') => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
+  const demoLogin = (demoEmail: string) => run(async () => finish(await post<AuthPayload>('/api/auth/login', { email: demoEmail, password: 'Password123!' })));
 
-    try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: demoEmail, password: demoPass }),
-      });
+  const title = mode === 'login' ? 'Welcome back' : mode === 'register' ? 'Create your workspace' : 'Reset your password';
+  const subtitle =
+    mode === 'login' ? 'Log in to see your leads, visits and conversations.' : mode === 'register' ? 'Set up your agency in a minute. No card needed.' : 'Enter your email and we will send you a reset link.';
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error?.message || 'Demo login failed');
-      }
-
-      login(data.data.tokens.accessToken, data.data.user, data.data.company);
-      navigate('/dashboard');
-    } catch (err: unknown) {
-      setErrorMessage((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  if (isInitialized && isAuthenticated && mode !== 'forgot') return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-950 text-slate-100">
-      {/* Left Column: Brand Hero & Value Prop */}
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-r border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/40 p-12 lg:flex">
-        {/* Ambient Glow Effects */}
-        <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-blue-600/20 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 right-0 h-96 w-96 rounded-full bg-indigo-600/15 blur-3xl" />
+    <div className="flex min-h-screen w-full bg-bg text-text">
+      {/* Brand panel */}
+      <aside className="relative hidden w-[52%] flex-col justify-between overflow-hidden border-r border-border bg-surface p-10 lg:flex xl:p-14" aria-label="About PropBot Pro">
+        <div aria-hidden className="aurora pointer-events-none absolute inset-0" />
+        <div aria-hidden className="grid-fade pointer-events-none absolute inset-0" />
+        <div aria-hidden className="drift pointer-events-none absolute -left-20 top-1/3 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-lg shadow-blue-500/25">
-            <Building2 className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-white">PropBot Pro</h1>
-            <p className="text-xs font-medium text-blue-400">
-              AI Conversion Platform for Real Estate
-            </p>
-          </div>
-        </div>
+        <Link to="/" className="relative z-10 flex w-fit items-center gap-2.5 font-bold text-text">
+          <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-on-accent shadow-float"><Compass className="h-5 w-5" /></span>
+          PropBot Pro
+        </Link>
 
-        <div className="relative z-10 my-auto max-w-lg space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-semibold text-blue-300 backdrop-blur-md">
-            <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-            <span>Phase 1 — Multi-Tenant Architecture & Auth</span>
-          </div>
-
-          <h2 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-            Close high-intent buyers{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
-              24/7 with autonomous AI.
-            </span>
+        <div className="relative z-10 my-8">
+          <h2 className="max-w-lg text-4xl font-extrabold leading-[1.1] tracking-tight xl:text-5xl">
+            Close more buyers, <span className="text-gradient">while you sleep</span>
           </h2>
+          <p className="mt-4 max-w-md text-base leading-relaxed text-text-muted">Your AI assistant answers every enquiry in seconds, qualifies the buyer and books the site visit.</p>
 
-          <p className="text-base text-slate-400 leading-relaxed">
-            Multi-tenant real estate concierge powered by PostgreSQL Row-Level Security, Live Buyer
-            DNA extraction, and instant lead handoff.
-          </p>
-
-          <div className="space-y-3 pt-4">
-            {[
-              'Enterprise Tenant Isolation & Database Row-Level Security',
-              'Role-Based Access Control (Admin, Manager, Agent, Viewer)',
-              'Live Intent Scoring (0–100) & Instant Site Visit Booking',
-              'Transactional Event Outbox & Guarded AI Action Layer',
-            ].map((feature, idx) => (
-              <div key={idx} className="flex items-center gap-3 text-sm text-slate-300">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
-                <span>{feature}</span>
-              </div>
-            ))}
+          <div className="relative mt-10 max-w-xl">
+            <Tilt max={5}>
+              <BrowserFrame url="app.propbot.pro/overview"><ThemedImage name="dashboard" alt="PropBot dashboard preview" width={1200} height={750} priority /></BrowserFrame>
+            </Tilt>
+            <FloatingCard className="absolute -right-4 -top-5 flex items-center gap-2.5 xl:-right-10">
+              <span aria-hidden className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent"><Flame className="h-4 w-4" /></span>
+              <span><span className="block font-semibold text-text">New hot lead</span><span className="block text-text-muted">Priya S. · ₹1.2 Cr</span></span>
+            </FloatingCard>
+            <FloatingCard slow className="absolute -bottom-5 -left-4 flex items-center gap-2.5 xl:-left-8">
+              <span aria-hidden className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent"><CalendarCheck className="h-4 w-4" /></span>
+              <span><span className="block font-semibold text-text">Visit booked</span><span className="block text-text-muted">Saturday, 11:00 am</span></span>
+            </FloatingCard>
           </div>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between border-t border-slate-800/80 pt-6 text-xs text-slate-500">
-          <span>&copy; 2026 PropBot Pro. All rights reserved.</span>
-          <span className="flex items-center gap-1.5 text-slate-400">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            SOC2 & DPDP Compliant Architecture
-          </span>
+        <ul className="relative z-10 grid gap-2.5 text-sm text-text sm:grid-cols-2">
+          {['Replies on web and WhatsApp', 'Scores every lead hot, warm or cold', 'Books visits on your calendar', 'Your data stays in your workspace'].map(t => (
+            <li key={t} className="flex items-center gap-2"><CheckCircle2 aria-hidden className="h-4 w-4 shrink-0 text-success" />{t}</li>
+          ))}
+        </ul>
+      </aside>
+
+      {/* Form panel */}
+      <main id="main" className="flex w-full flex-1 flex-col lg:w-[48%]">
+        <div className="flex items-center justify-between px-5 py-4 sm:px-8">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text">
+            <ArrowLeft aria-hidden className="h-4 w-4" /> Back to home
+          </Link>
+          <ThemeToggle />
         </div>
-      </div>
 
-      {/* Right Column: Interactive Login / Register Form */}
-      <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-16 xl:px-24">
-        <div className="mx-auto w-full max-w-md">
-          {/* Header Mobile Brand */}
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <div>
-              <span className="font-bold text-white">PropBot Pro</span>
-              <span className="block text-xs text-slate-400">Real Estate AI Platform</span>
-            </div>
-          </div>
+        <div className="flex flex-1 items-center justify-center px-5 pb-10 sm:px-8">
+          <div className="w-full max-w-md">
+            <Link to="/" className="mb-6 flex items-center gap-2.5 font-bold text-text lg:hidden">
+              <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-on-accent"><Compass className="h-5 w-5" /></span>
+              PropBot Pro
+            </Link>
 
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold tracking-tight text-white">
-              {mode === 'login' ? 'Sign in to your agency' : 'Register your brokerage'}
-            </h2>
-            <p className="mt-1 text-sm text-slate-400">
-              {mode === 'login'
-                ? 'Enter your credentials or use the 1-click demo logins below.'
-                : 'Provision a new company tenant with isolated database schemas.'}
-            </p>
-          </div>
+            <div className="rounded-2xl border border-border bg-surface p-6 shadow-card sm:p-8">
+              <h1 className="text-2xl font-bold tracking-tight text-text">{title}</h1>
+              <p className="mt-1 text-sm text-text-muted">{subtitle}</p>
 
-          {/* Mode Switcher Tabs */}
-          <div className="mb-6 flex rounded-xl border border-slate-800 bg-slate-900/60 p-1">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('login');
-                setErrorMessage(null);
-              }}
-              className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
-                mode === 'login'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('register');
-                setErrorMessage(null);
-              }}
-              className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
-                mode === 'register'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Register New Agency
-            </button>
-          </div>
+              {mode !== 'forgot' && (
+                <div role="tablist" aria-label="Log in or register" className="mt-6 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1">
+                  {([['login', 'Log in'], ['register', 'Create account']] as const).map(([m, label]) => (
+                    <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => switchMode(m)} className={`rounded-lg py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${mode === m ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          {/* Error Banner */}
-          {errorMessage && (
-            <div className="mb-5 flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-950/40 p-4 text-xs text-rose-300">
-              <AlertCircle className="h-5 w-5 shrink-0 text-rose-400" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
+              {errorMessage && (
+                <div role="alert" className="mt-5 flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+                  <AlertCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+              {notice && (
+                <div role="status" className="mt-5 flex items-start gap-2.5 rounded-xl border border-success/30 bg-success/10 p-3 text-sm text-text">
+                  <MailCheck aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  <span>{notice}</span>
+                </div>
+              )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'register' && (
-              <>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-300">
-                    Company Name
-                  </label>
-                  <div className="relative">
-                    <Building2 className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
+              <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate={false}>
+                {mode === 'register' && (
+                  <>
+                    <Input
+                      label="Agency or company name"
                       required
                       value={companyName}
+                      autoComplete="organization"
+                      leftIcon={<Building2 className="h-4 w-4" />}
+                      placeholder="Skyline Realty"
                       onChange={e => {
                         setCompanyName(e.target.value);
-                        setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+                        setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
                       }}
-                      placeholder="e.g. Prestige Realty Group"
-                      className="w-full rounded-xl border border-slate-800 bg-slate-900/80 py-2.5 pr-4 pl-10 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
+                    <Input label="Workspace ID" required value={companySlug} hint="Lowercase letters, numbers and dashes. Used to identify your workspace." onChange={e => setCompanySlug(e.target.value)} placeholder="skyline-realty" />
+                    <Input label="Your name" required value={adminName} autoComplete="name" leftIcon={<User className="h-4 w-4" />} placeholder="Asha Rao" onChange={e => setAdminName(e.target.value)} />
+                  </>
+                )}
+
+                <Input label="Work email" type="email" required value={email} autoComplete="email" leftIcon={<Mail className="h-4 w-4" />} placeholder="you@agency.com" onChange={e => setEmail(e.target.value)} />
+
+                {mode !== 'forgot' && (
+                  <div>
+                    <div className="relative">
+                      <Input label="Password" type={showPassword ? 'text' : 'password'} required minLength={mode === 'register' ? 8 : undefined} value={password} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} leftIcon={<Lock className="h-4 w-4" />} placeholder="At least 8 characters" onChange={e => setPassword(e.target.value)} className="[&_input]:pr-10" />
+                      <button type="button" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="absolute right-2.5 top-[1.9rem] rounded p-1 text-text-muted hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+                        {showPassword ? <EyeOff aria-hidden className="h-4 w-4" /> : <Eye aria-hidden className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {mode === 'register' && password && (
+                      <div className="mt-2" aria-live="polite">
+                        <div className="flex gap-1" aria-hidden>
+                          {[0, 1, 2, 3].map(i => <span key={i} className={`h-1 flex-1 rounded-full transition-colors ${i < score ? (score <= 1 ? 'bg-danger' : score <= 2 ? 'bg-brass' : 'bg-success') : 'bg-border'}`} />)}
+                        </div>
+                        <p className="mt-1 text-xs text-text-muted">Password strength: {STRENGTH_LABEL[score]}</p>
+                      </div>
+                    )}
+                    {mode === 'login' && (
+                      <div className="mt-2 text-right">
+                        <button type="button" onClick={() => switchMode('forgot')} className="text-xs font-semibold text-accent hover:underline">Forgot password?</button>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-300">
-                    Company Slug (Tenant Key)
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={companySlug}
-                    onChange={e => setCompanySlug(e.target.value)}
-                    placeholder="prestige-realty"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-300">
-                    Administrator Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
-                      required
-                      value={adminName}
-                      onChange={e => setAdminName(e.target.value)}
-                      placeholder="Vikram Mehta"
-                      className="w-full rounded-xl border border-slate-800 bg-slate-900/80 py-2.5 pr-4 pl-10 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-300">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@prestige.com"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900/80 py-2.5 pr-4 pl-10 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-300">Password</label>
-              <div className="relative">
-                <Lock className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900/80 py-2.5 pr-10 pl-10 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute top-1/2 right-3.5 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <button type="submit" disabled={isLoading} className="btn-sheen flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent text-sm font-semibold text-on-accent shadow-float transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-60">
+                  {isLoading ? (
+                    <span role="status" aria-label="Working" className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    <>
+                      {mode === 'login' ? 'Log in' : mode === 'register' ? 'Create my workspace' : 'Send reset link'}
+                      <ArrowRight aria-hidden className="h-4 w-4" />
+                    </>
+                  )}
                 </button>
-              </div>
+                {mode === 'forgot' && (
+                  <button type="button" onClick={() => switchMode('login')} className="w-full text-center text-sm font-semibold text-accent hover:underline">Back to log in</button>
+                )}
+              </form>
+
+              {mode === 'register' && <p className="mt-4 text-center text-xs text-text-muted">By creating an account you agree to be contacted about your workspace.</p>}
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-60"
-            >
-              {isLoading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <>
-                  <span>{mode === 'login' ? 'Sign In to Dashboard' : 'Complete Registration'}</span>
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Quick 1-Click Demo Logins for Instant Testing */}
-          <div className="mt-8 border-t border-slate-800/80 pt-6">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                🚀 1-Click Demo Accounts
-              </span>
-              <span className="text-[11px] text-blue-400 font-medium">Pre-Seeded Database</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('admin@prestige.com')}
-                disabled={isLoading}
-                className="flex items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-left transition-all hover:border-blue-500/50 hover:bg-slate-800/80"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600/20 text-blue-400">
-                  <ShieldCheck className="h-4 w-4" />
+            {import.meta.env.DEV && mode !== 'forgot' && (
+              <section aria-label="Demo accounts" className="mt-6 rounded-2xl border border-dashed border-border p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">Demo accounts</h2>
+                  <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">Development only</span>
                 </div>
-                <div className="overflow-hidden">
-                  <div className="truncate text-xs font-semibold text-white">Company Admin</div>
-                  <div className="truncate text-[10px] text-slate-400">Prestige Realty</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {DEMO_ACCOUNTS.map(({ email: e, role, org, icon: Icon }) => (
+                    <button key={e} type="button" disabled={isLoading} onClick={() => void demoLogin(e)} className="flex items-center gap-2.5 rounded-xl border border-border bg-surface p-2.5 text-left transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60">
+                      <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent"><Icon className="h-4 w-4" /></span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-semibold text-text">{role}</span>
+                        <span className="block truncate text-[11px] text-text-muted">{org}</span>
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('manager@prestige.com')}
-                disabled={isLoading}
-                className="flex items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-left transition-all hover:border-indigo-500/50 hover:bg-slate-800/80"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600/20 text-indigo-400">
-                  <User className="h-4 w-4" />
-                </div>
-                <div className="overflow-hidden">
-                  <div className="truncate text-xs font-semibold text-white">Sales Manager</div>
-                  <div className="truncate text-[10px] text-slate-400">Prestige Realty</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('agent@prestige.com')}
-                disabled={isLoading}
-                className="flex items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-left transition-all hover:border-emerald-500/50 hover:bg-slate-800/80"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600/20 text-emerald-400">
-                  <Zap className="h-4 w-4" />
-                </div>
-                <div className="overflow-hidden">
-                  <div className="truncate text-xs font-semibold text-white">Sales Agent</div>
-                  <div className="truncate text-[10px] text-slate-400">Prestige Realty</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('admin@sobha.com')}
-                disabled={isLoading}
-                className="flex items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-left transition-all hover:border-purple-500/50 hover:bg-slate-800/80"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-600/20 text-purple-400">
-                  <Building2 className="h-4 w-4" />
-                </div>
-                <div className="overflow-hidden">
-                  <div className="truncate text-xs font-semibold text-white">Tenant B Admin</div>
-                  <div className="truncate text-[10px] text-slate-400">Sobha Developers</div>
-                </div>
-              </button>
-            </div>
+              </section>
+            )}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
+
+export default AuthPage;

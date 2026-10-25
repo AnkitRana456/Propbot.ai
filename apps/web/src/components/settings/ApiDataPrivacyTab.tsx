@@ -26,7 +26,7 @@ export const ApiDataPrivacyTab: React.FC = () => {
         name: keyName.trim(),
         permissions: ['read', 'write'],
       });
-      setCreatedKeySecret(res.data.apiKey);
+      setCreatedKeySecret(res.apiKey);
       setKeyName('');
     } catch (err: unknown) {
       alert((err as Error).message || 'Failed to create API key.');

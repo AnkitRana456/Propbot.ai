@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from './api-client.js';
+import { apiRequest, apiRequestEnvelope } from './api-client.js';
 import type {
   SubscriptionOverview,
   CheckoutSessionInput,
@@ -13,10 +13,10 @@ export function useSubscriptionOverview() {
   return useQuery({
     queryKey: ['billing', 'overview'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: SubscriptionOverview }>(
+      const res = await apiRequest<SubscriptionOverview>(
         `/api/subscription`,
       );
-      return res.data;
+      return res;
     },
     staleTime: 10000,
   });
@@ -31,7 +31,7 @@ export function useInvoices(filter?: SubscriptionInvoiceFilter) {
       if (filter?.page) params.append('page', String(filter.page));
       if (filter?.limit) params.append('limit', String(filter.limit));
       const str = params.toString();
-      const res = await apiRequest<{
+      const res = await apiRequestEnvelope<{
         success: boolean;
         data: InvoiceRecord[];
         pagination: { total: number; page: number; limit: number; totalPages: number };
@@ -45,7 +45,7 @@ export function useCreateCheckoutMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CheckoutSessionInput) => {
-      return await apiRequest<{ success: boolean; data: { checkoutUrl: string; sessionId: string } }>(
+      return await apiRequest<{ checkoutUrl: string; sessionId: string }>(
         `/api/subscription/checkout`,
         {
           method: 'POST',
@@ -93,10 +93,10 @@ export function useLeadCreditTransactions() {
   return useQuery({
     queryKey: ['billing', 'credit-transactions'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: LeadCreditTransactionRecord[] }>(
+      const res = await apiRequest<LeadCreditTransactionRecord[]>(
         `/api/subscription/lead-credits/transactions`,
       );
-      return res.data;
+      return res;
     },
   });
 }

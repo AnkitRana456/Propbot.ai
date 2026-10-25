@@ -23,41 +23,7 @@ export interface TodaySlaQueueProps {
 }
 
 export const TodaySlaQueue: React.FC<TodaySlaQueueProps> = ({
-  hotLeads = [
-    {
-      id: 'lead-hot-001',
-      name: 'Rohan Sharma',
-      phone: '+91 98450 12345',
-      score: 94,
-      project: 'Prestige Lakeside',
-      bhk: '3BHK Villa',
-      budget: '₹2.8 - 3.2 Cr',
-      slaMinutesRemaining: 4,
-      timeAgo: '6m ago',
-    },
-    {
-      id: 'lead-hot-002',
-      name: 'Ananya Deshmukh',
-      phone: '+91 99887 65432',
-      score: 88,
-      project: 'Godrej Woods',
-      bhk: '2BHK Luxury',
-      budget: '₹1.4 Cr',
-      slaMinutesRemaining: 12,
-      timeAgo: '18m ago',
-    },
-    {
-      id: 'lead-hot-003',
-      name: 'Vikramaditya Rao',
-      phone: '+91 91234 56789',
-      score: 79,
-      project: 'Sobha Dream Acres',
-      bhk: '3BHK Premium',
-      budget: '₹2.1 Cr',
-      slaMinutesRemaining: 22,
-      timeAgo: '35m ago',
-    },
-  ],
+  hotLeads = [],
   onSelectLead,
 }) => {
   return (

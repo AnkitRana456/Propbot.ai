@@ -126,9 +126,6 @@ export const PerformanceTab: React.FC<PerformanceTabProps> = ({ performance, isL
             </div>
           </div>
 
-          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-[11px] text-slate-500 mt-4">
-            💡 WhatsApp inquiries generally convert 2.4x faster to site visits compared to web widget sessions.
-          </div>
         </div>
       </div>
     </div>

@@ -45,6 +45,8 @@ import { flowsRouter, executionsRouter } from './routes/flows.routes.js';
 import { toolsRouter, actionsRouter } from './routes/tools.routes.js';
 import { agentsRouter, formsRouter, knowledgeReferencesRouter } from './routes/agents.routes.js';
 import { cronOrAdmin } from './middlewares/cron-auth.js';
+import { costSheetService } from './modules/inventory/cost-sheet.service.js';
+import { findKioskSource, acceptWalkIn } from './modules/lead-sources/lead-sources.service.js';
 import { leadsController } from './modules/leads/leads.controller.js';
 import { validateEnv, getMaskedConfigSummary } from './config/env.js';
 
@@ -78,7 +80,7 @@ export function createApp(): Express {
   app.use(helmet());
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
+      origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(o => o.trim()).filter(Boolean) : '*',
       credentials: true,
     }),
   );
@@ -144,6 +146,29 @@ export function createApp(): Express {
   app.use('/api/payments', paymentsRouter);
   app.use('/api/controls', controlsRouter);
   app.use('/api/public/controls', publicControlsRouter);
+
+  // Public cost-sheet quote link (no auth, by token)
+  app.get('/api/public/quote/:token', (req, res, next) => {
+    costSheetService.getSheet(req.params.token)
+      .then(data => res.json({ data }))
+      .catch(next);
+  });
+
+  // Walk-in kiosk: fetch source info and submit a lead
+  app.get('/api/public/walk-in/:token', (req, res, next) => {
+    findKioskSource(req.params.token)
+      .then(source => {
+        if (!source) { res.status(404).json({ error: { code: 'KIOSK_NOT_FOUND' } }); return; }
+        res.json({ data: { name: source.name, sourceType: source.sourceType } });
+      })
+      .catch(next);
+  });
+
+  app.post('/api/public/walk-in/:token', (req, res, next) => {
+    acceptWalkIn(req.params.token, req.body as { name: string; phone: string; email?: string; projectInterest?: string })
+      .then(result => res.json({ data: result }))
+      .catch(next);
+  });
   app.use('/api/tags', tagsRouter);
   app.use('/api/groups', groupsRouter);
   app.use('/api/customer360', customer360Router);

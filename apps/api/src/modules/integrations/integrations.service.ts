@@ -229,7 +229,7 @@ export class IntegrationsService {
       name: 'Rohan Sharma',
       phone: '+919876543210',
       email: 'rohan@example.com',
-      project: 'Prestige Palms',
+      project: 'Demo Project',
       budget: '3 Cr',
       intentScore: 85,
       createdAt: new Date().toISOString(),

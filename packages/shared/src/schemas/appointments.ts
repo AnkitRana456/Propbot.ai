@@ -172,4 +172,8 @@ export const calendarIntegrationStatusSchema = z.object({
   email: z.string().optional(),
   calendarId: z.string().optional(),
   lastSyncedAt: z.string().datetime().optional(),
+  /** A local stand-in used in development; no real events are created. */
+  simulated: z.boolean().optional(),
+  /** Whether this server has Google keys, so a real connection is possible. */
+  configured: z.boolean().optional(),
 });

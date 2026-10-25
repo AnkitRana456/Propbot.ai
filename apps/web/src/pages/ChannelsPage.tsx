@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Plug, FileText, LayoutTemplate, Send, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Plug, FileText, LayoutTemplate, Send, CheckCircle2, RefreshCw } from 'lucide-react';
 import { CONNECTABLE_CHANNELS } from '@propbot/shared';
 import {
   useConnections,
@@ -10,6 +10,7 @@ import {
   useDeleteTemplate,
   useDeleteWidget,
   useSubmitTemplate,
+  useSyncTemplate,
   useTemplates,
   useTestConnection,
   useWidgets,
@@ -99,6 +100,7 @@ const Templates: React.FC = () => {
   const { data, isLoading } = useTemplates();
   const create = useCreateTemplate();
   const submit = useSubmitTemplate();
+  const sync = useSyncTemplate();
   const del = useDeleteTemplate();
   const { error, run } = useRun();
   const [adding, setAdding] = useState(false);
@@ -142,6 +144,7 @@ const Templates: React.FC = () => {
               {t.rejectionReason && <p className="mt-1 text-[11px] text-rose-600">{t.rejectionReason}</p>}
               <div className="mt-3 flex items-center gap-2">
                 {(t.status === 'draft' || t.status === 'rejected') && <button type="button" disabled={submit.isPending} onClick={() => void run(() => submit.mutateAsync(t.id))} className={`${btn} bg-slate-900 text-white dark:bg-slate-700`}><Send className="h-3.5 w-3.5" /> Submit for approval</button>}
+                {t.status === 'pending' && <button type="button" disabled={sync.isPending} onClick={() => void run(() => sync.mutateAsync(t.id))} className={`${btn} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200`}><RefreshCw className="h-3.5 w-3.5" /> Sync status</button>}
                 <span className="text-[11px] text-slate-400">{t.variableCount} variable(s)</span>
                 <button type="button" aria-label={`Delete ${t.name}`} onClick={() => window.confirm(`Delete ${t.name}?`) && void run(() => del.mutateAsync(t.id))} className="ml-auto text-slate-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-4 w-4" /></button>
               </div>

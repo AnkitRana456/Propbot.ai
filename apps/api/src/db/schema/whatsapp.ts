@@ -23,6 +23,7 @@ export const whatsappConfigs = pgTable(
       .references(() => companies.id, { onDelete: 'cascade' }),
     chatbotId: uuid('chatbot_id').references(() => chatbots.id, { onDelete: 'set null' }),
     phoneNumberId: varchar('phone_number_id', { length: 100 }),
+    businessAccountId: varchar('business_account_id', { length: 64 }),
     businessPhoneNumber: varchar('business_phone_number', { length: 50 }),
     accessToken: text('access_token'),
     appSecret: text('app_secret'),

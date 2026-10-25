@@ -22,7 +22,7 @@ const PRESET_SCENARIOS = [
     title: 'High-Intent 3BHK Inquiry & Brochure',
     phone: '+91 98201 11223',
     name: 'Aarav Sharma',
-    text: 'Hi! What are the all-inclusive starting prices and RERA carpet areas for 3BHK units at Prestige Lakeside Habitat? Can you send the brochure?',
+    text: 'Hi! What are the all-inclusive starting prices and RERA carpet areas for 3BHK units at this project? Can you send the brochure?',
     isVoice: false,
     category: 'AI Auto-Reply',
   },
@@ -60,7 +60,7 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
   const [phone, setPhone] = useState('+91 98201 11223');
   const [name, setName] = useState('Aarav Sharma');
   const [text, setText] = useState(
-    'Hi! What are the all-inclusive starting prices and RERA carpet areas for 3BHK units at Prestige Lakeside Habitat? Can you send the brochure?',
+    'Hi! What are the all-inclusive starting prices and RERA carpet areas for 3BHK units at this project? Can you send the brochure?',
   );
   const [isVoiceNote, setIsVoiceNote] = useState(false);
   const [result, setResult] = useState<{

@@ -68,6 +68,8 @@ export const calendarIntegrations = pgTable(
     refreshToken: text('refresh_token'),
     tokenExpiry: timestamp('token_expiry', { withTimezone: true }),
     calendarId: varchar('calendar_id', { length: 255 }).default('primary'),
+    accountEmail: varchar('account_email', { length: 255 }),
+    simulated: boolean('simulated').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

@@ -15,6 +15,9 @@ export class RazorpayPaymentProvider implements PaymentProvider {
   async createCheckoutSession(
     input: CreateCheckoutInput,
   ): Promise<{ checkoutUrl: string; sessionId: string }> {
+    if (process.env.NODE_ENV === 'production') {
+      throw Object.assign(new Error('Razorpay checkout is not available yet. Use Stripe for plan payments.'), { statusCode: 501, code: 'RAZORPAY_NOT_AVAILABLE' });
+    }
     if (!this.keyId || !this.keySecret) {
       return mockPaymentProvider.createCheckoutSession(input);
     }

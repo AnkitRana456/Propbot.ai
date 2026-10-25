@@ -33,6 +33,7 @@ import { speechToTextProvider } from '../ai/speech-to-text.provider.js';
 
 import { isFrustrated } from '../ai/llm.js';
 import { prepareAgentTurn, collectAttributes } from '../agents/agent-chat.js';
+import { openSecret, sealSecret } from '../../utils/crypto-vault.js';
 
 export class WhatsAppService {
   /**
@@ -57,6 +58,7 @@ export class WhatsAppService {
         businessPhoneNumber: whatsappConfigs.businessPhoneNumber,
         accessToken: whatsappConfigs.accessToken,
         appSecret: whatsappConfigs.appSecret,
+        businessAccountId: whatsappConfigs.businessAccountId,
         verifyToken: whatsappConfigs.verifyToken,
         templateName: whatsappConfigs.templateName,
         enableAutomation: whatsappConfigs.enableAutomation,
@@ -108,8 +110,9 @@ export class WhatsAppService {
       chatbotId: config.chatbotId,
       chatbotName: config.chatbotName,
       phoneNumberId: config.phoneNumberId,
+      businessAccountId: config.businessAccountId ?? null,
       businessPhoneNumber: config.businessPhoneNumber,
-      maskedAccessToken: this.maskToken(config.accessToken),
+      maskedAccessToken: this.maskToken(openSecret(config.accessToken) ?? null),
       hasAppSecret: Boolean(config.appSecret),
       verifyToken: config.verifyToken,
       callbackUrl,
@@ -146,9 +149,10 @@ export class WhatsAppService {
         .set({
           chatbotId: input.chatbotId || null,
           phoneNumberId: input.phoneNumberId,
+          businessAccountId: input.businessAccountId !== undefined ? input.businessAccountId || null : existing.businessAccountId,
           businessPhoneNumber: input.businessPhoneNumber,
-          accessToken: input.accessToken.includes('••••') ? existing.accessToken : input.accessToken,
-          appSecret: input.appSecret !== undefined ? input.appSecret : existing.appSecret,
+          accessToken: input.accessToken.includes('••••') ? existing.accessToken : sealSecret(input.accessToken),
+          appSecret: input.appSecret !== undefined ? sealSecret(input.appSecret) : existing.appSecret,
           templateName: input.templateName,
           enableAutomation: input.enableAutomation,
           aiAutoReplies: input.aiAutoReplies,
@@ -166,9 +170,10 @@ export class WhatsAppService {
         companyId,
         chatbotId: input.chatbotId || null,
         phoneNumberId: input.phoneNumberId,
+        businessAccountId: input.businessAccountId || null,
         businessPhoneNumber: input.businessPhoneNumber,
-        accessToken: input.accessToken,
-        appSecret: input.appSecret || null,
+        accessToken: sealSecret(input.accessToken),
+        appSecret: sealSecret(input.appSecret),
         verifyToken,
         templateName: input.templateName,
         enableAutomation: input.enableAutomation,
@@ -463,7 +468,7 @@ export class WhatsAppService {
     if (!config) return undefined;
     return {
       phoneNumberId: config.phoneNumberId || undefined,
-      accessToken: config.accessToken || undefined,
+      accessToken: openSecret(config.accessToken),
       templateName: config.templateName || undefined,
     };
   }
@@ -497,7 +502,7 @@ export class WhatsAppService {
 
     // Meta signs every delivery with the app secret. A missing secret must never mean "skip the check",
     // otherwise anyone who knows a phone-number ID could inject fake messages and leads.
-    const appSecret = config.appSecret || process.env.META_APP_SECRET;
+    const appSecret = openSecret(config.appSecret) || process.env.META_APP_SECRET;
     const allowUnsigned = process.env.ALLOW_UNSIGNED_WHATSAPP_WEBHOOKS === 'true' && process.env.NODE_ENV !== 'production';
     if (!appSecret && !allowUnsigned) {
       const err = new Error('WhatsApp app secret is not configured; refusing unsigned webhook deliveries.');

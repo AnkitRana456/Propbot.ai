@@ -13,8 +13,8 @@ export function useCompanySettings() {
   return useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: CompanySettingsResponse }>(`/api/settings`);
-      return res.data;
+      const res = await apiRequest<CompanySettingsResponse>(`/api/settings`);
+      return res;
     },
   });
 }
@@ -68,8 +68,8 @@ export function useApiKeys() {
   return useQuery({
     queryKey: ['settings', 'api-keys'],
     queryFn: async () => {
-      const res = await apiRequest<{ success: boolean; data: ApiKeyRecord[] }>(`/api/settings/api-keys`);
-      return res.data;
+      const res = await apiRequest<ApiKeyRecord[]>(`/api/settings/api-keys`);
+      return res;
     },
   });
 }
@@ -78,7 +78,7 @@ export function useCreateApiKeyMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateApiKeyInput) => {
-      return await apiRequest<{ success: boolean; data: { apiKey: string; key: ApiKeyRecord } }>(`/api/settings/api-keys`, {
+      return await apiRequest<{ apiKey: string; key: ApiKeyRecord }>(`/api/settings/api-keys`, {
         method: 'POST',
         body: JSON.stringify(input),
       });
@@ -104,7 +104,7 @@ export function useRevokeApiKeyMutation() {
 export function useSetupTwoFactorMutation() {
   return useMutation({
     mutationFn: async () => {
-      return await apiRequest<{ success: boolean; data: { secret: string; otpauthUrl: string } }>(
+      return await apiRequest<{ secret: string; otpauthUrl: string }>(
         `/api/settings/security/2fa/setup`,
         { method: 'POST' },
       );

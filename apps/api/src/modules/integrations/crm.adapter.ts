@@ -1,5 +1,6 @@
 import type { IntegrationAdapter, SyncLeadPayload, SyncResult } from './integration.adapter.js';
 import { pino } from 'pino';
+import { simulationAllowed } from '../../utils/simulation.js';
 
 const logger = pino({ name: 'crm-adapter', level: process.env.LOG_LEVEL || 'info' });
 
@@ -29,6 +30,9 @@ export class CRMAdapter implements IntegrationAdapter {
     lead: SyncLeadPayload,
     _config: Record<string, unknown>,
   ): Promise<SyncResult> {
+    if (!simulationAllowed()) {
+      return { success: false, message: `${this.providerName} sync is not available yet. Use HubSpot, Salesforce or a webhook instead.` };
+    }
     const externalId = `${this.providerName}_${lead.leadId}`;
 
     mockCRMProvider.recordLead(externalId, lead);

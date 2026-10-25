@@ -45,6 +45,8 @@ export const projects = pgTable(
       .default(sql`'[]'::jsonb`),
     masterPlanUrl: text('master_plan_url'),
     videoTourUrl: text('video_tour_url'),
+    /** Charges, taxes and rules used to build cost sheets for this project's units. */
+    costSheetConfig: jsonb('cost_sheet_config').$type<Record<string, unknown> | null>(),
     floorPlans: jsonb('floor_plans')
       .notNull()
       .default(sql`'[]'::jsonb`),

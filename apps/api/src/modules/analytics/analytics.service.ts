@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lte, sql, inArray } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import {
   conversations,
@@ -8,7 +8,6 @@ import {
   agentActions,
   campaignSpends,
   companies,
-  projects,
 } from '../../db/schema/index.js';
 import type {
   AnalyticsFilter,
@@ -122,10 +121,11 @@ export class AnalyticsService {
 
       const totalConv = convRow?.total ?? 0;
       const totalLeads = leadRow?.total ?? 0;
-      const conversionRate = totalConv > 0 ? (totalLeads / totalConv) * 100 : 0;
+      // Leads can also arrive from forms, imports and portals, so cap at 100% instead of showing 447%
+      const conversionRate = totalConv > 0 ? Math.min(100, (totalLeads / totalConv) * 100) : 0;
       const avgLatencySec = Number(((msgRow?.avgLatency ?? 0) / 1000).toFixed(2));
       const totalRated = msgRow?.totalSentiment ?? 0;
-      const satisfactionRate = totalRated > 0 ? ((msgRow?.positiveCount ?? 0) / totalRated) * 100 : 92.0;
+      const satisfactionRate = totalRated > 0 ? ((msgRow?.positiveCount ?? 0) / totalRated) * 100 : 0;
 
       return { totalConv, totalLeads, conversionRate, avgLatencySec, satisfactionRate };
     };
@@ -192,12 +192,14 @@ export class AnalyticsService {
 
     const started = convRow?.count ?? 0;
 
-    // Leads completed
+    // Leads that came out of chat (web chat, widget, WhatsApp); portal and ad leads are not chat conversions
+    const CHAT_SOURCES = ['chat', 'web_chat', 'web_widget', 'whatsapp', 'brochure_download'];
     const leadConds = [
       eq(leads.companyId, companyId),
       gte(leads.createdAt, startDate),
       lte(leads.createdAt, endDate),
       isNull(leads.deletedAt),
+      inArray(leads.source, CHAT_SOURCES),
     ];
     if (filter.chatbotId) leadConds.push(eq(leads.chatbotId, filter.chatbotId));
 
@@ -206,49 +208,16 @@ export class AnalyticsService {
       .from(leads)
       .where(and(...leadConds));
 
-    const completed = leadRow?.count ?? 0;
-
-    // Widget shown and clicked estimated from started conversations
-    const shown = started > 0 ? Math.round(started * 4.2) : 0;
-    const clicked = started > 0 ? Math.round(started * 1.8) : 0;
+    // A conversation can end in at most one lead here, so the captured count never exceeds the chats started
+    const completed = Math.min(started, leadRow?.count ?? 0);
     const failed = Math.max(0, started - completed);
+    const pct = (n: number) => (started > 0 ? Number(((n / started) * 100).toFixed(1)) : 0);
 
+    // The widget does not record how often it is shown or clicked, so only counted stages are returned
     const stages = [
-      {
-        stage: 'shown' as const,
-        label: 'Widget Shown',
-        count: shown,
-        conversionFromPrevPercent: 100,
-        conversionFromTopPercent: 100,
-      },
-      {
-        stage: 'clicked' as const,
-        label: 'Launcher Clicked',
-        count: clicked,
-        conversionFromPrevPercent: shown > 0 ? Number(((clicked / shown) * 100).toFixed(1)) : 0,
-        conversionFromTopPercent: shown > 0 ? Number(((clicked / shown) * 100).toFixed(1)) : 0,
-      },
-      {
-        stage: 'started' as const,
-        label: 'Chat Started',
-        count: started,
-        conversionFromPrevPercent: clicked > 0 ? Number(((started / clicked) * 100).toFixed(1)) : 0,
-        conversionFromTopPercent: shown > 0 ? Number(((started / shown) * 100).toFixed(1)) : 0,
-      },
-      {
-        stage: 'completed' as const,
-        label: 'Lead Captured',
-        count: completed,
-        conversionFromPrevPercent: started > 0 ? Number(((completed / started) * 100).toFixed(1)) : 0,
-        conversionFromTopPercent: shown > 0 ? Number(((completed / shown) * 100).toFixed(1)) : 0,
-      },
-      {
-        stage: 'failed' as const,
-        label: 'Abandoned / Drop-off',
-        count: failed,
-        conversionFromPrevPercent: started > 0 ? Number(((failed / started) * 100).toFixed(1)) : 0,
-        conversionFromTopPercent: shown > 0 ? Number(((failed / shown) * 100).toFixed(1)) : 0,
-      },
+      { stage: 'started' as const, label: 'Chat Started', count: started, conversionFromPrevPercent: 100, conversionFromTopPercent: 100 },
+      { stage: 'completed' as const, label: 'Lead Captured', count: completed, conversionFromPrevPercent: pct(completed), conversionFromTopPercent: pct(completed) },
+      { stage: 'failed' as const, label: 'Left Without Details', count: failed, conversionFromPrevPercent: pct(failed), conversionFromTopPercent: pct(failed) },
     ];
 
     return { stages };
@@ -271,8 +240,7 @@ export class AnalyticsService {
           lte(conversations.createdAt, endDate),
         ),
       );
-    const chat = convRow?.count ?? 0;
-    const visitor = chat > 0 ? Math.round(chat * 2.8) : 0;
+    void convRow; // chats are shown in the chat funnel; this funnel starts from leads of every source
 
     // 2. Leads in pipeline
     const [leadStats] = await db
@@ -300,8 +268,6 @@ export class AnalyticsService {
     const booked = leadStats?.bookedDeals ?? 0;
 
     const rawCounts = [
-      { stage: 'visitor' as const, label: 'Visitors', count: visitor },
-      { stage: 'chat' as const, label: 'Engaged in Chat', count: chat },
       { stage: 'lead' as const, label: 'Captured Leads', count: leadCount },
       { stage: 'qualified' as const, label: 'Qualified Buyer DNA', count: qualified },
       { stage: 'visit_booked' as const, label: 'Site Visit Booked', count: visitBooked },
@@ -309,7 +275,7 @@ export class AnalyticsService {
       { stage: 'booked' as const, label: 'Deals Booked', count: booked },
     ];
 
-    const topCount = Math.max(1, visitor);
+    const topCount = Math.max(1, leadCount);
     const stages = rawCounts.map((item, idx) => {
       const prevCount = idx === 0 ? item.count : rawCounts[idx - 1]!.count;
       const conversionFromPrevPercent =
@@ -565,52 +531,37 @@ export class AnalyticsService {
       {
         theme: 'Pricing, Cost Sheets & Payment Plans',
         count: Math.max(12, priceCount),
-        sampleQueries: sampleQueries.price.length ? sampleQueries.price : ['What is the starting price for 3 BHK?'],
+        sampleQueries: sampleQueries.price.length ? sampleQueries.price : [],
       },
       {
         theme: 'Floor Plans & BHK Configurations',
         count: Math.max(8, bhkCount),
-        sampleQueries: sampleQueries.bhk.length ? sampleQueries.bhk : ['Are 2 BHK units available?'],
+        sampleQueries: sampleQueries.bhk.length ? sampleQueries.bhk : [],
       },
       {
         theme: 'Location Connectivity & Metro Distance',
         count: Math.max(6, locCount),
-        sampleQueries: sampleQueries.location.length ? sampleQueries.location : ['How far is the nearest metro station?'],
+        sampleQueries: sampleQueries.location.length ? sampleQueries.location : [],
       },
       {
         theme: 'Site Visit Scheduling & Timing',
         count: Math.max(5, visitCount),
-        sampleQueries: sampleQueries.visit.length ? sampleQueries.visit : ['Can I visit this Saturday?'],
+        sampleQueries: sampleQueries.visit.length ? sampleQueries.visit : [],
       },
       {
         theme: 'Bank Approvals, Loans & EMI',
         count: Math.max(4, loanCount),
-        sampleQueries: sampleQueries.loan.length ? sampleQueries.loan : ['Is HDFC home loan available?'],
+        sampleQueries: sampleQueries.loan.length ? sampleQueries.loan : [],
       },
       {
         theme: 'Possession Date & RERA Status',
         count: Math.max(3, possessionCount),
-        sampleQueries: sampleQueries.possession.length ? sampleQueries.possession : ['When is possession scheduled?'],
+        sampleQueries: sampleQueries.possession.length ? sampleQueries.possession : [],
       },
     ].sort((a, b) => b.count - a.count);
 
-    // Unanswered list (mocked or low-confidence queries)
-    const unanswered = [
-      {
-        id: 'unans_1',
-        query: 'Is there an electric vehicle charging station in basement 2?',
-        askedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-        confidence: 0.32,
-        chatbotName: 'Main Website Bot',
-      },
-      {
-        id: 'unans_2',
-        query: 'What are the clubhouse transfer charges for resale buyers?',
-        askedAt: new Date(Date.now() - 3600000 * 18).toISOString(),
-        confidence: 0.28,
-        chatbotName: 'Main Website Bot',
-      },
-    ];
+    // Answer confidence is not stored per message yet, so no "unanswered" list is invented
+    const unanswered: Array<{ id: string; query: string; askedAt: string; confidence: number; chatbotName: string }> = [];
 
     return { clusters, unanswered };
   }
@@ -631,6 +582,7 @@ export class AnalyticsService {
         status: leads.status,
         buyerDna: leads.buyerDna,
         customFields: leads.customFields,
+        utmParams: leads.utmParams,
         slaStartedAt: leads.slaStartedAt,
         slaBreachedAt: leads.slaBreachedAt,
         createdAt: leads.createdAt,
@@ -703,82 +655,48 @@ export class AnalyticsService {
       conversionRate: s.total > 0 ? Number(((s.qual / s.total) * 100).toFixed(1)) : 0,
     }));
 
-    // Quality by project
-    const projectRows = await db
-      .select({ id: projects.id, name: projects.name })
-      .from(projects)
-      .where(and(eq(projects.companyId, companyId), isNull(projects.deletedAt)))
-      .limit(5);
+    // Leads are not linked to a single project, so there is no honest per-project breakdown to show
+    const leadQualityByProject: Array<{ category: string; name: string; leadsCount: number; qualifiedCount: number; visitsCount: number; conversionRate: number }> = [];
 
-    const leadQualityByProject = projectRows.map((p, idx) => ({
-      category: 'project',
-      name: p.name,
-      leadsCount: Math.max(1, Math.round(leadRows.length / (idx + 1))),
-      qualifiedCount: Math.max(0, Math.round((leadRows.length * 0.6) / (idx + 1))),
-      visitsCount: Math.max(0, Math.round((leadRows.length * 0.3) / (idx + 1))),
-      conversionRate: 45.2,
+    const campaignCounts = new Map<string, { total: number; qual: number; visit: number }>();
+    for (const lead of leadRows) {
+      const utm = (lead.utmParams as Record<string, unknown> | null) ?? {};
+      const name = typeof utm.utm_campaign === 'string' && utm.utm_campaign.trim() ? utm.utm_campaign.trim() : typeof utm.campaign === 'string' ? utm.campaign.trim() : '';
+      if (!name) continue;
+      const c = campaignCounts.get(name) ?? { total: 0, qual: 0, visit: 0 };
+      c.total++;
+      if (['qualified', 'site_visit_scheduled', 'site_visit_done', 'negotiation', 'booked'].includes(lead.status)) c.qual++;
+      if (['site_visit_scheduled', 'site_visit_done', 'negotiation', 'booked'].includes(lead.status)) c.visit++;
+      campaignCounts.set(name, c);
+    }
+    const leadQualityByCampaign = Array.from(campaignCounts.entries()).map(([name, c]) => ({
+      category: 'campaign',
+      name,
+      leadsCount: c.total,
+      qualifiedCount: c.qual,
+      visitsCount: c.visit,
+      conversionRate: c.total > 0 ? Number(((c.qual / c.total) * 100).toFixed(1)) : 0,
     }));
-
-    const leadQualityByCampaign = [
-      {
-        category: 'campaign',
-        name: 'Festive_Launch_Oct26',
-        leadsCount: Math.round(leadRows.length * 0.45),
-        qualifiedCount: Math.round(leadRows.length * 0.3),
-        visitsCount: Math.round(leadRows.length * 0.15),
-        conversionRate: 52.0,
-      },
-      {
-        category: 'campaign',
-        name: 'Google_Search_Whitefield_3BHK',
-        leadsCount: Math.round(leadRows.length * 0.35),
-        qualifiedCount: Math.round(leadRows.length * 0.22),
-        visitsCount: Math.round(leadRows.length * 0.12),
-        conversionRate: 48.5,
-      },
-    ];
 
     // Demand distributions
     const totalLeads = Math.max(1, leadRows.length);
-    const toDist = (map: Map<string, number>, defaults: string[]) => {
-      if (map.size === 0) {
-        return defaults.map((d, i) => ({
-          label: d,
-          count: Math.max(1, Math.round(totalLeads / (i + 1))),
-          percentage: Number((100 / (i + 1.5)).toFixed(1)),
-        }));
-      }
-      return Array.from(map.entries()).map(([label, count]) => ({
-        label,
-        count,
-        percentage: Number(((count / totalLeads) * 100).toFixed(1)),
-      }));
-    };
+    const toDist = (map: Map<string, number>) =>
+      Array.from(map.entries())
+        .sort((x, y) => y[1] - x[1])
+        .map(([label, count]) => ({ label, count, percentage: Number(((count / totalLeads) * 100).toFixed(1)) }));
 
-    const demandByBhk = toDist(bhkCounts, ['3 BHK', '2 BHK', '4 BHK', 'Villa']);
-    const demandByLocality = toDist(localityCounts, ['Whitefield', 'Sarjapur Road', 'Bellandur', 'HSR Layout']);
-    const demandByBudget = toDist(budgetCounts, ['1 Cr - 2 Cr', '2 Cr - 3 Cr', '50L - 1 Cr', '3 Cr+']);
+    const demandByBhk = toDist(bhkCounts);
+    const demandByLocality = toDist(localityCounts);
+    const demandByBudget = toDist(budgetCounts);
 
-    const mostAskedObjections =
-      objectionCounts.size > 0
-        ? Array.from(objectionCounts.entries()).map(([objection, count]) => ({
-            objection,
-            count,
-            percentage: Number(((count / totalLeads) * 100).toFixed(1)),
-          }))
-        : [
-            { objection: 'Price slightly above preferred budget', count: 18, percentage: 38.0 },
-            { objection: 'Possession date is more than 18 months away', count: 12, percentage: 25.0 },
-            { objection: 'Distance from nearest metro / tech park', count: 9, percentage: 19.0 },
-            { objection: 'Floor plan / layout size too compact', count: 6, percentage: 12.0 },
-          ];
+    const mostAskedObjections = Array.from(objectionCounts.entries())
+      .sort((x, y) => y[1] - x[1])
+      .map(([objection, count]) => ({ objection, count, percentage: Number(((count / totalLeads) * 100).toFixed(1)) }));
 
-    const responseTimeVsConversion = [
-      { bucket: '< 5s (Instant)', leadsCount: Math.round(totalLeads * 0.55), conversionRate: 64.2 },
-      { bucket: '5 - 30s', leadsCount: Math.round(totalLeads * 0.25), conversionRate: 42.1 },
-      { bucket: '30 - 120s', leadsCount: Math.round(totalLeads * 0.12), conversionRate: 21.0 },
-      { bucket: '> 120s', leadsCount: Math.round(totalLeads * 0.08), conversionRate: 8.5 },
-    ];
+    // First-response time per lead is not recorded yet, so no cohort table is invented
+    const responseTimeVsConversion: Array<{ bucket: string; leadsCount: number; conversionRate: number }> = [];
+
+    const slaBreached = leadRows.filter(l => l.slaBreachedAt).length;
 
     return {
       leadQualityBySource,
@@ -790,9 +708,9 @@ export class AnalyticsService {
       mostAskedObjections,
       responseTimeVsConversion,
       speedToLeadMinutes: {
-        average: 3.4,
-        median: 2.1,
-        slaBreachRate: 4.8,
+        average: 0,
+        median: 0,
+        slaBreachRate: leadRows.length > 0 ? Number(((slaBreached / leadRows.length) * 100).toFixed(1)) : 0,
       },
     };
   }
@@ -853,11 +771,8 @@ export class AnalyticsService {
       pending: actionStats?.proposed ?? 0,
     };
 
-    const evalAccuracyTrend = [
-      { runDate: '2026-10-01', accuracyPercent: 96.2, hallucinationRatePercent: 1.1 },
-      { runDate: '2026-10-05', accuracyPercent: 97.4, hallucinationRatePercent: 0.8 },
-      { runDate: '2026-10-10', accuracyPercent: 98.1, hallucinationRatePercent: 0.5 },
-    ];
+    // No evaluation runs are stored yet, so there is no accuracy trend to show
+    const evalAccuracyTrend: Array<{ runDate: string; accuracyPercent: number; hallucinationRatePercent: number }> = [];
 
     return {
       llmCostTotal,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Calendar, List, Plus, RefreshCw, Search } from 'lucide-react';
 import { useAppointments } from '../services/appointments.service.js';
 import { AppointmentsTable } from '../components/appointments/AppointmentsTable.js';
@@ -15,6 +16,12 @@ export const AppointmentsPage: React.FC = () => {
   const [view, setView] = useState<'calendar' | 'table'>('calendar');
   const [booking, setBooking] = useState(false);
   const [calendarSetup, setCalendarSetup] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const calendarNotice = params.get('calendar_connected') ? 'connected' : params.get('calendar_error');
+  const CALENDAR_ERRORS: Record<string, string> = {
+    CALENDAR_STATE_INVALID: 'The calendar link expired or was changed. Please connect again.',
+    access_denied: 'Google access was not granted, so the calendar was not connected.',
+  };
 
   const { data, refetch, isFetching, isLoading, isError, error } = useAppointments({ search: search.trim() || undefined, limit: 100 });
   const items = data?.items ?? [];
@@ -46,6 +53,13 @@ export const AppointmentsPage: React.FC = () => {
           </>
         }
       />
+
+      {calendarNotice && (
+        <div role="status" className={`mb-4 flex items-center justify-between gap-3 rounded-xl border p-3 text-sm ${calendarNotice === 'connected' ? 'border-success/30 bg-success/10 text-text' : 'border-danger/30 bg-danger/10 text-danger'}`}>
+          {calendarNotice === 'connected' ? 'Google Calendar is connected. New visits will appear in it.' : CALENDAR_ERRORS[calendarNotice] ?? 'Google Calendar could not be connected. Please try again.'}
+          <button type="button" onClick={() => setParams({})} className="text-xs font-semibold underline">Dismiss</button>
+        </div>
+      )}
 
       <section aria-label="Visit numbers" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map(s => (

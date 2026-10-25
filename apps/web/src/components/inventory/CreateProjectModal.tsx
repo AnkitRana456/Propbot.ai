@@ -89,7 +89,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               <input
                 required
                 type="text"
-                placeholder="e.g. Prestige Sanctuary"
+                placeholder="e.g. Skyline Residences"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800 dark:text-white"
@@ -100,7 +100,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               <input
                 required
                 type="text"
-                placeholder="e.g. Prestige Group"
+                placeholder="e.g. Aurora Developers"
                 value={builderName}
                 onChange={e => setBuilderName(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800 dark:text-white"

@@ -73,3 +73,35 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; className?: strin
     <div className="overflow-hidden rounded-[1.7rem] bg-bg">{children}</div>
   </div>
 );
+
+/** Tilts its content toward the pointer. Static for reduced motion and touch screens. */
+export const Tilt: React.FC<{ children: React.ReactNode; className?: string; wrapperClassName?: string; max?: number }> = ({ children, className = '', wrapperClassName = '', max = 8 }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const enabled = () =>
+    typeof window.matchMedia === 'function' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && window.matchMedia('(hover: hover)').matches;
+
+  const onMove = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el || !enabled()) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    el.style.transform = `rotateY(${(x * max * 2).toFixed(2)}deg) rotateX(${(-y * max * 2).toFixed(2)}deg)`;
+  };
+  const reset = () => {
+    if (ref.current) ref.current.style.transform = '';
+  };
+
+  return (
+    <div className={`perspective ${wrapperClassName}`} onPointerMove={onMove} onPointerLeave={reset}>
+      <div ref={ref} className={`relative transition-transform duration-200 ease-out ${className}`} style={{ transformStyle: 'preserve-3d' }}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+/** A small glass card that floats above the product shots. */
+export const FloatingCard: React.FC<{ children: React.ReactNode; className?: string; slow?: boolean }> = ({ children, className = '', slow }) => (
+  <div className={`glass rounded-xl px-3.5 py-2.5 text-xs shadow-float ${slow ? 'float-y-slow' : 'float-y'} ${className}`}>{children}</div>
+);

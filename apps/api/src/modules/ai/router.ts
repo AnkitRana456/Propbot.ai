@@ -492,7 +492,7 @@ export class ModelRouter {
       targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
     } else if (preferred === 'anthropic' && anthropicKey) {
       activeProvider = 'anthropic';
-      targetModel = 'claude-sonnet-4-20250514';
+      targetModel = process.env.ANTHROPIC_MODEL?.trim() || 'claude-sonnet-4-20250514';
     } else if (geminiKey) {
       activeProvider = 'gemini';
       targetModel = params.model && findModel(params.model) ? params.model : getGeminiModel();
@@ -501,7 +501,7 @@ export class ModelRouter {
       targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
     } else if (anthropicKey) {
       activeProvider = 'anthropic';
-      targetModel = 'claude-sonnet-4-20250514';
+      targetModel = process.env.ANTHROPIC_MODEL?.trim() || 'claude-sonnet-4-20250514';
     } else {
       activeProvider = 'openai';
       targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
@@ -712,7 +712,7 @@ export class ModelRouter {
       targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
     } else if (preferred === 'anthropic' && anthropicKey) {
       activeProvider = 'anthropic';
-      targetModel = 'claude-sonnet-4-20250514';
+      targetModel = process.env.ANTHROPIC_MODEL?.trim() || 'claude-sonnet-4-20250514';
     } else if (geminiKey) {
       activeProvider = 'gemini';
       targetModel = params.model && findModel(params.model) ? params.model : getGeminiModel();
@@ -721,7 +721,7 @@ export class ModelRouter {
       targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
     } else if (anthropicKey) {
       activeProvider = 'anthropic';
-      targetModel = 'claude-sonnet-4-20250514';
+      targetModel = process.env.ANTHROPIC_MODEL?.trim() || 'claude-sonnet-4-20250514';
     } else {
       activeProvider = 'openai';
       targetModel = params.tier === TaskTier.FAST ? 'gpt-4o-mini' : 'gpt-4o';
