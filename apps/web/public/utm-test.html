@@ -130,7 +130,7 @@ LIMIT 1;
       const script = document.createElement('script');
       script.id = 'propbot-widget-script';
       // Load widget from API server
-      script.src = `${API_URL}/widget/widget.global.js`;
+      script.src = `${API_URL}/widget/widget.global.js?v=${Date.now()}`;
       script.onload = () => {
         setTimeout(() => {
           if (window.PropBot) {

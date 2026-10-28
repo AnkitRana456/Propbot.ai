@@ -73,7 +73,8 @@ export function createApp(): Express {
 
   // Serve widget.js — cwd is apps/api when running via pnpm dev, so go up to monorepo root
   const widgetPath = join(process.cwd(), '..', '..', 'packages', 'widget', 'dist');
-  app.use('/widget', express.static(widgetPath, { maxAge: '1h' }));
+  const isDev = process.env.NODE_ENV !== 'production';
+  app.use('/widget', express.static(widgetPath, { maxAge: isDev ? 0 : '1h' }));
 
   // Request correlation header
   app.use((req: Request, res: Response, next: NextFunction) => {

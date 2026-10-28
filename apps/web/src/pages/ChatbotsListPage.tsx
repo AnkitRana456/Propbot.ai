@@ -22,6 +22,9 @@ export const ChatbotsListPage: React.FC = () => {
   const [embedModalBot, setEmbedModalBot] = useState<ChatbotResponse | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Test Chat Modal State
+  const [testChatBot, setTestChatBot] = useState<ChatbotResponse | null>(null);
+
   // Active action menu
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
@@ -470,6 +473,14 @@ export const ChatbotsListPage: React.FC = () => {
                       <Code2 className="h-3 w-3" />
                       <span>Embed</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setTestChatBot(bot)}
+                      className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 shadow-xs hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 dark:hover:bg-emerald-900 transition-all cursor-pointer"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      <span>Test Chat</span>
+                    </button>
                     <Link
                       to={`/chatbots/${bot.id}/edit`}
                       className="flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-xs hover:bg-accent dark:bg-slate-800 dark:hover:bg-accent transition-all"
@@ -663,8 +674,79 @@ export const ChatbotsListPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Test Chat Widget Loader (no modal) */}
+      {testChatBot && (
+        <TestChatLoader bot={testChatBot} onClose={() => setTestChatBot(null)} />
+      )}
     </div>
   );
 };
+
+function TestChatLoader({ bot, onClose }: { bot: ChatbotResponse; onClose: () => void }) {
+  const win = window as unknown as Record<string, unknown>;
+  const apiUrl = (win.__PROPBOT_API_URL as string | undefined)
+    ?? (import.meta.env.VITE_API_URL as string | undefined)
+    ?? 'http://localhost:3000';
+
+  function handleClose() {
+    const PB = win.PropBot as { close?: () => void } | undefined;
+    PB?.close?.();
+    setTimeout(onClose, 50);
+  }
+
+  React.useEffect(() => {
+    const existing = document.getElementById('propbot-test-script');
+    if (existing) existing.remove();
+    if (win.PropBot) {
+      delete win.PropBot;
+    }
+
+    win.__propbotConfig = { publicKey: bot.publicKey, apiUrl };
+
+    const script = document.createElement('script');
+    script.id = 'propbot-test-script';
+    script.src = `${apiUrl}/widget/widget.global.js?v=${Date.now()}`;
+    script.onload = () => {
+      setTimeout(() => {
+        const PB = win.PropBot as { init: (c: object) => void; open: () => void } | undefined;
+        if (PB) {
+          PB.init({ publicKey: bot.publicKey, apiUrl });
+          setTimeout(() => PB.open(), 300);
+        }
+      }, 200);
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      document.getElementById('propbot-test-script')?.remove();
+      document.getElementById('propbot-widget-root')?.remove();
+      // Remove all propbot shadow DOM / style elements
+      document.querySelectorAll('[id^="propbot"]').forEach(el => el.remove());
+      // Clear PropBot global so re-init works next time
+      delete win.PropBot;
+      delete win.__propbotConfig;
+    };
+  }, [bot.publicKey, apiUrl]);
+
+  // Floating banner at bottom-left to indicate test mode and allow closing
+  return (
+    <div className="fixed bottom-6 left-6 z-[9999] flex items-center gap-3 rounded-2xl border border-emerald-300 bg-white px-4 py-3 shadow-xl dark:border-emerald-700 dark:bg-slate-900 animate-fade-in">
+      <div className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+      <div className="flex flex-col min-w-0">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Test Mode</span>
+        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[140px]">{bot.name}</span>
+      </div>
+      <button
+        type="button"
+        onClick={handleClose}
+        className="flex items-center gap-1.5 rounded-xl bg-red-50 border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors cursor-pointer flex-shrink-0"
+      >
+        <X className="h-3 w-3" />
+        Stop Test
+      </button>
+    </div>
+  );
+}
 
 export default ChatbotsListPage;

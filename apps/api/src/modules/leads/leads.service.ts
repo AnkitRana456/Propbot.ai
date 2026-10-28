@@ -424,8 +424,9 @@ export class LeadsService {
       .orderBy(desc(messages.createdAt))
       .limit(50);
 
-    const actualMessageCount = allVisitorMessages.length;
-    const fullConversationText = allVisitorMessages.map(m => m.content).join(' ');
+    // Include current message even if not yet persisted to DB
+    const actualMessageCount = allVisitorMessages.length + 1;
+    const fullConversationText = [...allVisitorMessages.map(m => m.content), message].join(' ');
 
     const existingSignals: ScoringSignalsInput = {
       hasSharedPhone: Boolean(contact?.phone),

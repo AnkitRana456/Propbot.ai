@@ -90,11 +90,14 @@ export class AnalyticsService {
         .from(conversations)
         .where(and(...convConds));
 
+      // Only count leads that came from chatbot/widget interactions for conversion rate accuracy
+      const CHAT_SOURCES = ['chat', 'web_chat', 'web_widget', 'whatsapp', 'brochure_download'];
       const leadConds = [
         eq(leads.companyId, companyId),
         gte(leads.createdAt, s),
         lte(leads.createdAt, e),
         isNull(leads.deletedAt),
+        inArray(leads.source, CHAT_SOURCES),
       ];
       if (filter.chatbotId) leadConds.push(eq(leads.chatbotId, filter.chatbotId));
 
@@ -121,7 +124,6 @@ export class AnalyticsService {
 
       const totalConv = convRow?.total ?? 0;
       const totalLeads = leadRow?.total ?? 0;
-      // Leads can also arrive from forms, imports and portals, so cap at 100% instead of showing 447%
       const conversionRate = totalConv > 0 ? Math.min(100, (totalLeads / totalConv) * 100) : 0;
       const avgLatencySec = Number(((msgRow?.avgLatency ?? 0) / 1000).toFixed(2));
       const totalRated = msgRow?.totalSentiment ?? 0;
@@ -230,17 +232,7 @@ export class AnalyticsService {
     const { startDate, endDate } = this.resolveDateRange(filter);
 
     // 1. Conversations (Chat)
-    const [convRow] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(conversations)
-      .where(
-        and(
-          eq(conversations.companyId, companyId),
-          gte(conversations.createdAt, startDate),
-          lte(conversations.createdAt, endDate),
-        ),
-      );
-    void convRow; // chats are shown in the chat funnel; this funnel starts from leads of every source
+    // chats are shown in the chat funnel; this funnel starts from leads of every source
 
     // 2. Leads in pipeline
     const [leadStats] = await db
@@ -258,6 +250,7 @@ export class AnalyticsService {
           gte(leads.createdAt, startDate),
           lte(leads.createdAt, endDate),
           isNull(leads.deletedAt),
+          ...(filter.chatbotId ? [eq(leads.chatbotId, filter.chatbotId)] : []),
         ),
       );
 
@@ -530,35 +523,35 @@ export class AnalyticsService {
     const clusters = [
       {
         theme: 'Pricing, Cost Sheets & Payment Plans',
-        count: Math.max(12, priceCount),
+        count: priceCount,
         sampleQueries: sampleQueries.price.length ? sampleQueries.price : [],
       },
       {
         theme: 'Floor Plans & BHK Configurations',
-        count: Math.max(8, bhkCount),
+        count: bhkCount,
         sampleQueries: sampleQueries.bhk.length ? sampleQueries.bhk : [],
       },
       {
         theme: 'Location Connectivity & Metro Distance',
-        count: Math.max(6, locCount),
+        count: locCount,
         sampleQueries: sampleQueries.location.length ? sampleQueries.location : [],
       },
       {
         theme: 'Site Visit Scheduling & Timing',
-        count: Math.max(5, visitCount),
+        count: visitCount,
         sampleQueries: sampleQueries.visit.length ? sampleQueries.visit : [],
       },
       {
         theme: 'Bank Approvals, Loans & EMI',
-        count: Math.max(4, loanCount),
+        count: loanCount,
         sampleQueries: sampleQueries.loan.length ? sampleQueries.loan : [],
       },
       {
         theme: 'Possession Date & RERA Status',
-        count: Math.max(3, possessionCount),
+        count: possessionCount,
         sampleQueries: sampleQueries.possession.length ? sampleQueries.possession : [],
       },
-    ].sort((a, b) => b.count - a.count);
+    ].filter(t => t.count > 0).sort((a, b) => b.count - a.count);
 
     // Answer confidence is not stored per message yet, so no "unanswered" list is invented
     const unanswered: Array<{ id: string; query: string; askedAt: string; confidence: number; chatbotName: string }> = [];

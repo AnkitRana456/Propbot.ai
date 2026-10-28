@@ -329,16 +329,16 @@ export class PublicChatService {
       return this.escalateToHuman(session, params);
     }
 
-    // Background Buyer DNA extraction from visitor message
+    // Background Buyer DNA extraction + intent scoring on every visitor message
     try {
       const extracted = buyerDnaService.extractWithRules(params.message);
-      if (extracted.explicitFields && extracted.explicitFields.length > 0) {
-        const [currentConv] = await db
-          .select({ metadata: conversations.metadata, leadId: conversations.leadId })
-          .from(conversations)
-          .where(eq(conversations.id, session.conversationId));
+      const [currentConv] = await db
+        .select({ metadata: conversations.metadata, leadId: conversations.leadId })
+        .from(conversations)
+        .where(eq(conversations.id, session.conversationId));
 
-        if (currentConv) {
+      if (currentConv) {
+        if (extracted.explicitFields && extracted.explicitFields.length > 0) {
           const meta = (currentConv.metadata as Record<string, unknown>) || {};
           const existingDna = (meta.buyerDna as Partial<BuyerDna>) || buyerDnaService.getDefaultDna();
           const merged = buyerDnaService.mergeDna(existingDna as BuyerDna, extracted, extracted.explicitFields);
@@ -346,16 +346,16 @@ export class PublicChatService {
             .update(conversations)
             .set({ metadata: { ...meta, buyerDna: merged }, updatedAt: new Date() })
             .where(eq(conversations.id, session.conversationId));
+        }
 
-          if (currentConv.leadId) {
-            void leadsService.processMessageAsync({
-              companyId: session.companyId,
-              chatbotId: session.chatbotId,
-              conversationId: session.conversationId,
-              message: params.message,
-              senderType: 'visitor',
-            }).catch(() => {});
-          }
+        if (currentConv.leadId) {
+          void leadsService.processMessageAsync({
+            companyId: session.companyId,
+            chatbotId: session.chatbotId,
+            conversationId: session.conversationId,
+            message: params.message,
+            senderType: 'visitor',
+          }).catch(() => {});
         }
       }
     } catch {
@@ -815,7 +815,16 @@ export class PublicChatService {
       })
       .where(eq(conversations.id, session.conversationId));
 
-    // 5. Emit legacy lead.created event alongside standard lead_created
+    // 5. Score intent against full conversation history now that lead is linked
+    void leadsService.processMessageAsync({
+      companyId: session.companyId,
+      chatbotId: session.chatbotId,
+      conversationId: session.conversationId,
+      message: params.fullName,
+      senderType: 'visitor',
+    }).catch(() => {});
+
+    // 6. Emit legacy lead.created event alongside standard lead_created
     await db.insert(domainEvents).values({
       companyId: session.companyId,
       type: 'lead.created',

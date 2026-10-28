@@ -24,6 +24,15 @@ export class ChatWidgetUi {
   private isOpen = false;
   private isAiOffline = false;
   private activeLanguage: 'en' | 'hi' | 'hinglish' = 'en';
+  private leadCaptured = false;
+  private leadFormShown = false;
+  private visitorMessageCount = 0;
+
+  private isRecording = false;
+  private isSpeaking = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private recognition: any = null;
+  private micBtn!: HTMLButtonElement;
 
   private containerEl!: HTMLElement;
   private launcherContainerEl!: HTMLElement;
@@ -513,6 +522,40 @@ export class ChatWidgetUi {
         cursor: pointer;
       }
 
+      /* Mic / TTS buttons */
+      .propbot-mic-btn,
+      .propbot-tts-btn {
+        background: none;
+        border: none;
+        color: ${textMuted};
+        cursor: pointer;
+        padding: 2px 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: color 0.15s, background 0.15s;
+        margin-bottom: 6px;
+        margin-left: 4px;
+        vertical-align: middle;
+      }
+      .propbot-mic-btn:hover,
+      .propbot-tts-btn:hover {
+        color: ${primary};
+        background: ${bgSubtle};
+      }
+      .propbot-mic-btn.recording {
+        color: #EF4444;
+        animation: propbot-pulse 0.8s ease-in-out infinite alternate;
+      }
+      .propbot-tts-btn.speaking {
+        color: ${primary};
+      }
+      @keyframes propbot-pulse {
+        from { opacity: 1; }
+        to { opacity: 0.5; }
+      }
+
       /* Mobile Responsive (<= 640px) */
       @media (max-width: 640px) {
         .propbot-chatbox {
@@ -611,6 +654,11 @@ export class ChatWidgetUi {
 
       <div class="propbot-footer">
         <div class="propbot-input-row">
+          <button class="propbot-mic-btn" id="propbot-mic-btn" aria-label="Speak message" title="Click to speak">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </button>
           <input class="propbot-input" placeholder="Ask about 2BHK/3BHK, pricing, site visits..." />
           <button class="propbot-send-btn" aria-label="Send message">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -654,6 +702,70 @@ export class ChatWidgetUi {
         this.handleSend();
       }
     };
+
+    this.micBtn = this.chatBoxEl.querySelector('#propbot-mic-btn') as HTMLButtonElement;
+    this.micBtn.onclick = () => this.toggleMic();
+  }
+
+  private toggleMic(): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SpeechRecognitionApi = w.SpeechRecognition || w.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionApi) {
+      alert('Voice input is not supported in this browser. Please use Chrome.');
+      return;
+    }
+
+    if (this.isRecording) {
+      this.recognition?.stop();
+      return;
+    }
+
+    this.recognition = new SpeechRecognitionApi();
+    this.recognition.lang = this.activeLanguage === 'hi' ? 'hi-IN' : 'en-IN';
+    this.recognition.interimResults = false;
+    this.recognition.maxAlternatives = 1;
+
+    this.recognition.onstart = () => {
+      this.isRecording = true;
+      this.micBtn.classList.add('recording');
+      this.micBtn.title = 'Recording... click to stop';
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.recognition.onresult = (event: any) => {
+      const transcript = (event.results[0][0] as { transcript: string }).transcript;
+      this.inputEl.value = transcript;
+      this.handleSend();
+    };
+
+    this.recognition.onerror = () => {
+      this.isRecording = false;
+      this.micBtn.classList.remove('recording');
+    };
+
+    this.recognition.onend = () => {
+      this.isRecording = false;
+      this.micBtn.classList.remove('recording');
+      this.micBtn.title = 'Click to speak';
+    };
+
+    this.recognition.start();
+  }
+
+  private speakText(text: string): void {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/<[^>]+>/g, '').trim();
+    if (!clean) return;
+    const utt = new SpeechSynthesisUtterance(clean);
+    utt.lang = this.activeLanguage === 'hi' ? 'hi-IN' : 'en-IN';
+    utt.rate = 1;
+    utt.pitch = 1;
+    utt.onstart = () => { this.isSpeaking = true; };
+    utt.onend = () => { this.isSpeaking = false; };
+    window.speechSynthesis.speak(utt);
   }
 
   async initSession(): Promise<void> {
@@ -792,12 +904,26 @@ export class ChatWidgetUi {
     const msg = document.createElement('div');
     msg.className = 'propbot-msg bot';
     msg.innerHTML = sanitizeHtml(text);
+
+    const ttsBtn = document.createElement('button');
+    ttsBtn.className = 'propbot-tts-btn';
+    ttsBtn.setAttribute('aria-label', 'Read aloud');
+    ttsBtn.title = 'Read aloud';
+    ttsBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>`;
+    ttsBtn.onclick = () => {
+      const rawText = msg.textContent || '';
+      this.speakText(rawText);
+    };
+
     this.messagesListEl.appendChild(msg);
+    this.messagesListEl.appendChild(ttsBtn);
     this.scrollToBottom();
     return msg;
   }
 
   private renderLeadCaptureForm(): void {
+    if (this.leadFormShown || this.leadCaptured) return;
+    this.leadFormShown = true;
     const banner = document.createElement('div');
     banner.className = 'propbot-lead-banner';
     banner.innerHTML = `
@@ -864,6 +990,7 @@ export class ChatWidgetUi {
           banner.querySelector(LEAD_FORM_BODY_SELECTOR),
         ).catch(() => undefined);
 
+        this.leadCaptured = true;
         banner.innerHTML = `
           <div style="color: #14B8A6; font-size: 13px; font-weight: 700; text-align: center; padding: 6px 0;">
             ✓ Thank you! An advisor will connect with verified floor plans shortly.
@@ -896,7 +1023,14 @@ export class ChatWidgetUi {
     const text = this.inputEl.value.trim();
     if (!text) return;
 
+    // Ensure session is initialized before sending
+    if (!this.sessionToken || !this.conversationId) {
+      await this.initSession();
+    }
+    if (!this.sessionToken || !this.conversationId) return; // session init failed
+
     this.inputEl.value = '';
+    this.visitorMessageCount++;
     this.addVisitorMessage(text);
 
     // Create bot placeholder for streaming
@@ -912,6 +1046,7 @@ export class ChatWidgetUi {
         },
         body: JSON.stringify({
           message: text,
+          conversationId: this.conversationId,
           language: this.activeLanguage,
         }),
       });
@@ -973,22 +1108,30 @@ export class ChatWidgetUi {
         }
       }
 
-      // Check for lead capture trigger
-      const lower = text.toLowerCase();
-      if (
-        lower.includes('price') ||
-        lower.includes('cost') ||
-        lower.includes('brochure') ||
-        lower.includes('visit') ||
-        lower.includes('call') ||
-        lower.includes('contact')
-      ) {
-        this.renderLeadCaptureForm();
+      // Show lead capture form once after the 2nd message if visitor shows buying intent
+      if (!this.leadCaptured && !this.leadFormShown && this.visitorMessageCount >= 2) {
+        const lower = text.toLowerCase();
+        const hasIntent =
+          lower.includes('site visit') ||
+          lower.includes('book') ||
+          lower.includes('brochure') ||
+          lower.includes('price') ||
+          lower.includes('payment') ||
+          lower.includes('floor plan') ||
+          lower.includes('buy') ||
+          lower.includes('interested') ||
+          lower.includes('callback');
+        if (hasIntent) {
+          this.renderLeadCaptureForm();
+        }
       }
     } catch {
       botMsgEl.textContent =
         'Our verified property advisors are available to share live inventory. Please leave your contact number.';
-      this.renderLeadCaptureForm();
+      // Only show form on error if not already shown and visitor has sent at least 1 message
+      if (!this.leadCaptured && !this.leadFormShown && this.visitorMessageCount >= 1) {
+        this.renderLeadCaptureForm();
+      }
     } finally {
       this.sendBtn.disabled = false;
       this.scrollToBottom();
