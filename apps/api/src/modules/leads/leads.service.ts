@@ -28,6 +28,7 @@ import type {
 import { normalizePhoneNumber, validatePhone } from '@propbot/shared';
 import { buyerDnaService } from './buyer-dna.service.js';
 import { intentScorerService, type ScoringSignalsInput } from './intent-scorer.service.js';
+import { enrichTracking } from './tracking-enrichment.js';
 import { handoffBriefService } from './handoff-brief.service.js';
 
 /** True for a Postgres unique-constraint violation (SQLSTATE 23505), also when wrapped by Drizzle. */
@@ -125,6 +126,7 @@ export class LeadsService {
     const email = input.email && input.email.trim() ? input.email.trim().toLowerCase() : null;
     const source = input.source ?? 'chat';
     const utm = input.utmParams ?? {};
+    const tracking = enrichTracking(input.userAgent, input.ipAddress);
     const nameParts = input.name.trim().split(/\s+/);
     const firstName = nameParts[0] || 'Prospective';
     const lastName = nameParts.slice(1).join(' ') || null;
@@ -302,6 +304,14 @@ export class LeadsService {
           utmParams: utm,
           ipAddress: input.ipAddress,
           userAgent: input.userAgent,
+          deviceType: tracking.deviceType,
+          osName: tracking.osName,
+          browserName: tracking.browserName,
+          city: tracking.city,
+          state: tracking.state,
+          country: tracking.country,
+          referrerUrl: input.referrerUrl ?? null,
+          landingPage: input.landingPage ?? null,
           customFields: input.metadata ?? {},
         })
         .returning();
@@ -406,14 +416,25 @@ export class LeadsService {
       currentDna,
     );
 
-    // 2. Detect signals and compute new intent score
+    // 2. Detect signals across the full conversation history so score accumulates over time
+    const allVisitorMessages = await db
+      .select({ content: messages.content })
+      .from(messages)
+      .where(and(eq(messages.conversationId, conversationId), sql`${messages.senderType} = 'visitor'`))
+      .orderBy(desc(messages.createdAt))
+      .limit(50);
+
+    const actualMessageCount = allVisitorMessages.length;
+    const fullConversationText = allVisitorMessages.map(m => m.content).join(' ');
+
     const existingSignals: ScoringSignalsInput = {
       hasSharedPhone: Boolean(contact?.phone),
       isReturningVisitor: Boolean(isReturning),
-      messageCount: 5, // Active session
+      messageCount: actualMessageCount,
     };
 
-    const detectedSignals = intentScorerService.detectSignalsFromText(message, existingSignals);
+    // Run signal detection over all visitor messages combined so signals persist across turns
+    const detectedSignals = intentScorerService.detectSignalsFromText(fullConversationText, existingSignals);
 
     // Fetch company scoring config
     const aiSettings = await db.query.companyAiSettings.findFirst({
@@ -600,6 +621,17 @@ export class LeadsService {
         source: lead.source,
         slaStartedAt: lead.slaStartedAt ? lead.slaStartedAt.toISOString() : null,
         slaBreachedAt: lead.slaBreachedAt ? lead.slaBreachedAt.toISOString() : null,
+        utmParams: (lead.utmParams as Record<string, unknown> | null) ?? null,
+        ipAddress: lead.ipAddress ?? null,
+        userAgent: lead.userAgent ?? null,
+        deviceType: lead.deviceType ?? null,
+        osName: lead.osName ?? null,
+        browserName: lead.browserName ?? null,
+        city: lead.city ?? null,
+        state: lead.state ?? null,
+        country: lead.country ?? null,
+        referrerUrl: lead.referrerUrl ?? null,
+        landingPage: lead.landingPage ?? null,
         createdAt: lead.createdAt.toISOString(),
         updatedAt: lead.updatedAt.toISOString(),
       };
@@ -673,6 +705,17 @@ export class LeadsService {
       source: row.source,
       slaStartedAt: row.slaStartedAt ? row.slaStartedAt.toISOString() : null,
       slaBreachedAt: row.slaBreachedAt ? row.slaBreachedAt.toISOString() : null,
+      utmParams: (row.utmParams as Record<string, unknown> | null) ?? null,
+      ipAddress: row.ipAddress ?? null,
+      userAgent: row.userAgent ?? null,
+      deviceType: row.deviceType ?? null,
+      osName: row.osName ?? null,
+      browserName: row.browserName ?? null,
+      city: row.city ?? null,
+      state: row.state ?? null,
+      country: row.country ?? null,
+      referrerUrl: row.referrerUrl ?? null,
+      landingPage: row.landingPage ?? null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };

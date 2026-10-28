@@ -34,6 +34,8 @@ export class PublicChatController {
         utmParams,
         device,
         origin,
+        ipAddress: (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip,
+        userAgent: req.headers['user-agent'],
       });
 
       res.status(200).json({ success: true, data: session });
@@ -134,7 +136,7 @@ export class PublicChatController {
         email,
         preferences,
         utmParams: req.body.utmParams as Record<string, unknown> | undefined,
-        ipAddress: req.ip,
+        ipAddress: (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip,
         userAgent: req.headers['user-agent'],
       });
 
@@ -205,7 +207,7 @@ export class PublicChatController {
         phone: req.body.phone as string | undefined,
         email: req.body.email as string | undefined,
         utmParams: req.body.utmParams as Record<string, unknown> | undefined,
-        ipAddress: req.ip,
+        ipAddress: (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip,
         userAgent: req.headers['user-agent'],
       });
       res.status(200).json({ success: true, data: result });

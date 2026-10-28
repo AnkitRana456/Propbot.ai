@@ -165,6 +165,17 @@ export class AnalyticsController {
     }
   }
 
+  async getAdSources(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = getCompanyId(req);
+      const filter = analyticsFilterSchema.parse(req.query);
+      const result = await analyticsService.getAdSources(companyId, filter);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getSuperAdminOverview(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (req.user?.role !== 'ps-owner') {

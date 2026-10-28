@@ -171,6 +171,20 @@ export function useCampaignSpends() {
   });
 }
 
+export interface AdSourcesResponse {
+  bySource: { label: string; count: number }[];
+  byDevice: { label: string; count: number }[];
+  byCity: { label: string; count: number }[];
+}
+
+export function useAdSources(filter?: AnalyticsFilter) {
+  const qs = buildQueryString(filter);
+  return useQuery<AdSourcesResponse, Error>({
+    queryKey: ['analytics', 'ad-sources', filter],
+    queryFn: () => apiRequest<AdSourcesResponse>(`/api/analytics/ad-sources${qs}`),
+  });
+}
+
 export function useCreateCampaignSpend() {
   const queryClient = useQueryClient();
   return useMutation({

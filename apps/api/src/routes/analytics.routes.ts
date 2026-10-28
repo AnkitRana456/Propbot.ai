@@ -24,6 +24,9 @@ analyticsRouter.get('/ai-quality', (req, res, next) => analyticsController.getAi
 analyticsRouter.get('/attribution', (req, res, next) => analyticsController.getAttribution(req, res, next));
 analyticsRouter.get('/forecast', (req, res, next) => analyticsController.getForecast(req, res, next));
 
+// Ad source / device / geo breakdown (from UTM and tracking enrichment)
+analyticsRouter.get('/ad-sources', (req, res, next) => analyticsController.getAdSources(req, res, next));
+
 // Campaign Spends & Exports
 analyticsRouter.get('/spends', (req, res, next) => analyticsController.getSpends(req, res, next));
 analyticsRouter.post('/spends', (req, res, next) => analyticsController.createSpend(req, res, next));

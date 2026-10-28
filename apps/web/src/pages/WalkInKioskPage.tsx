@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiRequest } from '../services/api-client.js';
 
@@ -7,6 +7,19 @@ interface FormState { fullName: string; phone: string; email: string; projectInt
 
 export const WalkInKioskPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
+
+  // Capture UTM params from the URL at mount time
+  const utmParams = useMemo(() => {
+    const p = new URLSearchParams(window.location.search);
+    const keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'fbclid'];
+    const result: Record<string, string> = {};
+    for (const k of keys) {
+      const v = p.get(k);
+      if (v) result[k] = v;
+    }
+    return Object.keys(result).length ? result : undefined;
+  }, []);
+
   const [kiosk, setKiosk] = useState<KioskInfo | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>({ fullName: '', phone: '', email: '', projectInterest: '' });
@@ -28,7 +41,16 @@ export const WalkInKioskPage: React.FC = () => {
     try {
       await apiRequest(`/api/public/walk-in/${token}`, {
         method: 'POST',
-        body: JSON.stringify({ name: form.fullName.trim(), phone: form.phone.trim(), email: form.email.trim() || undefined, projectInterest: form.projectInterest.trim() || undefined }),
+        body: JSON.stringify({
+          name: form.fullName.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim() || undefined,
+          projectInterest: form.projectInterest.trim() || undefined,
+          utmParams,
+          referrerUrl: document.referrer || undefined,
+          landingPage: window.location.href,
+          userAgent: navigator.userAgent,
+        }),
       });
       setSubmitted(true);
     } catch (err) {

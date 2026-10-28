@@ -22,8 +22,10 @@ interface Message {
   responseMeta?: RagQueryResponse;
 }
 
+interface HistoryTurn { role: 'visitor' | 'assistant'; content: string; }
+
 interface TestChatWidgetProps {
-  onTestQuery: (query: string) => Promise<RagQueryResponse>;
+  onTestQuery: (query: string, history: HistoryTurn[], visitorName?: string) => Promise<RagQueryResponse>;
   onCorrectAnswer: (question: string) => void;
   botName?: string;
 }
@@ -43,6 +45,7 @@ export const TestChatWidget: React.FC<TestChatWidgetProps> = ({
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [expandedCitations, setExpandedCitations] = useState<Record<string, boolean>>({});
+  const [visitorName, setVisitorName] = useState<string | undefined>();
 
   const samplePrompts = [
     'What is the starting price?',
@@ -72,7 +75,19 @@ export const TestChatWidget: React.FC<TestChatWidgetProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await onTestQuery(textToSend);
+      // Extract visitor name if they introduced themselves
+      if (!visitorName) {
+        const nameMatch = textToSend.match(/(?:my name is|i am|i'm|mera naam|naam hai)\s+([A-Z][a-z]+)/i);
+        if (nameMatch?.[1]) setVisitorName(nameMatch[1]);
+      }
+
+      // Build history from current messages (last 6 turns, skip welcome)
+      const history: HistoryTurn[] = messages
+        .filter(m => m.id !== 'welcome')
+        .slice(-12)
+        .map(m => ({ role: m.sender === 'user' ? 'visitor' : 'assistant', content: m.text }));
+
+      const response = await onTestQuery(textToSend, history, visitorName);
       const botMsgId = String(Date.now() + 1);
       setMessages([
         ...newMessages,
@@ -109,6 +124,7 @@ export const TestChatWidget: React.FC<TestChatWidgetProps> = ({
         text: `Hello! I am ${botName}. Ask me anything about our residences, pricing, amenities, or RERA approvals to test the knowledge base.`,
       },
     ]);
+    setVisitorName(undefined);
   };
 
   const getConfidenceBadge = (confidence: number, overrideApplied?: boolean) => {

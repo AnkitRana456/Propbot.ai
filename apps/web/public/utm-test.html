@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UTM + Geolocation Test Page</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f5f5f5; }
+    h1 { color: #333; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    label { font-weight: bold; display: block; margin-bottom: 4px; color: #555; }
+    input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 12px; box-sizing: border-box; }
+    button { background: #e11d48; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #be123c; }
+    .url-preview { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 4px; padding: 12px; font-family: monospace; font-size: 13px; word-break: break-all; margin-top: 8px; color: #0369a1; }
+    .steps { counter-reset: step; }
+    .step { counter-increment: step; padding-left: 36px; position: relative; margin-bottom: 12px; }
+    .step::before { content: counter(step); position: absolute; left: 0; top: 0; background: #e11d48; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+    .db-check { background: #f0fdf4; border: 1px solid #86efac; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>🎯 UTM + IP Geolocation Test</h1>
+  <p>Yeh page tumhara chatbot ek fake Facebook ad ke saath open karega. UTM params automatically capture honge.</p>
+
+  <div class="card">
+    <h2>Step 1: UTM Parameters Set Karo</h2>
+    <label>utm_source (ad platform)</label>
+    <select id="utm_source">
+      <option value="facebook">Facebook</option>
+      <option value="google">Google</option>
+      <option value="instagram">Instagram</option>
+      <option value="whatsapp">WhatsApp</option>
+    </select>
+
+    <label>utm_medium</label>
+    <select id="utm_medium">
+      <option value="cpc">cpc (paid ad)</option>
+      <option value="social">social</option>
+      <option value="email">email</option>
+    </select>
+
+    <label>utm_campaign</label>
+    <input type="text" id="utm_campaign" value="prestige_3bhk_launch" />
+
+    <label>utm_content (ad creative)</label>
+    <input type="text" id="utm_content" value="carousel_3bhk_1cr" />
+
+    <div>
+      <strong>Generated URL:</strong>
+      <div class="url-preview" id="url-preview">...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Step 2: Chatbot Open Karo</h2>
+    <button onclick="openChatbot()">🚀 Chatbot Launch Karo (UTM ke saath)</button>
+    <p id="widget-status" style="margin-top:8px; color:#666; font-size:14px;">Button dabao — chatbot widget is page pe load hoga (bottom-right corner mein).</p>
+  </div>
+
+  <div class="card">
+    <h2>Step 3: Chatbot mein Lead Do</h2>
+    <div class="steps">
+      <div class="step">Chatbot mein koi message type karo (jaise "3BHK ka price kya hai")</div>
+      <div class="step">Chatbot tumse naam aur phone maangega — real ya fake number do</div>
+      <div class="step">Submit karo</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Step 4: CRM mein Check Karo</h2>
+    <p>Lead aane ke baad <a href="http://localhost:5173/leads" target="_blank"><strong>Leads page</strong></a> pe jaao aur naya lead kholo. UTM params aur location dikh jayega.</p>
+    <p>Ya directly database check karo:</p>
+    <div class="db-check">
+SELECT utm_params, city, country, device_type, browser_name, ip_address<br>
+FROM leads<br>
+ORDER BY created_at DESC<br>
+LIMIT 1;
+    </div>
+  </div>
+
+  <script>
+    const PUBLIC_KEY = 'pb_live_c068e30506c66d633ea803cc225d9fa4dc12715306b9219f';
+    const API_URL = 'http://localhost:3000';
+
+    function getParams() {
+      return {
+        utm_source: document.getElementById('utm_source').value,
+        utm_medium: document.getElementById('utm_medium').value,
+        utm_campaign: document.getElementById('utm_campaign').value,
+        utm_content: document.getElementById('utm_content').value,
+      };
+    }
+
+    function updatePreview() {
+      const p = getParams();
+      const url = `${window.location.href.split('?')[0]}?utm_source=${p.utm_source}&utm_medium=${p.utm_medium}&utm_campaign=${p.utm_campaign}&utm_content=${p.utm_content}`;
+      document.getElementById('url-preview').textContent = url;
+    }
+
+    function openChatbot() {
+      const p = getParams();
+      if (window.PropBot) {
+        // Widget already loaded, just open it
+        window.PropBot.open();
+        document.getElementById('widget-status').textContent = '✅ Chatbot open hua! Neeche right corner mein dekho.';
+        document.getElementById('widget-status').style.color = 'green';
+        return;
+      }
+      loadWidget(p);
+    }
+
+    function loadWidget(utmParams) {
+      const old = document.getElementById('propbot-widget-script');
+      if (old) old.remove();
+
+      // Set UTM in URL so widget auto-captures them
+      const url = new URL(window.location.href);
+      url.searchParams.set('utm_source', utmParams.utm_source);
+      url.searchParams.set('utm_medium', utmParams.utm_medium);
+      url.searchParams.set('utm_campaign', utmParams.utm_campaign);
+      url.searchParams.set('utm_content', utmParams.utm_content);
+      window.history.replaceState({}, '', url.toString());
+
+      window.__propbotConfig = {
+        publicKey: PUBLIC_KEY,
+        apiUrl: API_URL,
+      };
+
+      const script = document.createElement('script');
+      script.id = 'propbot-widget-script';
+      // Load widget from API server
+      script.src = `${API_URL}/widget/widget.global.js`;
+      script.onload = () => {
+        setTimeout(() => {
+          if (window.PropBot) {
+            window.PropBot.init({ publicKey: PUBLIC_KEY, apiUrl: API_URL });
+            setTimeout(() => window.PropBot.open(), 500);
+            document.getElementById('widget-status').textContent = '✅ Widget load hua! Neeche right corner mein chat bubble dikh raha hoga.';
+            document.getElementById('widget-status').style.color = 'green';
+          }
+        }, 300);
+      };
+      script.onerror = () => {
+        document.getElementById('widget-status').innerHTML = '⚠️ Widget local se load nahi hua. <a href="http://localhost:5173/chatbot-training" target="_blank">Chatbot Training page</a> pe jaao aur wahan se Test Chat use karo.';
+        document.getElementById('widget-status').style.color = 'orange';
+      };
+      document.body.appendChild(script);
+    }
+
+    // Read UTM from URL on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('utm_source')) document.getElementById('utm_source').value = params.get('utm_source');
+      if (params.get('utm_medium')) document.getElementById('utm_medium').value = params.get('utm_medium');
+      if (params.get('utm_campaign')) document.getElementById('utm_campaign').value = params.get('utm_campaign');
+      if (params.get('utm_content')) document.getElementById('utm_content').value = params.get('utm_content');
+      updatePreview();
+    });
+
+    document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', updatePreview));
+  </script>
+</body>
+</html>

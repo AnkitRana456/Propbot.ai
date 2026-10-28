@@ -17,7 +17,7 @@ import { retrievalService } from '../ai/retrieval.service.js';
 import { leadsService } from '../leads/leads.service.js';
 import { billingService } from '../billing/billing.service.js';
 import { loadMediaForMessage } from './media-loader.js';
-import { prepareAgentTurn, collectAttributes, applyPendingAttributes } from '../agents/agent-chat.js';
+import { prepareAgentTurn, collectAttributes, applyPendingAttributes, loadConversationHistory } from '../agents/agent-chat.js';
 import type { MediaItem } from './media-triggers.js';
 import { buyerDnaService } from '../leads/buyer-dna.service.js';
 import { otpService, resolveOtpSettings, OtpError, type OtpSettings } from '../leads/otp.service.js';
@@ -41,6 +41,8 @@ export interface CreateSessionParams {
   utmParams?: Record<string, unknown>;
   device?: Record<string, unknown>;
   origin?: string;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 export interface SendMessageParams {
@@ -396,21 +398,29 @@ export class PublicChatService {
 
     // A chatbot with a published agent uses the agent's persona, model, knowledge scope, conversation memory
     // and data-collection form. Chatbots without one keep the original behaviour untouched.
-    const agentTurn = await prepareAgentTurn({
-      companyId: session.companyId,
-      chatbotId: session.chatbotId,
-      conversationId: session.conversationId,
-      message: params.message,
-      channel: 'web',
-      skipGeneration: Boolean(params.onChunk), // streaming generates once, below, instead of twice
-    });
+    const [agentTurn, convHistory] = await Promise.all([
+      prepareAgentTurn({
+        companyId: session.companyId,
+        chatbotId: session.chatbotId,
+        conversationId: session.conversationId,
+        message: params.message,
+        channel: 'web',
+        skipGeneration: Boolean(params.onChunk), // streaming generates once, below, instead of twice
+      }),
+      // Always load history so non-agent chatbots also have conversation memory
+      loadConversationHistory(session.conversationId, params.message),
+    ]);
 
-    // Query RAG Retrieval Service
+    // Query RAG Retrieval Service — pass history so the LLM has conversation context
+    const ragOptions = agentTurn?.options ?? { history: convHistory };
+    if (!agentTurn && convHistory.length > 0) {
+      ragOptions.history = convHistory;
+    }
     const ragResponse = await retrievalService.query(
       session.companyId,
       session.chatbotId,
       { query: params.message },
-      agentTurn?.options,
+      ragOptions,
     );
 
     let reply = ragResponse.answer;
@@ -476,6 +486,7 @@ export class PublicChatService {
             systemPrompt,
             userMessage: params.message,
             promptName: 'public_chat',
+            history: convHistory,
           },
           params.onChunk,
         );

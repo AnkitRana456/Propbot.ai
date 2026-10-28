@@ -149,8 +149,12 @@ export const ChatbotTrainingPage: React.FC = () => {
     },
   });
 
-  const handleTestQuery = async (query: string): Promise<RagQueryResponse> => {
-    return knowledgeService.testQuery(chatbotId!, { query });
+  const handleTestQuery = async (
+    query: string,
+    history: Array<{ role: 'visitor' | 'assistant'; content: string }>,
+    visitorName?: string,
+  ): Promise<RagQueryResponse> => {
+    return knowledgeService.testQuery(chatbotId!, { query, history, visitorName });
   };
 
   const handleOpenCorrect = (question: string) => {

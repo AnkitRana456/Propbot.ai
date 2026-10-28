@@ -34,7 +34,12 @@ export class LeadsController {
         return;
       }
 
-      const result = await leadsService.captureOrUpdateLead(companyId, parsed);
+      const enriched = {
+        ...parsed,
+        ipAddress: parsed.ipAddress || (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip,
+        userAgent: parsed.userAgent || req.headers['user-agent'],
+      };
+      const result = await leadsService.captureOrUpdateLead(companyId, enriched);
 
       let finalLead = result.lead;
       if (!result.isDuplicate && !finalLead.assignedAgentId) {

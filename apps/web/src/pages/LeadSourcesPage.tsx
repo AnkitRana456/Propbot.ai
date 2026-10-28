@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Copy, KeyRound, Plus, Trash2, Upload, X, Radio } from 'lucide-react';
+import { Copy, KeyRound, Plus, Trash2, Upload, X, Radio, QrCode, ExternalLink } from 'lucide-react';
 import { LEAD_SOURCE_TYPES, type LeadSourceItem, type LeadSourceType } from '@propbot/shared';
 import {
   useCreateLeadSource,
   useDeleteLeadSource,
+  useGenerateKioskToken,
   useImportCsv,
   useLeadSourceEvents,
   useLeadSources,
@@ -99,11 +100,14 @@ const SourceCard: React.FC<{ s: LeadSourceItem; onKey: (k: string) => void }> = 
   const rotate = useRotateLeadSourceKey();
   const del = useDeleteLeadSource();
   const imp = useImportCsv();
+  const genKiosk = useGenerateKioskToken();
   const [open, setOpen] = useState(false);
   const { data: events } = useLeadSourceEvents(open ? s.id : null);
   const [csv, setCsv] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [kioskLink, setKioskLink] = useState<string | null>(null);
+  const [kioskCopied, setKioskCopied] = useState(false);
 
   const run = async (fn: () => Promise<unknown>) => {
     setError(null);
@@ -111,6 +115,17 @@ const SourceCard: React.FC<{ s: LeadSourceItem; onKey: (k: string) => void }> = 
       await fn();
     } catch (e) {
       setError(errMsg(e, 'Action failed.'));
+    }
+  };
+
+  const handleGenKiosk = async () => {
+    setError(null);
+    try {
+      const res = await genKiosk.mutateAsync(s.id);
+      const link = `${window.location.origin}/walk-in/${res.token}`;
+      setKioskLink(link);
+    } catch (e) {
+      setError(errMsg(e, 'Could not generate kiosk link.'));
     }
   };
 
@@ -128,8 +143,25 @@ const SourceCard: React.FC<{ s: LeadSourceItem; onKey: (k: string) => void }> = 
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
         <button type="button" onClick={() => setOpen(o => !o)} className="font-bold text-accent cursor-pointer">{open ? 'Hide' : 'Activity & import'}</button>
         <button type="button" onClick={() => window.confirm('Rotating invalidates the current key immediately. Continue?') && void run(async () => onKey((await rotate.mutateAsync(s.id)).apiKey))} className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800 cursor-pointer"><KeyRound className="h-3.5 w-3.5" /> New key</button>
+        <button type="button" disabled={genKiosk.isPending} onClick={() => void handleGenKiosk()} className="inline-flex items-center gap-1 text-slate-500 hover:text-indigo-600 disabled:opacity-50 cursor-pointer"><QrCode className="h-3.5 w-3.5" /> {genKiosk.isPending ? 'Generating…' : 'Kiosk link'}</button>
         <button type="button" aria-label={`Delete ${s.name}`} onClick={() => window.confirm(`Delete "${s.name}"?`) && void run(() => del.mutateAsync(s.id))} className="ml-auto text-slate-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-4 w-4" /></button>
       </div>
+
+      {/* Kiosk link banner */}
+      {kioskLink && (
+        <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs dark:border-indigo-900 dark:bg-indigo-950/30">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="font-semibold text-indigo-800 dark:text-indigo-200 flex items-center gap-1"><QrCode className="h-3.5 w-3.5" /> Walk-in Kiosk Link</span>
+            <button type="button" onClick={() => setKioskLink(null)} className="text-indigo-400 hover:text-indigo-700 cursor-pointer"><X className="h-3.5 w-3.5" /></button>
+          </div>
+          <code className="block break-all rounded-lg bg-white/70 p-2 font-mono text-[10px] text-indigo-900 dark:bg-slate-900/60 dark:text-indigo-200">{kioskLink}</code>
+          <p className="mt-1.5 text-[10px] text-indigo-600 dark:text-indigo-400">Add UTM params to track ad source: <code>?utm_source=facebook&amp;utm_campaign=diwali</code></p>
+          <div className="mt-2 flex gap-2">
+            <button type="button" onClick={() => void navigator.clipboard?.writeText(kioskLink).then(() => { setKioskCopied(true); setTimeout(() => setKioskCopied(false), 2000); })} className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1.5 font-semibold text-white cursor-pointer"><Copy className="h-3 w-3" /> {kioskCopied ? 'Copied!' : 'Copy link'}</button>
+            <a href={kioskLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 px-2.5 py-1.5 font-semibold text-indigo-700 dark:border-indigo-700 dark:text-indigo-300"><ExternalLink className="h-3 w-3" /> Open kiosk</a>
+          </div>
+        </div>
+      )}
       {open && (
         <div className="mt-3 space-y-3">
           <div>

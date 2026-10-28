@@ -136,6 +136,8 @@ export const captureLeadInputSchema = z.object({
   utmParams: z.record(z.string()).optional(),
   ipAddress: z.string().max(64).optional(),
   userAgent: z.string().max(500).optional(),
+  referrerUrl: z.string().max(500).optional(),
+  landingPage: z.string().max(500).optional(),
   /** Defaults to "chat". Other values: brochure_download, whatsapp, ... */
   source: z.string().max(100).optional(),
   /** Keep the stored name when the lead already exists (e.g. a WhatsApp placeholder must not overwrite a real name). */
@@ -212,6 +214,17 @@ export const leadItemResponseSchema = z.object({
   source: z.string(),
   slaStartedAt: z.string().nullable().optional(),
   slaBreachedAt: z.string().nullable().optional(),
+  utmParams: z.record(z.unknown()).nullable().optional(),
+  ipAddress: z.string().nullable().optional(),
+  userAgent: z.string().nullable().optional(),
+  deviceType: z.string().nullable().optional(),
+  osName: z.string().nullable().optional(),
+  browserName: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  referrerUrl: z.string().nullable().optional(),
+  landingPage: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

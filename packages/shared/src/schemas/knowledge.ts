@@ -92,6 +92,11 @@ export const ragQuerySchema = z.object({
   topK: z.number().int().min(1).max(10).default(4),
   similarityThreshold: z.number().min(0).max(1).default(0.7),
   streaming: z.boolean().default(false),
+  history: z
+    .array(z.object({ role: z.enum(['visitor', 'assistant']), content: z.string() }))
+    .max(12)
+    .optional(),
+  visitorName: z.string().max(100).optional(),
 });
 export type RagQueryInput = z.input<typeof ragQuerySchema>;
 

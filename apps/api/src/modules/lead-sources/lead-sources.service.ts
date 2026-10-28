@@ -196,15 +196,35 @@ export async function generateKioskToken(companyId: string, leadSourceId: string
 }
 
 /** Accept a walk-in via kiosk token, returns the new lead id. */
-export async function acceptWalkIn(token: string, input: { name: string; phone: string; email?: string; projectInterest?: string }) {
+export async function acceptWalkIn(
+  token: string,
+  input: {
+    name: string;
+    phone: string;
+    email?: string;
+    projectInterest?: string;
+    utmParams?: Record<string, string>;
+    referrerUrl?: string;
+    landingPage?: string;
+    userAgent?: string;
+    ipAddress?: string;
+  },
+) {
   const source = await findKioskSource(token);
   if (!source) throw new ApiError(404, 'KIOSK_NOT_FOUND', 'Kiosk link not found or disabled');
-  const result = await leadSourcesService['ingest'](source, {
+
+  const { lead, isDuplicate } = await leadsService.captureOrUpdateLead(source.companyId, {
     name: input.name,
     phone: input.phone,
     email: input.email,
-    source: 'Walk-in Kiosk',
-    projectInterest: input.projectInterest,
+    source: 'walk_in',
+    utmParams: { utm_source: 'walk_in', ...input.utmParams },
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+    referrerUrl: input.referrerUrl,
+    landingPage: input.landingPage,
+    metadata: input.projectInterest ? { projectInterest: input.projectInterest } : undefined,
   });
-  return result;
+
+  return { status: isDuplicate ? 'duplicate' : 'processed', leadId: lead.id };
 }

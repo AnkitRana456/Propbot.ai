@@ -162,6 +162,13 @@
       "when": 1791970000000,
       "tag": "0022_hardening_cost_sheets_walk_in",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791980000000,
+      "tag": "0023_lead_tracking_enrichment",
+      "breakpoints": true
     }
   ]
 }

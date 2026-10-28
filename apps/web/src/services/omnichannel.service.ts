@@ -78,6 +78,7 @@ export const useCreateLeadSource = () => useSourceMutation((input: CreateLeadSou
 export const useUpdateLeadSource = () => useSourceMutation((v: { id: string; input: UpdateLeadSourceInput }) => apiRequest<LeadSourceItem>(`/api/lead-sources/${v.id}`, { method: 'PUT', body: json(v.input) }));
 export const useRotateLeadSourceKey = () => useSourceMutation((id: string) => apiRequest<{ source: LeadSourceItem; apiKey: string }>(`/api/lead-sources/${id}/rotate-key`, { method: 'POST', body: '{}' }));
 export const useDeleteLeadSource = () => useSourceMutation((id: string) => apiRequest<unknown>(`/api/lead-sources/${id}`, { method: 'DELETE' }));
+export const useGenerateKioskToken = () => useSourceMutation((id: string) => apiRequest<{ token: string }>(`/api/lead-sources/${id}/kiosk-token`, { method: 'POST', body: '{}' }));
 export const useImportCsv = () =>
   useSourceMutation((v: { id: string; csv: string }) =>
     apiRequest<{ total: number; processed: number; duplicate: number; rejected: number; failed: number; errors: Array<{ row: number; error: string }> }>(`/api/lead-sources/${v.id}/import-csv`, { method: 'POST', body: json({ csv: v.csv }) }),

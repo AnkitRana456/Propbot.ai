@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Phone, Mail, Clock, GitMerge, CheckCircle2, MessageSquare, ChevronDown, User, FileText, Clock3, Dna, History, Sparkles } from 'lucide-react';
+import { X, Phone, Mail, Clock, GitMerge, CheckCircle2, MessageSquare, ChevronDown, User, FileText, Clock3, Dna, History, Sparkles, MapPin, Monitor, Globe } from 'lucide-react';
 import type { LeadItemResponse, LeadStatus } from '@propbot/shared';
 import { BuyerDnaCard } from './BuyerDnaCard.js';
 import { IntentScoreGauge } from './IntentScoreGauge.js';
@@ -44,6 +44,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isLostModalOpen, setIsLostModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+
+  // Must be called unconditionally (Rules of Hooks) — enabled only when drawer is open
+  const { data: timelineData } = useLeadTimeline(lead?.id ?? null);
 
   if (!isOpen || !lead) return null;
 
@@ -90,8 +93,6 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
   const budgetDisplay = lead.buyerDna?.budgetMin && lead.buyerDna?.budgetMax
     ? `₹${(lead.buyerDna.budgetMin / 10000000).toFixed(2)} Cr – ₹${(lead.buyerDna.budgetMax / 10000000).toFixed(2)} Cr`
     : null;
-
-  const { data: timelineData } = useLeadTimeline(lead.id);
 
   return (
     <>
@@ -268,6 +269,61 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
                         </div>
                       </div>
 
+                      {/* Ad Attribution & Device — always shown */}
+                      <div className="editorial-card p-4 space-y-3">
+                        <span className="blueprint-label flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> Ad Attribution & Device</span>
+                        {!(lead.utmParams || lead.deviceType || lead.city) ? (
+                          <p className="text-xs text-[var(--text-muted)] italic">No tracking data — lead captured without UTM params or device info.</p>
+                        ) : (
+                          <div className="space-y-2 text-xs font-mono">
+                            {Boolean((lead.utmParams as Record<string,unknown> | null)?.[`utm_source`]) && (
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]">
+                                <span className="text-[var(--text-muted)]">Source:</span>
+                                <span className="uppercase text-[var(--accent)] font-semibold">{String((lead.utmParams as Record<string,unknown>)['utm_source'])}</span>
+                              </div>
+                            )}
+                            {Boolean((lead.utmParams as Record<string,unknown> | null)?.[`utm_campaign`]) && (
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]">
+                                <span className="text-[var(--text-muted)]">Campaign:</span>
+                                <span className="text-[var(--text)] truncate max-w-[160px]">{String((lead.utmParams as Record<string,unknown>)['utm_campaign'])}</span>
+                              </div>
+                            )}
+                            {Boolean((lead.utmParams as Record<string,unknown> | null)?.[`utm_medium`]) && (
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]">
+                                <span className="text-[var(--text-muted)]">Medium:</span>
+                                <span className="text-[var(--text)]">{String((lead.utmParams as Record<string,unknown>)['utm_medium'])}</span>
+                              </div>
+                            )}
+                            {Boolean((lead.utmParams as Record<string,unknown> | null)?.[`utm_content`]) && (
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]">
+                                <span className="text-[var(--text-muted)]">Ad Content:</span>
+                                <span className="text-[var(--text)]">{String((lead.utmParams as Record<string,unknown>)['utm_content'])}</span>
+                              </div>
+                            )}
+                            {Boolean((lead.utmParams as Record<string,unknown> | null)?.[`gclid`] || (lead.utmParams as Record<string,unknown> | null)?.[`fbclid`]) && (
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]">
+                                <span className="text-[var(--text-muted)]">Click ID:</span>
+                                <span className="text-[var(--text)] truncate max-w-[160px] font-mono text-[10px]">
+                                  {String((lead.utmParams as Record<string,unknown>)['gclid'] ?? (lead.utmParams as Record<string,unknown>)['fbclid'])}
+                                </span>
+                              </div>
+                            )}
+                            {(lead.deviceType || lead.browserName || lead.osName) && (
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]">
+                                <span className="text-[var(--text-muted)] flex items-center gap-1"><Monitor className="w-3 h-3" /> Device:</span>
+                                <span className="text-[var(--text)]">{[lead.browserName, lead.osName, lead.deviceType].filter(Boolean).join(' · ')}</span>
+                              </div>
+                            )}
+                            {(lead.city || lead.state) && (
+                              <div className="flex justify-between py-1">
+                                <span className="text-[var(--text-muted)] flex items-center gap-1"><MapPin className="w-3 h-3" /> Location:</span>
+                                <span className="text-[var(--text)]">{[lead.city, lead.state, lead.country].filter(Boolean).join(', ')}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       {/* Buyer Requirements Dossier */}
                       <div className="editorial-card p-4 space-y-3">
                         <span className="blueprint-label">Buyer Requirements (DNA)</span>
@@ -280,15 +336,17 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, isOpen
                           </div>
                           <div className="flex justify-between py-1 border-b border-[var(--border)]">
                             <span className="text-[var(--text-muted)]">Preferred Typology:</span>
-                            <span className="text-[var(--text)] font-semibold">3 BHK / 4 BHK</span>
+                            <span className="text-[var(--text)] font-semibold">
+                              {lead.buyerDna?.bhk?.join(' / ') || '—'}
+                            </span>
                           </div>
                           <div className="flex justify-between py-1 border-b border-[var(--border)]">
                             <span className="text-[var(--text-muted)]">Locality Requirement:</span>
-                            <span className="text-[var(--text)]">Whitefield, East Bangalore</span>
+                            <span className="text-[var(--text)]">{lead.buyerDna?.localities?.join(', ') || '—'}</span>
                           </div>
                           <div className="flex justify-between py-1">
                             <span className="text-[var(--text-muted)]">Possession Window:</span>
-                            <span className="text-[var(--text)]">Ready to Move (Within 60d)</span>
+                            <span className="text-[var(--text)]">{lead.buyerDna?.timeline || '—'}</span>
                           </div>
                         </div>
                       </div>

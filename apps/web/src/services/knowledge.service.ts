@@ -82,7 +82,13 @@ export const knowledgeService = {
   },
 
   // 2. Interactive Test Query
-  async testQuery(chatbotId: string, input: RagQueryInput): Promise<RagQueryResponse> {
+  async testQuery(
+    chatbotId: string,
+    input: RagQueryInput & {
+      history?: Array<{ role: 'visitor' | 'assistant'; content: string }>;
+      visitorName?: string;
+    },
+  ): Promise<RagQueryResponse> {
     return apiRequest<RagQueryResponse>(`/api/chatbots/${chatbotId}/knowledge/query`, {
       method: 'POST',
       body: JSON.stringify(input),

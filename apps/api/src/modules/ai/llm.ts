@@ -10,8 +10,8 @@ const log = pino({ level: process.env.LOG_LEVEL ?? 'info' });
  */
 export type LlmProvider = 'gemini' | 'openai' | 'anthropic';
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
-export const DEFAULT_GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
+export const DEFAULT_GEMINI_MODEL = 'models/gemini-flash-lite-latest';
+export const DEFAULT_GEMINI_EMBEDDING_MODEL = 'models/gemini-embedding-001';
 
 export const LLM_FALLBACK_MESSAGE =
   "I'm having a little trouble right now. Please share your phone number and our team will get back to you shortly.";

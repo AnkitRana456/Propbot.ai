@@ -20,12 +20,14 @@ import { EngagementTab } from '../components/analytics/EngagementTab.js';
 import { TopQueriesTab } from '../components/analytics/TopQueriesTab.js';
 import { RealEstateInsightsTab } from '../components/analytics/RealEstateInsightsTab.js';
 import { AttributionModal } from '../components/analytics/AttributionModal.js';
+import { AdSourcesTab } from '../components/analytics/AdSourcesTab.js';
 import { ForecastModal } from '../components/analytics/ForecastModal.js';
-import { BarChart3, Users, Clock, Sparkles } from 'lucide-react';
+import { BarChart3, Users, Clock, Sparkles, Target } from 'lucide-react';
+import { useAdSources } from '../services/analytics.service.js';
 
 export const AnalyticsPage: React.FC = () => {
   const [filter, setFilter] = useState<AnalyticsFilter>({ period: '30d' });
-  const [activeTab, setActiveTab] = useState<'performance' | 'engagement' | 'queries' | 'insights'>('performance');
+  const [activeTab, setActiveTab] = useState<'performance' | 'engagement' | 'queries' | 'insights' | 'ad-sources'>('performance');
   const [isForecastOpen, setIsForecastOpen] = useState(false);
   const [isAttributionOpen, setIsAttributionOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -44,6 +46,7 @@ export const AnalyticsPage: React.FC = () => {
   const { data: topQueries, isLoading: isQueriesLoading } = useTopQueries(filter);
   const { data: insights, isLoading: isInsightsLoading } = useRealEstateInsights(filter);
   const { data: aiQuality, isLoading: isAiQualityLoading } = useAiQuality(filter);
+  const { data: adSources, isLoading: isAdSourcesLoading } = useAdSources(filter);
 
   const { data: chatbotsData } = useChatbots();
   const queryError = [kpisQ, ctaQ, reQ, perfQ].find(q => q.isError)?.error as Error | undefined;
@@ -85,6 +88,7 @@ export const AnalyticsPage: React.FC = () => {
     { id: 'engagement' as const, label: 'Engagement & Heatmap', icon: Clock },
     { id: 'queries' as const, label: 'Top Inquiries', icon: Users },
     { id: 'insights' as const, label: 'Real Estate & AI Quality', icon: Sparkles },
+    { id: 'ad-sources' as const, label: 'Ad Sources & Devices', icon: Target },
   ];
 
   const isEmptyAccount = kpis?.totalConversations.current === 0 && kpis?.leadsGenerated.current === 0;
@@ -171,6 +175,9 @@ export const AnalyticsPage: React.FC = () => {
             aiQuality={aiQuality}
             isLoading={isInsightsLoading || isAiQualityLoading}
           />
+        )}
+        {activeTab === 'ad-sources' && (
+          <AdSourcesTab data={adSources} isLoading={isAdSourcesLoading} />
         )}
       </div>
 

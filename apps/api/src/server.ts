@@ -16,6 +16,7 @@ import { propertiesRouter } from './routes/properties.routes.js';
 import { shortlistRoomRouter } from './routes/shortlist-room.routes.js';
 import { appointmentsRouter } from './routes/appointments.routes.js';
 import { whatsappRouter } from './routes/whatsapp.routes.js';
+import { twilioRouter } from './routes/twilio.routes.js';
 import { webhooksRouter } from './routes/webhooks.routes.js';
 import { webhooksManageRouter } from './routes/webhooks-manage.routes.js';
 import { integrationsRouter } from './routes/integrations.routes.js';
@@ -49,6 +50,7 @@ import { costSheetService } from './modules/inventory/cost-sheet.service.js';
 import { findKioskSource, acceptWalkIn } from './modules/lead-sources/lead-sources.service.js';
 import { leadsController } from './modules/leads/leads.controller.js';
 import { validateEnv, getMaskedConfigSummary } from './config/env.js';
+import { join } from 'path';
 
 // Validate environment variables at startup
 validateEnv();
@@ -68,6 +70,10 @@ export function createApp(): Express {
   // otherwise rate limits would key on the proxy address (or be spoofable via X-Forwarded-For).
   const proxyHops = Number(process.env.TRUSTED_PROXY_HOPS);
   if (Number.isInteger(proxyHops) && proxyHops > 0) app.set('trust proxy', proxyHops);
+
+  // Serve widget.js — cwd is apps/api when running via pnpm dev, so go up to monorepo root
+  const widgetPath = join(process.cwd(), '..', '..', 'packages', 'widget', 'dist');
+  app.use('/widget', express.static(widgetPath, { maxAge: '1h' }));
 
   // Request correlation header
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -106,7 +112,7 @@ export function createApp(): Express {
   // that third parties must always be able to reach (payment / Meta webhooks, health checks).
   const generalAnon = generalApiRateLimiter.middleware();
   const generalAuthed = tenantApiRateLimiter.middleware();
-  const generalExempt = /^\/(healthz|auth|public|demo-requests|webhooks|subscription\/webhook|status|cron)(\/|$)/;
+  const generalExempt = /^\/(healthz|auth|public|demo-requests|webhooks|subscription\/webhook|status|cron|twilio)(\/|$)/;
   app.use('/api', (req: Request, res: Response, next: NextFunction) => {
     if (generalExempt.test(req.path)) {
       next();
@@ -165,7 +171,11 @@ export function createApp(): Express {
   });
 
   app.post('/api/public/walk-in/:token', (req, res, next) => {
-    acceptWalkIn(req.params.token, req.body as { name: string; phone: string; email?: string; projectInterest?: string })
+    const body = req.body as { name: string; phone: string; email?: string; projectInterest?: string; utmParams?: Record<string, string>; referrerUrl?: string; landingPage?: string; userAgent?: string };
+    acceptWalkIn(req.params.token!, {
+      ...body,
+      ipAddress: (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? req.ip,
+    })
       .then(result => res.json({ data: result }))
       .catch(next);
   });
@@ -188,6 +198,8 @@ export function createApp(): Express {
   app.use('/api/shortlist-room', shortlistRoomRouter);
   app.use('/api/appointments', appointmentsRouter);
   app.use('/api/whatsapp', whatsappRouter);
+  // Twilio WhatsApp sandbox webhook (public, no auth)
+  app.use('/api/twilio', twilioRouter);
   app.use('/api/webhooks', webhooksRouter);
   app.use('/api/webhooks', webhooksManageRouter);
   app.use('/api/integrations', integrationsRouter);

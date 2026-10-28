@@ -143,7 +143,12 @@ export class KnowledgeController {
       const companyId = req.tenant!.companyId;
       const { id: chatbotId } = req.params;
       const validated = ragQuerySchema.parse(req.body);
-      const result = await retrievalService.query(companyId, chatbotId!, validated);
+      const result = await retrievalService.query(companyId, chatbotId!, validated, {
+        history: validated.history,
+        agentInstructions: validated.visitorName
+          ? `The visitor's name is ${validated.visitorName}. Address them by name naturally when relevant.`
+          : undefined,
+      });
       res.status(200).json({ data: result });
     } catch (err) {
       next(err);

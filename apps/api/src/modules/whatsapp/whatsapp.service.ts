@@ -324,7 +324,7 @@ export class WhatsAppService {
       ],
     };
 
-    await this.processWebhook(payload, JSON.stringify(payload));
+    await this.processWebhook(payload, JSON.stringify(payload), undefined, true);
 
     // Retrieve active conversation for this phone
     const last10 = cleanPhone.slice(-10);
@@ -480,6 +480,7 @@ export class WhatsAppService {
     rawPayload: unknown,
     rawBody: string | Buffer,
     signatureHeader?: string,
+    skipSignatureCheck = false,
   ): Promise<{ success: boolean; processedCount: number }> {
     const event = whatsappAdapter.normalize(rawPayload);
     if (!event.phoneNumberId) {
@@ -503,13 +504,13 @@ export class WhatsAppService {
     // Meta signs every delivery with the app secret. A missing secret must never mean "skip the check",
     // otherwise anyone who knows a phone-number ID could inject fake messages and leads.
     const appSecret = openSecret(config.appSecret) || process.env.META_APP_SECRET;
-    const allowUnsigned = process.env.ALLOW_UNSIGNED_WHATSAPP_WEBHOOKS === 'true' && process.env.NODE_ENV !== 'production';
+    const allowUnsigned = skipSignatureCheck || (process.env.ALLOW_UNSIGNED_WHATSAPP_WEBHOOKS === 'true' && process.env.NODE_ENV !== 'production');
     if (!appSecret && !allowUnsigned) {
       const err = new Error('WhatsApp app secret is not configured; refusing unsigned webhook deliveries.');
       Object.assign(err, { statusCode: 401, code: 'WEBHOOK_SECRET_MISSING' });
       throw err;
     }
-    if (appSecret) {
+    if (appSecret && !skipSignatureCheck) {
       const isValid = whatsappAdapter.verifySignature(rawBody, signatureHeader || '', appSecret);
       if (!isValid) {
         const err = new Error('Invalid X-Hub-Signature-256 signature header');

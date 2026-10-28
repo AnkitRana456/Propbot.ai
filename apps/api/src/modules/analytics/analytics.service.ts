@@ -929,6 +929,58 @@ export class AnalyticsService {
       topCompanies: topCompanies.sort((a, b) => b.leads - a.leads),
     };
   }
+
+  async getAdSources(companyId: string, filter: AnalyticsFilter): Promise<{
+    bySource: { label: string; count: number }[];
+    byDevice: { label: string; count: number }[];
+    byCity: { label: string; count: number }[];
+  }> {
+    const { startDate, endDate } = this.resolveDateRange(filter);
+
+    const rows = await db
+      .select({
+        utmSource: sql<string>`COALESCE(${leads.utmParams}->>'utm_source', 'direct')`,
+        deviceType: sql<string>`COALESCE(${leads.deviceType}, 'unknown')`,
+        city: sql<string>`COALESCE(${leads.city}, 'Unknown')`,
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(leads)
+      .where(
+        and(
+          eq(leads.companyId, companyId),
+          isNull(leads.deletedAt),
+          gte(leads.createdAt, startDate),
+          lte(leads.createdAt, endDate),
+        ),
+      )
+      .groupBy(
+        sql`COALESCE(${leads.utmParams}->>'utm_source', 'direct')`,
+        sql`COALESCE(${leads.deviceType}, 'unknown')`,
+        sql`COALESCE(${leads.city}, 'Unknown')`,
+      );
+
+    const sourceMap = new Map<string, number>();
+    const deviceMap = new Map<string, number>();
+    const cityMap = new Map<string, number>();
+
+    for (const r of rows) {
+      sourceMap.set(r.utmSource, (sourceMap.get(r.utmSource) ?? 0) + r.count);
+      deviceMap.set(r.deviceType, (deviceMap.get(r.deviceType) ?? 0) + r.count);
+      cityMap.set(r.city, (cityMap.get(r.city) ?? 0) + r.count);
+    }
+
+    const toSorted = (m: Map<string, number>) =>
+      [...m.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([label, count]) => ({ label, count }));
+
+    return {
+      bySource: toSorted(sourceMap),
+      byDevice: toSorted(deviceMap),
+      byCity: toSorted(cityMap),
+    };
+  }
 }
 
 export const analyticsService = new AnalyticsService();
