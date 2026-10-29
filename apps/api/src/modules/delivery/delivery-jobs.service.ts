@@ -78,6 +78,8 @@ export class DeliveryJobsService {
         if (valid.length > 0) return valid;
       }
     }
+    const envAlert = process.env.LEAD_ALERT_EMAIL;
+    if (envAlert && EMAIL_RE.test(envAlert)) return [envAlert];
     const admins = await db
       .select({ email: users.email })
       .from(users)

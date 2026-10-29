@@ -6,8 +6,10 @@ import {
   mergeLeadInputSchema,
   scoringConfigSchema,
 } from '@propbot/shared';
+import { z } from 'zod';
 import { leadsService } from './leads.service.js';
 import { assignmentService } from '../crm/assignment.service.js';
+import { parseCsv } from '../lead-sources/lead-source-mappers.js';
 
 export class LeadsController {
   async cleanupInvalid(req: Request, res: Response, next: NextFunction) {
@@ -261,6 +263,56 @@ export class LeadsController {
         });
         return;
       }
+      next(err);
+    }
+  }
+
+  async importCsv(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = req.tenant?.companyId;
+      if (!companyId) {
+        res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+        return;
+      }
+      const { csv } = z.object({ csv: z.string().min(1) }).parse(req.body);
+      const rows = parseCsv(csv);
+      if (rows.length === 0) {
+        res.status(400).json({ error: { code: 'CSV_EMPTY', message: 'CSV needs a header row and at least one data row.' } });
+        return;
+      }
+      if (rows.length > 500) {
+        res.status(400).json({ error: { code: 'CSV_TOO_LARGE', message: 'Import at most 500 rows at a time.' } });
+        return;
+      }
+      const summary = { total: rows.length, created: 0, duplicate: 0, failed: 0, errors: [] as Array<{ row: number; error: string }> };
+      for (const [i, row] of rows.entries()) {
+        const name = row['name'] ?? row['Name'] ?? row['full_name'] ?? '';
+        const phone = row['phone'] ?? row['Phone'] ?? row['mobile'] ?? row['Mobile'] ?? '';
+        const email = row['email'] ?? row['Email'] ?? undefined;
+        if (!name || !phone) {
+          summary.failed++;
+          if (summary.errors.length < 20) summary.errors.push({ row: i + 2, error: 'Missing name or phone' });
+          continue;
+        }
+        try {
+          const result = await leadsService.captureOrUpdateLead(companyId, {
+            name: name.trim(),
+            phone: phone.trim(),
+            email: email?.trim() || undefined,
+            source: 'csv_import',
+          });
+          if (result.isDuplicate) summary.duplicate++;
+          else {
+            summary.created++;
+            try { await assignmentService.roundRobinAssign(companyId, result.lead.id); } catch { /* no agents */ }
+          }
+        } catch (e) {
+          summary.failed++;
+          if (summary.errors.length < 20) summary.errors.push({ row: i + 2, error: (e as Error).message?.slice(0, 120) ?? 'Failed' });
+        }
+      }
+      res.json({ data: summary });
+    } catch (err) {
       next(err);
     }
   }

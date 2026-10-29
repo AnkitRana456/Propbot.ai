@@ -60,8 +60,8 @@ export class LeadsService {
     input: CaptureLeadInput,
     attempt = 0,
   ): Promise<{ lead: LeadItemResponse; isDuplicate: boolean }> {
-    let phoneCheck = validatePhone(input.phone);
-    if (input.source === 'whatsapp') {
+    let phoneCheck = validatePhone(input.phone ?? '');
+    if (input.phone && input.source === 'whatsapp') {
       // Meta delivers E.164 without the "+" and from any country, so interpret it as international and,
       // for countries outside our rule table, accept any well-formed E.164 number.
       const digits = input.phone.replace(/\D/g, '');
@@ -364,6 +364,89 @@ export class LeadsService {
       });
 
       return { leadId: newLead.id, isDuplicate: false };
+    });
+  }
+
+  /**
+   * Creates or refreshes a lead for a social channel (Messenger / Instagram) contact.
+   * No phone number required — uses the existing contactId from the identity table.
+   * When the user later provides a phone, captureOrUpdateLead() will merge it in.
+   */
+  async captureOrUpdateSocialLead(
+    companyId: string,
+    params: {
+      contactId: string;
+      chatbotId: string;
+      conversationId: string;
+      name: string;
+      source: 'messenger' | 'instagram';
+    },
+  ): Promise<void> {
+    const { contactId, chatbotId, conversationId, name, source } = params;
+
+    await db.transaction(async tx => {
+      // Idempotency: don't create a second lead if one already exists for this contact+chatbot
+      const existing = await tx.query.leads.findFirst({
+        where: and(
+          eq(leads.companyId, companyId),
+          eq(leads.contactId, contactId),
+          eq(leads.chatbotId, chatbotId),
+          isNull(leads.deletedAt),
+        ),
+      });
+      if (existing) {
+        // Just ensure conversation is linked
+        if (conversationId) {
+          await tx.update(conversations)
+            .set({ leadId: existing.id, contactId, updatedAt: new Date() })
+            .where(and(eq(conversations.id, conversationId), eq(conversations.companyId, companyId)));
+        }
+        return;
+      }
+
+      const initialDna = buyerDnaService.getDefaultDna();
+      const scoringResult = intentScorerService.calculateScore({ hasSharedPhone: false, messageCount: 1 });
+
+      const [newLead] = await tx.insert(leads).values({
+        companyId,
+        contactId,
+        chatbotId,
+        status: 'new',
+        priority: scoringResult.priority,
+        intentScore: scoringResult.score,
+        intentLabel: scoringResult.label,
+        scoreExplanation: scoringResult.topReasons,
+        scoreHistory: [{ score: scoringResult.score, delta: scoringResult.score, reason: `Contact initiated via ${source}`, timestamp: new Date().toISOString() }],
+        buyerDna: initialDna,
+        phoneVerified: false,
+        source,
+        customFields: {},
+      }).returning();
+
+      if (!newLead) return;
+
+      await tx.update(chatbots).set({ totalLeads: sql`${chatbots.totalLeads} + 1` }).where(eq(chatbots.id, chatbotId));
+
+      if (conversationId) {
+        await tx.update(conversations).set({ leadId: newLead.id, contactId, updatedAt: new Date() })
+          .where(and(eq(conversations.id, conversationId), eq(conversations.companyId, companyId)));
+      }
+
+      const nameParts = name.trim().split(/\s+/);
+      await tx.update(contacts).set({ firstName: nameParts[0], lastName: nameParts.slice(1).join(' ') || null, lifecycleStage: 'lead', updatedAt: new Date() }).where(eq(contacts.id, contactId));
+
+      await tx.insert(leadActivities).values({
+        companyId, leadId: newLead.id, contactId,
+        activityType: 'lead_captured',
+        title: `New Lead from ${source === 'messenger' ? 'Facebook Messenger' : 'Instagram'}`,
+        description: `${name} started a conversation via ${source}.`,
+        metadata: { source },
+      });
+
+      await tx.insert(domainEvents).values({
+        companyId, type: 'lead_created',
+        payload: { lead_id: newLead.id, contact_id: contactId, chatbot_id: chatbotId, source, metadata: { name } },
+      });
     });
   }
 
@@ -738,7 +821,7 @@ export class LeadsService {
     }
     let phoneChanged = false;
     if (input.phone !== undefined) {
-      const check = validatePhone(input.phone);
+      const check = validatePhone(input.phone ?? '');
       if (!check.valid || !check.e164) {
         throw Object.assign(new Error('Please enter a valid phone number.'), { statusCode: 400, code: 'INVALID_PHONE', reason: check.reason });
       }

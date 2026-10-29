@@ -123,7 +123,7 @@ export const captureLeadInputSchema = z.object({
   chatbotId: z.string().uuid().optional(),
   conversationId: z.string().uuid().optional(),
   name: z.string().min(1, 'Name is required').max(100),
-  phone: z.string().min(7, 'Valid phone number is required').max(30),
+  phone: z.string().min(7, 'Valid phone number is required').max(30).optional(),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
   budget: z.string().optional(),
   bhk: z.string().optional(),

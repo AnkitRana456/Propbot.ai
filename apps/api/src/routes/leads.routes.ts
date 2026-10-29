@@ -51,3 +51,8 @@ leadsRouter.post('/:id/merge', requirePermission('edit_leads'), (req, res, next)
 leadsRouter.get('/:id/conversation', requirePermission('view_leads'), (req, res, next) => {
   leadsController.getConversation(req, res, next);
 });
+
+// Import leads from CSV (direct, no lead source needed)
+leadsRouter.post('/import-csv', requirePermission('edit_leads'), (req, res, next) => {
+  leadsController.importCsv(req, res, next);
+});

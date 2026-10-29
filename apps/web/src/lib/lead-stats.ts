@@ -21,11 +21,13 @@ export function leadsPerDay(leads: DatedLead[], days = 30, now: Date = new Date(
   return out;
 }
 
-export type SourceGroup = 'Web chatbot' | 'WhatsApp' | 'Form' | 'Other';
+export type SourceGroup = 'Web chatbot' | 'WhatsApp' | 'Messenger' | 'Instagram' | 'Form' | 'Other';
 
 export function sourceGroup(source: string): SourceGroup {
   const s = (source || '').toLowerCase();
   if (s.includes('whatsapp')) return 'WhatsApp';
+  if (s === 'messenger' || s.includes('messenger')) return 'Messenger';
+  if (s === 'instagram' || s.includes('instagram')) return 'Instagram';
   if (s.includes('form')) return 'Form';
   if (s.includes('chat') || s.includes('widget') || s.includes('web')) return 'Web chatbot';
   return 'Other';

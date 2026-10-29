@@ -44,3 +44,6 @@ Thumbs.db
 # Docker
 postgres_data/
 redis_data/
+
+# Tool cache / artifacts
+graphify-out/

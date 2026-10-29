@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { ChatbotConfig } from '@propbot/shared';
-import { UserCheck, Sliders, CheckSquare, ShieldCheck } from 'lucide-react';
+import { UserCheck, Sliders, CheckSquare, ShieldCheck, Mail, X, Plus } from 'lucide-react';
 
 interface Step5LeadCaptureProps {
   config: ChatbotConfig;
@@ -8,6 +8,8 @@ interface Step5LeadCaptureProps {
 }
 
 export const Step5LeadCapture: React.FC<Step5LeadCaptureProps> = ({ config, onChangeConfig }) => {
+  const [newEmail, setNewEmail] = useState('');
+
   const leadCapture = config.leadCapture || {
     enabled: true,
     triggerAfterMessages: 2,
@@ -166,6 +168,62 @@ export const Step5LeadCapture: React.FC<Step5LeadCaptureProps> = ({ config, onCh
                     Required
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Alert Emails */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3">
+                <Mail className="h-3.5 w-3.5 text-blue-600" />
+                <span>Lead Alert Emails</span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                Jab bhi naya lead aaye, in emails pe notification jaayegi.
+              </p>
+              <div className="space-y-2 mb-3">
+                {((leadCapture as Record<string, unknown>).alertEmails as string[] | undefined ?? []).map((email: string, i: number) => (
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300 flex-1">{email}</span>
+                    <button
+                      onClick={() => {
+                        const emails = ((leadCapture as Record<string, unknown>).alertEmails as string[] | undefined ?? []).filter((_: string, idx: number) => idx !== i);
+                        updateLeadCapture({ alertEmails: emails } as never);
+                      }}
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newEmail.includes('@')) {
+                      const emails = [...((leadCapture as Record<string, unknown>).alertEmails as string[] | undefined ?? []), newEmail.trim()];
+                      updateLeadCapture({ alertEmails: emails } as never);
+                      setNewEmail('');
+                    }
+                  }}
+                  placeholder="sales@example.com"
+                  className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                <button
+                  onClick={() => {
+                    if (!newEmail.includes('@')) return;
+                    const emails = [...((leadCapture as Record<string, unknown>).alertEmails as string[] | undefined ?? []), newEmail.trim()];
+                    updateLeadCapture({ alertEmails: emails } as never);
+                    setNewEmail('');
+                  }}
+                  className="flex items-center gap-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </button>
               </div>
             </div>
 

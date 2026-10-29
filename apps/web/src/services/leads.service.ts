@@ -117,6 +117,28 @@ export function useCaptureLead() {
   });
 }
 
+export interface ImportSummary {
+  total: number;
+  created: number;
+  duplicate: number;
+  failed: number;
+  errors: Array<{ row: number; error: string }>;
+}
+
+export function useImportLeads() {
+  const queryClient = useQueryClient();
+  return useMutation<{ data: ImportSummary }, Error, { csv: string }>({
+    mutationFn: input =>
+      apiRequest<{ data: ImportSummary }>('/api/leads/import-csv', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+  });
+}
+
 export function useScoringConfig() {
   return useQuery<ScoringConfig, Error>({
     queryKey: ['scoring-config'],

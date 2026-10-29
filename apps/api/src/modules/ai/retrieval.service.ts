@@ -13,6 +13,9 @@ import { embeddingsService } from './embeddings.service.js';
 import { modelRouter, TaskTier } from './router.js';
 import type { LlmTrace } from './llm-call-log.js';
 import { languageDetectorService } from './language-detector.service.js';
+import { PropertySearchService } from '../inventory/property-search.service.js';
+
+const propertySearchService = new PropertySearchService();
 
 /** Optional agent-level controls for a retrieval query. All fields are optional: no options = legacy behaviour. */
 export interface RetrievalQueryOptions {
@@ -397,11 +400,51 @@ ${contextText}
       // Non-blocking
     }
 
+    // Inject live inventory context if query seems property-related
+    const PROPERTY_KEYWORDS = ['bhk', 'flat', 'apartment', 'price', 'budget', 'available', 'unit', 'floor', 'area', 'sqft', 'lakh', 'crore', 'cr ', '2bhk', '3bhk', 'inventory', 'property', 'project', 'possession', 'booking', 'faridabad', 'amolik'];
+    const isPropertyQuery = PROPERTY_KEYWORDS.some(kw => queryLower.includes(kw));
+    const inventoryChunks: { content: string; sourceTitle: string }[] = [];
+    if (isPropertyQuery) {
+      try {
+        // Parse BHK from query
+        const bhkMatch = queryLower.match(/(\d)\s*bhk/);
+        const bhk = bhkMatch ? [parseInt(bhkMatch[1]!)] : [];
+        // Parse budget
+        const lakhMatch = queryLower.match(/(\d+)\s*(?:lakh|lac|l\b)/i);
+        const croreMatch = queryLower.match(/(\d+(?:\.\d+)?)\s*(?:crore|cr\b)/i);
+        const budgetMax = croreMatch ? parseFloat(croreMatch[1]!) * 10000000 : lakhMatch ? parseInt(lakhMatch[1]!) * 100000 : undefined;
+        // Parse locality
+        const localities = ['faridabad', 'gurgaon', 'delhi', 'noida', 'bangalore', 'mumbai', 'pune', 'hyderabad'];
+        const locality = localities.find(l => queryLower.includes(l));
+
+        const cards = await propertySearchService.searchProperties(companyId, { bhk, budgetMax, locality, limit: 3 });
+        if (cards.length > 0) {
+          const inventoryText = cards.map(c => {
+            const bhkList = (c.bhkOptions || []).join(', ');
+            const startPrice = c.startingPrice;
+            return [
+              `Project: ${c.name} by ${c.builderName}`,
+              `Location: ${c.location}`,
+              `Status: ${c.status?.replace(/_/g, ' ')}`,
+              startPrice ? `Starting Price: ₹${(startPrice / 100000).toFixed(0)} Lakh (₹${(startPrice / 10000000).toFixed(2)} Cr)` : '',
+              `Price Range: ${c.priceRange || 'Price on request'}`,
+              bhkList ? `Available BHK: ${bhkList}` : '',
+              c.carpetAreaRange ? `Carpet Area: ${c.carpetAreaRange}` : '',
+              c.possessionDate ? `Possession: ${c.possessionDate}` : '',
+              c.availableUnitsCount ? `Available Units: ${c.availableUnitsCount}` : '',
+              (c.usps as string[] | undefined)?.length ? `Key USPs: ${(c.usps as string[]).join(', ')}` : '',
+              (c.amenities as string[] | undefined)?.length ? `Amenities: ${(c.amenities as string[]).slice(0, 6).join(', ')}` : '',
+            ].filter(Boolean).join('\n');
+          }).join('\n\n---\n\n');
+          inventoryChunks.push({ content: inventoryText, sourceTitle: 'Live Property Inventory' });
+        }
+      } catch { /* non-blocking */ }
+    }
+
     // Assemble System Prompt & Call Model Router
-    const systemPrompt = this.buildSystemPrompt(
-      botName,
-      tone,
-      matchedRows.map(r => {
+    const allChunks = [
+      ...inventoryChunks,
+      ...matchedRows.map(r => {
         const rowMeta = r.metadata as Record<string, unknown> | null;
         return {
           content: r.content,
@@ -409,6 +452,12 @@ ${contextText}
           sectionHeader: typeof rowMeta?.['sectionHeader'] === 'string' ? (rowMeta['sectionHeader'] as string) : undefined,
         };
       }),
+    ];
+
+    const systemPrompt = this.buildSystemPrompt(
+      botName,
+      tone,
+      allChunks,
       {
         languageName: detectedLang.name,
         languageCode: detectedLang.code,

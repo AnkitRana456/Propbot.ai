@@ -71,6 +71,10 @@ export function createApp(): Express {
   const proxyHops = Number(process.env.TRUSTED_PROXY_HOPS);
   if (Number.isInteger(proxyHops) && proxyHops > 0) app.set('trust proxy', proxyHops);
 
+  // Public pages for Facebook app review / Live mode validation
+  app.get('/privacy', (_req, res) => res.send('<html><body><h1>Privacy Policy</h1><p>PropBot does not sell or share your personal data. Data collected via Messenger is used only to respond to your property enquiries.</p></body></html>'));
+  app.get('/terms', (_req, res) => res.send('<html><body><h1>Terms of Service</h1><p>By messaging PropBot you agree to receive automated responses to your property enquiries.</p></body></html>'));
+
   // Serve widget.js — cwd is apps/api when running via pnpm dev, so go up to monorepo root
   const widgetPath = join(process.cwd(), '..', '..', 'packages', 'widget', 'dist');
   const isDev = process.env.NODE_ENV !== 'production';
@@ -268,6 +272,7 @@ export function createApp(): Express {
 }
 
 export const app = createApp();
+
 
 const port = Number(process.env.PORT ?? 3000);
 

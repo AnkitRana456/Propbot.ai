@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Download, Plus, Rows3, Search, Users, X } from 'lucide-react';
+import { Download, Plus, Rows3, Search, Upload, Users, X } from 'lucide-react';
 import type { LeadItemResponse, LeadStatus } from '@propbot/shared';
 import { useLeads, useUpdateLead, useUpdateLeadStatus } from '../../services/leads.service.js';
 import { useBulkUpdateStatus } from '../../services/crm.service.js';
@@ -11,6 +11,7 @@ import { LeadDetailDrawer } from '../leads/LeadDetailDrawer.js';
 import { AssignAgentModal } from './AssignAgentModal.js';
 import { LostReasonModal } from './LostReasonModal.js';
 import { AddLeadModal } from './AddLeadModal.js';
+import { ImportLeadsModal } from './ImportLeadsModal.js';
 import { downloadCsv, formatDateTime, formatInr, parseInr, timeAgo, toLocalInput } from '../../lib/format.js';
 
 const STATUS_OPTIONS: Array<{ value: LeadStatus; label: string }> = [
@@ -24,8 +25,10 @@ const STATUS_OPTIONS: Array<{ value: LeadStatus; label: string }> = [
 ];
 
 const sourceLabel = (source: string): string => {
-  const s = source.toLowerCase();
+  const s = (source || '').toLowerCase();
   if (s.includes('whatsapp')) return 'WhatsApp';
+  if (s === 'messenger' || s.includes('messenger')) return 'Messenger';
+  if (s === 'instagram' || s.includes('instagram')) return 'Instagram';
   if (s.includes('form')) return 'Form';
   if (s.includes('chat') || s.includes('widget') || s.includes('web')) return 'Web chatbot';
   return source ? source.replace(/[_-]/g, ' ') : 'Direct';
@@ -51,6 +54,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({ statuses, noun = { singu
   const [assignBulk, setAssignBulk] = useState(false);
   const [lostFor, setLostFor] = useState<LeadItemResponse | null>(null);
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [density, setDensity] = useState<Density>(() => {
     try {
       return localStorage.getItem(DENSITY_KEY) === 'compact' ? 'compact' : 'comfortable';
@@ -189,6 +193,26 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({ statuses, noun = { singu
       ),
     },
     {
+      key: 'intent',
+      label: 'Intent',
+      width: 90,
+      align: 'right' as const,
+      sortValue: l => l.intentScore ?? null,
+      render: l => {
+        const score = l.intentScore;
+        if (score === undefined || score === null) return <span className="text-text-muted">—</span>;
+        const isHot = score >= 70;
+        const isWarm = score >= 35;
+        const color = isHot ? 'text-orange-600 bg-orange-50 dark:bg-orange-950/30' : isWarm ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30' : 'text-text-muted bg-surface-2';
+        const label = isHot ? '🔥' : isWarm ? '⚡' : '❄️';
+        return (
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${color}`}>
+            {label} {score}%
+          </span>
+        );
+      },
+    },
+    {
       key: 'last',
       label: 'Last contact',
       width: 120,
@@ -274,9 +298,14 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({ statuses, noun = { singu
             Export CSV
           </Button>
           {allowAdd && (
-            <Button size="sm" onClick={() => setAdding(true)} leftIcon={<Plus className="h-4 w-4" />}>
-              Add {noun.singular}
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={() => setImporting(true)} leftIcon={<Upload className="h-4 w-4" />}>
+                Import CSV
+              </Button>
+              <Button size="sm" onClick={() => setAdding(true)} leftIcon={<Plus className="h-4 w-4" />}>
+                Add {noun.singular}
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -345,6 +374,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({ statuses, noun = { singu
       )}
 
       {adding && <AddLeadModal isOpen onClose={() => setAdding(false)} />}
+      <ImportLeadsModal isOpen={importing} onClose={() => setImporting(false)} />
     </section>
   );
 };

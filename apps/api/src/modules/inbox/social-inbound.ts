@@ -4,6 +4,10 @@ import { db } from '../../db/index.js';
 import { channelConnections, chatbots, contactIdentities, contacts, conversations, domainEvents, messages } from '../../db/schema/index.js';
 import { unpackEncryptedSecret } from '../../utils/crypto-vault.js';
 import { ApiError } from '../../utils/api-error.js';
+import { retrievalService } from '../ai/retrieval.service.js';
+import { loadConversationHistory } from '../agents/agent-chat.js';
+import { dispatchReply } from './channel-dispatch.js';
+import { leadsService } from '../leads/leads.service.js';
 
 interface MessagingEvent {
   sender?: { id?: string };
@@ -33,20 +37,106 @@ export function verifySocialChallenge(query: Record<string, unknown>): string | 
 
 const channelOf = (object?: string): 'instagram' | 'messenger' | null => (object === 'instagram' ? 'instagram' : object === 'page' ? 'messenger' : null);
 
-async function findOrCreateContact(companyId: string, channel: string, externalId: string, label: string): Promise<string> {
+async function fetchMessengerName(psid: string, pageToken: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${psid}?fields=name,first_name,last_name&access_token=${pageToken}`);
+    if (!res.ok) return null;
+    const data = await res.json() as { name?: string; first_name?: string };
+    return data.name ?? data.first_name ?? null;
+  } catch { return null; }
+}
+
+async function findOrCreateContact(companyId: string, channel: string, externalId: string, label: string): Promise<{ contactId: string; isNew: boolean; displayName: string }> {
   const [existing] = await db
-    .select({ contactId: contactIdentities.contactId })
+    .select({ contactId: contactIdentities.contactId, handle: contactIdentities.handle })
     .from(contactIdentities)
     .where(and(eq(contactIdentities.companyId, companyId), eq(contactIdentities.channel, channel), eq(contactIdentities.externalId, externalId)));
-  if (existing) return existing.contactId;
-  return db.transaction(async tx => {
+  if (existing) return { contactId: existing.contactId, isNew: false, displayName: existing.handle ?? label };
+
+  // Try to get real name from Facebook Graph API for Messenger contacts
+  let displayName = label;
+  if (channel === 'messenger') {
+    const pageToken = process.env.META_MESSENGER_PAGE_ACCESS_TOKEN;
+    if (pageToken) {
+      const fbName = await fetchMessengerName(externalId, pageToken);
+      if (fbName) displayName = fbName;
+    }
+  }
+
+  let isNew = true;
+  const contactId = await db.transaction(async tx => {
     const [contact] = await tx
       .insert(contacts)
-      .values({ companyId, firstName: label, phone: `${channel}:${externalId}`.slice(0, 50) })
+      .values({ companyId, firstName: displayName, phone: `${channel}:${externalId}`.slice(0, 50) })
+      .onConflictDoNothing()
       .returning({ id: contacts.id });
-    await tx.insert(contactIdentities).values({ companyId, contactId: contact!.id, channel, externalId, handle: label });
+
+    // If conflict (phone already exists), find the existing contact
+    if (!contact) {
+      isNew = false;
+      const [existingContact] = await tx
+        .select({ id: contacts.id })
+        .from(contacts)
+        .where(and(eq(contacts.companyId, companyId), eq(contacts.phone, `${channel}:${externalId}`.slice(0, 50))));
+      if (existingContact) {
+        await tx.insert(contactIdentities).values({ companyId, contactId: existingContact.id, channel, externalId, handle: displayName }).onConflictDoNothing();
+        return existingContact.id;
+      }
+    }
+
+    await tx.insert(contactIdentities).values({ companyId, contactId: contact!.id, channel, externalId, handle: displayName }).onConflictDoNothing();
     return contact!.id;
   });
+  return { contactId, isNew, displayName };
+}
+
+async function triggerSocialAiReply(params: {
+  companyId: string;
+  chatbotId: string;
+  conversationId: string;
+  channel: 'instagram' | 'messenger';
+  senderId: string;
+  userMessage: string;
+}): Promise<void> {
+  const { companyId, chatbotId, conversationId, channel, senderId: _senderId, userMessage } = params;
+  const history = await loadConversationHistory(conversationId, userMessage);
+  const ragResponse = await retrievalService.query(companyId, chatbotId, { query: userMessage }, {
+    history,
+    agentInstructions: `LEAD CAPTURE (Messenger/Instagram channel):
+After answering the visitor's question, if they seem interested (asking about price, availability, floor plans, site visit, or any property details), naturally ask for their name and phone number in the SAME reply. Example: "To send you the exact brochure and have a property consultant reach out, could you share your name and phone number?"
+If they provide a phone number in any message, acknowledge it warmly and say a consultant will call them shortly.`,
+  });
+  const reply = ragResponse.answer?.trim();
+  if (!reply) return;
+
+  await db.insert(messages).values({ companyId, conversationId, senderType: 'bot', content: reply.slice(0, 4000), metadata: { channel, aiGenerated: true } });
+  await db.update(conversations).set({ updatedAt: new Date() }).where(eq(conversations.id, conversationId));
+
+  if (process.env.META_LIVE_DISPATCH === 'true') {
+    const [conv] = await db.select({ contactId: conversations.contactId }).from(conversations).where(eq(conversations.id, conversationId));
+    await dispatchReply({ companyId, channel, conversationId, contactId: conv?.contactId ?? null, phone: null, email: null, text: reply, lastInboundAt: new Date() });
+  }
+
+  // If user shared a phone number, update the existing social lead with real phone
+  const phoneMatch = userMessage.match(/(?:\+?91[-.\s]?)?[6-9]\d{9}/);
+  if (phoneMatch) {
+    const rawPhone = phoneMatch[0].replace(/[\s.-]/g, '');
+    const phone = rawPhone.startsWith('+') ? rawPhone : rawPhone.startsWith('91') && rawPhone.length === 12 ? `+${rawPhone}` : `+91${rawPhone}`;
+    // Get the contact's stored name from the conversation/contact
+    const [conv] = await db.select({ contactId: conversations.contactId }).from(conversations).where(eq(conversations.id, conversationId));
+    const contactRow = conv?.contactId ? await db.query.contacts.findFirst({ where: eq(contacts.id, conv.contactId) }) : null;
+    const name = contactRow ? `${contactRow.firstName ?? ''}${contactRow.lastName ? ' ' + contactRow.lastName : ''}`.trim() || `${channel} User` : `${channel} User`;
+    try {
+      await leadsService.captureOrUpdateLead(companyId, {
+        chatbotId,
+        conversationId,
+        name,
+        phone,
+        source: channel === 'messenger' ? 'messenger' : 'instagram',
+        preserveName: true,
+      });
+    } catch { /* phone invalid or duplicate — ignore */ }
+  }
 }
 
 /**
@@ -98,7 +188,7 @@ export async function handleSocialWebhook(payload: SocialPayload, rawBody: Buffe
         }
       }
 
-      const contactId = await findOrCreateContact(conn.companyId, channel, senderId, `${channel === 'instagram' ? 'Instagram' : 'Messenger'} user ${senderId.slice(-4)}`);
+      const { contactId, isNew, displayName } = await findOrCreateContact(conn.companyId, channel, senderId, `${channel === 'instagram' ? 'Instagram' : 'Messenger'} user ${senderId.slice(-4)}`);
       let [conv] = await db
         .select()
         .from(conversations)
@@ -106,12 +196,29 @@ export async function handleSocialWebhook(payload: SocialPayload, rawBody: Buffe
         .orderBy(desc(conversations.createdAt))
         .limit(1);
       if (!conv) {
-        [conv] = await db.insert(conversations).values({ companyId: conn.companyId, chatbotId, contactId, channel, status: 'needs_human', metadata: { connectionId: conn.id } }).returning();
+        [conv] = await db.insert(conversations).values({ companyId: conn.companyId, chatbotId, contactId, channel, status: 'bot', metadata: { connectionId: conn.id } }).returning();
       }
       await db.insert(messages).values({ companyId: conn.companyId, conversationId: conv!.id, senderType: 'visitor', senderId, content: text.slice(0, 4000), metadata: { mid, channel } });
-      await db.update(conversations).set({ status: conv!.status === 'pending' ? 'open' : conv!.status, updatedAt: new Date() }).where(eq(conversations.id, conv!.id));
+      await db.update(conversations).set({ status: conv!.status === 'pending' ? 'bot' : conv!.status, updatedAt: new Date() }).where(eq(conversations.id, conv!.id));
       await db.insert(domainEvents).values({ companyId: conn.companyId, type: 'inbound_message', payload: { conversation_id: conv!.id, channel, contact_id: contactId } });
       stored++;
+
+      // Auto-create lead on first message using real Facebook/Instagram name (no phone needed)
+      if (isNew) {
+        void leadsService.captureOrUpdateSocialLead(conn.companyId, {
+          contactId,
+          chatbotId: chatbotId!,
+          conversationId: conv!.id,
+          name: displayName,
+          source: channel,
+        }).catch(() => {});
+      }
+
+      // Update intent score on every message
+      void leadsService.processMessageAsync({ companyId: conn.companyId, chatbotId: chatbotId!, conversationId: conv!.id, message: text, senderType: 'visitor', isReturning: !isNew }).catch(() => {});
+
+      // Trigger AI reply asynchronously (non-blocking so webhook returns 200 fast)
+      void triggerSocialAiReply({ companyId: conn.companyId, chatbotId: chatbotId!, conversationId: conv!.id, channel, senderId, userMessage: text }).catch(() => {});
     }
   }
   return { stored, ignored };

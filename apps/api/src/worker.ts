@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { pino } from 'pino';
 
 import { appointmentReminderService } from './modules/appointments/appointment-reminder.service.js';
+import { leadFollowupReminderService } from './modules/delivery/lead-followup-reminder.service.js';
+import { digestReportService } from './modules/delivery/digest-report.service.js';
 import { outboxProcessorService } from './modules/webhooks/outbox-processor.service.js';
 import { outboxDispatcherService } from './modules/events/outbox-dispatcher.service.js';
 import { scheduledJobsService } from './jobs/scheduled-jobs.service.js';
@@ -171,6 +173,55 @@ const rollupInterval = setInterval(async () => {
   }
 }, 600000);
 
+// Lead follow-up reminder sweep (runs hourly: day 1 / day 3 / day 7 after lead creation)
+// Also runs once immediately on worker start so restarts don't miss a sweep window.
+(async () => {
+  try {
+    const { enqueued, sent } = await leadFollowupReminderService.sweep();
+    if (sent > 0) workerLogger.info({ enqueued, sent }, 'Lead follow-up reminder emails sent (startup sweep).');
+  } catch (err) {
+    workerLogger.error({ err }, 'Error during startup follow-up reminder sweep.');
+  }
+})();
+
+let followupBusy = false;
+const followupReminderInterval = setInterval(async () => {
+  if (!isRunning || followupBusy) return;
+  followupBusy = true;
+  try {
+    const { enqueued, sent } = await leadFollowupReminderService.sweep();
+    if (sent > 0) {
+      workerLogger.info({ enqueued, sent }, 'Lead follow-up reminder emails sent.');
+    }
+  } catch (err) {
+    workerLogger.error({ err }, 'Error during lead follow-up reminder sweep.');
+  } finally {
+    followupBusy = false;
+  }
+}, 60 * 60 * 1000); // hourly
+
+// Weekly/monthly digest report (runs daily at startup check — sends only on Monday or 1st of month)
+const digestReportInterval = setInterval(async () => {
+  if (isRunning) {
+    try {
+      const { sent } = await digestReportService.sendDueDigests();
+      if (sent > 0) workerLogger.info({ sent }, 'Digest reports sent.');
+    } catch (err) {
+      workerLogger.error({ err }, 'Error during digest report sweep.');
+    }
+  }
+}, 60 * 60 * 1000); // hourly check, sends only on the right day
+
+// Also run once on startup
+(async () => {
+  try {
+    const { sent } = await digestReportService.sendDueDigests();
+    if (sent > 0) workerLogger.info({ sent }, 'Digest reports sent (startup).');
+  } catch (err) {
+    workerLogger.error({ err }, 'Error during startup digest report sweep.');
+  }
+})();
+
 // Third-party token health check loop (runs hourly to detect expiring credentials)
 const tokenHealthInterval = setInterval(async () => {
   if (isRunning) {
@@ -197,6 +248,8 @@ const shutdown = (signal: string) => {
   clearInterval(approvalExpiryInterval);
   clearInterval(decayInterval);
   clearInterval(rollupInterval);
+  clearInterval(followupReminderInterval);
+  clearInterval(digestReportInterval);
   clearInterval(tokenHealthInterval);
   process.exit(0);
 };
