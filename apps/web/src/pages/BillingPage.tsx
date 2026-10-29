@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Coins, Copy, Landmark, Plus, Receipt, Undo2, X } from 'lucide-react';
+import { Copy, Landmark, Plus, Receipt, Undo2, X } from 'lucide-react';
 import type { PaymentOrderItem } from '@propbot/shared';
 import {
   useAutoTopup,
@@ -19,6 +19,7 @@ import { useLeads } from '../services/leads.service.js';
 import { Badge } from '../components/ui/Badge.js';
 import { EmptyState } from '../components/common/EmptyState.js';
 import { Skeleton } from '../components/common/Skeleton.js';
+import PricingTicket, { type Plan } from '../components/billing/PricingTicket.js';
 
 type Tab = 'payments' | 'credits' | 'details';
 const inputCls = 'rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800 dark:text-white';
@@ -128,18 +129,36 @@ const CreditsTab: React.FC = () => {
   const topup = useTopup();
   const auto = useAutoTopup();
   const { error, run } = useRun();
+  const [order, setOrder] = useState<{ packId: string; url: string | null } | null>(null);
+  // bumping the key prints a fresh ticket on `start` (after a failed top-up)
+  const [ticket, setTicket] = useState<{ key: number; start?: string }>({ key: 0 });
   if (isLoading || !data) return <Skeleton className="h-40 w-full" />;
   const openTopup = (orders ?? []).find(o => o.status === 'pending');
+  // Tearing a pack's stub opens a top-up order; its payment link becomes the ticket's CTA.
+  const claim = async (p: Plan) => {
+    const o = await run(() => topup.mutateAsync(p.id));
+    if (o) setOrder({ packId: p.id, url: o.paymentLinkUrl });
+    else setTicket(t => ({ key: t.key + 1, start: p.id }));
+  };
+  const packs: Plan[] = data.packs.map(p => ({
+    id: p.id,
+    name: inr(p.priceInr * 100),
+    code: `${+(p.credits / 1000).toFixed(1)}K`,
+    plan: 'Top-up',
+    price: inr(p.priceInr * 100),
+    priceLabel: p.credits > p.priceInr ? `+${Math.round((p.credits / p.priceInr - 1) * 100)}% bonus` : 'One payment',
+    to: p.credits.toLocaleString('en-IN'),
+    toLabel: 'Credits',
+    seats: 'Team-wide',
+    access: 'AI + calls',
+    cta: `Pay ${inr(p.priceInr * 100)}`,
+    href: order?.packId === p.id ? order.url ?? '' : '',
+  }));
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className={card}><p className="text-[11px] text-slate-500">Prepaid credits</p><p className={`font-serif text-3xl font-bold ${data.lowBalance ? 'text-amber-600' : 'text-slate-900 dark:text-white'}`}>{Math.round(data.balance).toLocaleString('en-IN')}</p><p className="text-[10px] text-slate-400">1 credit = ₹1 of AI replies, calls and messages</p></div>
-        {data.packs.map(p => (
-          <div key={p.id} className={card}>
-            <p className="text-sm font-bold">{p.label}</p><p className="text-xs text-slate-500">₹{p.priceInr.toLocaleString('en-IN')}</p>
-            <button type="button" disabled={topup.isPending} onClick={() => void run(() => topup.mutateAsync(p.id))} className={`${btn} mt-2 bg-accent text-white`}><Coins className="h-3.5 w-3.5" /> Buy</button>
-          </div>
-        ))}
+      <div className="grid items-center gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className={card}><p className="text-[11px] text-slate-500">Prepaid credits</p><p className={`font-serif text-3xl font-bold ${data.lowBalance ? 'text-amber-600' : 'text-slate-900 dark:text-white'}`}>{Math.round(data.balance).toLocaleString('en-IN')}</p><p className="text-[10px] text-slate-400">1 credit = ₹1 of AI replies, calls and messages. Pick a pack and pull its stub to buy it.</p></div>
+        <PricingTicket key={ticket.key} plans={packs} start={ticket.start ?? packs[1]?.id} onClaim={p => void claim(p)} backdrop={false} page="var(--bg)" className="py-2" />
       </div>
       {openTopup?.paymentLinkUrl && <p className="rounded-xl bg-blue-50 p-3 text-xs text-blue-800 dark:bg-blue-950/30 dark:text-blue-200" role="status">Complete your top-up of {inr(openTopup.amountMinor)}: <a className="font-bold underline" href={openTopup.paymentLinkUrl}>open the payment page</a></p>}
       <Err error={error} />

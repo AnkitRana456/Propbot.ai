@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Copy, KeyRound, Plus, Trash2, Upload, X, Radio, QrCode, ExternalLink } from 'lucide-react';
 import { LEAD_SOURCE_TYPES, type LeadSourceItem, type LeadSourceType } from '@propbot/shared';
 import {
+  type CsvImportSummary,
   useCreateLeadSource,
   useDeleteLeadSource,
   useGenerateKioskToken,
@@ -14,6 +16,8 @@ import {
 import { Badge } from '../components/ui/Badge.js';
 import { EmptyState } from '../components/common/EmptyState.js';
 import { Skeleton } from '../components/common/Skeleton.js';
+import { UploadCard } from '../components/ui/UploadCard.js';
+import { xhrJsonTarget } from '../services/api-client.js';
 
 const TYPE_LABEL: Record<LeadSourceType, string> = {
   generic: 'Any website / API',
@@ -108,6 +112,9 @@ const SourceCard: React.FC<{ s: LeadSourceItem; onKey: (k: string) => void }> = 
   const [error, setError] = useState<string | null>(null);
   const [kioskLink, setKioskLink] = useState<string | null>(null);
   const [kioskCopied, setKioskCopied] = useState(false);
+  const qc = useQueryClient();
+
+  const report = (r: CsvImportSummary) => setMsg(`${r.processed} new, ${r.duplicate} duplicates, ${r.rejected + r.failed} skipped of ${r.total}.${r.errors[0] ? ` Row ${r.errors[0].row}: ${r.errors[0].error}` : ''}`);
 
   const run = async (fn: () => Promise<unknown>) => {
     setError(null);
@@ -166,9 +173,20 @@ const SourceCard: React.FC<{ s: LeadSourceItem; onKey: (k: string) => void }> = 
         <div className="mt-3 space-y-3">
           <div>
             <p className="text-xs font-semibold">Import a CSV</p>
+            <UploadCard
+              {...xhrJsonTarget(`/api/lead-sources/${s.id}/import-csv`)}
+              body={f => f.text().then(csv => JSON.stringify({ csv }))}
+              title="Import a CSV"
+              accept=".csv,text/csv"
+              maxBytes={512 * 1024}
+              hint="Up to 500 rows · .csv"
+              demo={false}
+              onComplete={(_file, _url, reply) => { report((reply as { data: CsvImportSummary }).data); void qc.invalidateQueries({ queryKey: ['lead-sources'] }); }}
+              className="mt-1"
+            />
+            <p className="mt-2 text-[11px] text-slate-500">Or paste the rows</p>
             <textarea aria-label="CSV text" rows={3} value={csv} onChange={e => setCsv(e.target.value)} placeholder={'name,phone,email\nAsha Rao,+919800000000,asha@example.com'} className={`${inputCls} font-mono`} />
-            <input type="file" accept=".csv,text/csv" aria-label="CSV file" className="mt-1 text-[11px]" onChange={e => void e.target.files?.[0]?.text().then(setCsv)} />
-            <button type="button" disabled={!csv.trim() || imp.isPending} onClick={() => void run(async () => { const r = await imp.mutateAsync({ id: s.id, csv }); setMsg(`${r.processed} new, ${r.duplicate} duplicates, ${r.rejected + r.failed} skipped of ${r.total}.${r.errors[0] ? ` Row ${r.errors[0].row}: ${r.errors[0].error}` : ''}`); })} className="mt-1 inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-slate-700 cursor-pointer"><Upload className="h-3.5 w-3.5" /> Import</button>
+            <button type="button" disabled={!csv.trim() || imp.isPending} onClick={() => void run(async () => report(await imp.mutateAsync({ id: s.id, csv })))} className="mt-1 inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-slate-700 cursor-pointer"><Upload className="h-3.5 w-3.5" /> Import</button>
             {msg && <p className="mt-1 text-[11px] text-slate-600" role="status">{msg}</p>}
           </div>
           <div>

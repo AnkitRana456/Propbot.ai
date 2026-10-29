@@ -15,12 +15,12 @@ export interface ModelDefinition {
   completionPer1k: number;
 }
 
-export const DEFAULT_AGENT_MODEL = 'gemini-3.8-flash';
+export const DEFAULT_AGENT_MODEL = 'gemini-2.0-flash';
 
 export const GEMINI_MODELS: readonly ModelDefinition[] = [
   {
-    id: 'gemini-3.8-flash',
-    label: 'Gemini 3.8 Flash',
+    id: 'gemini-2.0-flash',
+    label: 'Gemini 2.0 Flash',
     tier: 'balanced',
     description: 'Default. Fast, accurate and inexpensive for property Q&A and lead qualification.',
     contextTokens: 1_000_000,
@@ -28,17 +28,17 @@ export const GEMINI_MODELS: readonly ModelDefinition[] = [
     completionPer1k: 0.0004,
   },
   {
-    id: 'gemini-3.5-flash',
-    label: 'Gemini 3.5 Flash',
+    id: 'gemini-2.5-flash',
+    label: 'Gemini 2.5 Flash',
     tier: 'balanced',
-    description: 'Previous-generation Flash; use if 3.8 behaves differently for your prompts.',
+    description: 'Smarter Flash variant. Better reasoning for complex buyer queries.',
     contextTokens: 1_000_000,
-    promptPer1k: 0.0001,
-    completionPer1k: 0.0004,
+    promptPer1k: 0.0003,
+    completionPer1k: 0.0025,
   },
   {
-    id: 'gemini-3.1-flash-lite',
-    label: 'Gemini 3.1 Flash-Lite',
+    id: 'gemini-2.0-flash-lite',
+    label: 'Gemini 2.0 Flash-Lite',
     tier: 'fast',
     description: 'Cheapest and quickest. Good for simple FAQ and classification agents.',
     contextTokens: 1_000_000,
@@ -46,10 +46,10 @@ export const GEMINI_MODELS: readonly ModelDefinition[] = [
     completionPer1k: 0.0002,
   },
   {
-    id: 'gemini-3.1-pro-preview',
-    label: 'Gemini 3.1 Pro (preview)',
+    id: 'gemini-2.5-pro',
+    label: 'Gemini 2.5 Pro',
     tier: 'smart',
-    description: 'Strongest reasoning for complex negotiations and multi-step advice. Slower and pricier; preview model.',
+    description: 'Strongest reasoning for complex negotiations and multi-step advice. Slower and pricier.',
     contextTokens: 1_000_000,
     promptPer1k: 0.00125,
     completionPer1k: 0.005,

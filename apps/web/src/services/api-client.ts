@@ -57,6 +57,12 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
   return (body?.data ?? body) as T;
 }
 
+/** Endpoint and headers for a JSON POST sent with XMLHttpRequest (UploadCard), since fetch can't report upload progress. */
+export function xhrJsonTarget(endpoint: string): { endpoint: string; headers: Record<string, string> } {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('propbot_access_token') : null;
+  return { endpoint: `${API_BASE_URL}${endpoint}`, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } };
+}
+
 /** Returns the whole response body. Use it for list endpoints that send `{ success, data, pagination }`. */
 export async function apiRequestEnvelope<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   return (await request(endpoint, options)) as T;

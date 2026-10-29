@@ -1,7 +1,10 @@
-import React, { useRef, useState } from 'react';
-import { Download, Upload, X } from 'lucide-react';
-import { useImportLeads, type ImportSummary } from '../../services/leads.service.js';
+import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Download, X } from 'lucide-react';
+import type { ImportSummary } from '../../services/leads.service.js';
+import { xhrJsonTarget } from '../../services/api-client.js';
 import { Button } from '../ui/Button.js';
+import { UploadCard } from '../ui/UploadCard.js';
 
 interface Props {
   isOpen: boolean;
@@ -14,27 +17,10 @@ Priya Patel,+919812345678,
 Amit Verma,+918800001234,amit@example.com`;
 
 export const ImportLeadsModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [csv, setCsv] = useState('');
-  const [fileName, setFileName] = useState('');
   const [result, setResult] = useState<ImportSummary | null>(null);
-  const importMutation = useImportLeads();
+  const queryClient = useQueryClient();
 
   if (!isOpen) return null;
-
-  const handleFile = (file: File) => {
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = e => setCsv(e.target?.result as string ?? '');
-    reader.readAsText(file);
-    setResult(null);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  };
 
   const downloadSample = () => {
     const blob = new Blob([SAMPLE_CSV], { type: 'text/csv' });
@@ -46,17 +32,8 @@ export const ImportLeadsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     URL.revokeObjectURL(url);
   };
 
-  const handleImport = async () => {
-    if (!csv.trim()) return;
-    const res = await importMutation.mutateAsync({ csv });
-    setResult(res.data);
-  };
-
   const handleClose = () => {
-    setCsv('');
-    setFileName('');
     setResult(null);
-    importMutation.reset();
     onClose();
   };
 
@@ -72,45 +49,35 @@ export const ImportLeadsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="space-y-4 p-5">
-          {!result ? (
-            <>
-              {/* Format info */}
-              <div className="rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-text-muted">
-                <p className="font-medium text-text">Required columns:</p>
-                <p className="mt-1"><code className="rounded bg-surface px-1">name</code>, <code className="rounded bg-surface px-1">phone</code></p>
-                <p className="mt-1">Optional: <code className="rounded bg-surface px-1">email</code></p>
-                <button type="button" onClick={downloadSample} className="mt-2 flex items-center gap-1.5 text-accent hover:underline">
-                  <Download className="h-3.5 w-3.5" /> Download sample CSV
-                </button>
-              </div>
+        <div className="max-h-[75vh] space-y-4 overflow-y-auto p-5">
+          {/* Format info */}
+          <div className="rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-text-muted">
+            <p className="font-medium text-text">Required columns:</p>
+            <p className="mt-1"><code className="rounded bg-surface px-1">name</code>, <code className="rounded bg-surface px-1">phone</code></p>
+            <p className="mt-1">Optional: <code className="rounded bg-surface px-1">email</code></p>
+            <button type="button" onClick={downloadSample} className="mt-2 flex items-center gap-1.5 text-accent hover:underline">
+              <Download className="h-3.5 w-3.5" /> Download sample CSV
+            </button>
+          </div>
 
-              {/* Drop zone */}
-              <div
-                onDrop={handleDrop}
-                onDragOver={e => e.preventDefault()}
-                onClick={() => fileRef.current?.click()}
-                className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border px-6 py-8 text-center hover:border-accent hover:bg-accent-soft/30 transition-colors"
-              >
-                <Upload className="h-7 w-7 text-text-muted" />
-                <p className="text-sm font-medium text-text">{fileName || 'Click or drag a CSV file here'}</p>
-                {fileName && <p className="text-xs text-text-muted">File loaded — ready to import</p>}
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                />
-              </div>
+          {/* The file is imported as soon as it is picked; the card shows the upload live */}
+          <UploadCard
+            {...xhrJsonTarget('/api/leads/import-csv')}
+            body={f => f.text().then(csv => JSON.stringify({ csv }))}
+            title="Import leads"
+            accept=".csv,text/csv"
+            maxBytes={512 * 1024}
+            hint="Up to 500 rows · .csv"
+            demo={false}
+            onComplete={(_file, _url, reply) => {
+              setResult((reply as { data: ImportSummary }).data);
+              void queryClient.invalidateQueries({ queryKey: ['leads'] });
+            }}
+          />
 
-              {importMutation.isError && (
-                <p className="text-sm text-danger">{importMutation.error.message}</p>
-              )}
-            </>
-          ) : (
+          {result && (
             /* Results */
-            <div className="space-y-3">
+            <div className="space-y-3" role="status">
               <h3 className="font-medium text-text">Import complete</h3>
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-3 text-center">
@@ -141,18 +108,8 @@ export const ImportLeadsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
           <Button variant="outline" size="sm" onClick={handleClose}>
-            {result ? 'Close' : 'Cancel'}
+            {result ? 'Done' : 'Cancel'}
           </Button>
-          {!result && (
-            <Button
-              size="sm"
-              onClick={handleImport}
-              disabled={!csv.trim() || importMutation.isPending}
-              leftIcon={<Upload className="h-4 w-4" />}
-            >
-              {importMutation.isPending ? 'Importing…' : 'Import leads'}
-            </Button>
-          )}
         </div>
       </div>
     </div>

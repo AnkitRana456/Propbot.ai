@@ -129,7 +129,7 @@ export type AttributeExtractor = (input: {
   known: Record<string, unknown>;
 }) => Promise<Record<string, unknown>>;
 
-const GEMINI_EXTRACTION_MODEL = 'gemini-3.1-flash-lite';
+const GEMINI_EXTRACTION_MODEL = 'gemini-2.0-flash-lite';
 
 /** Default extractor: one small structured-JSON Gemini call over the recent transcript. */
 const geminiExtractor: AttributeExtractor = async ({ companyId, agentId, fields, transcript, known }) => {

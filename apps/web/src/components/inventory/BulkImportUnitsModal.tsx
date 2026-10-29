@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { X, UploadCloud, FileText, CheckCircle2, AlertTriangle, Download, RefreshCw } from 'lucide-react';
-import { useBulkImportUnits } from '../../services/inventory.service.js';
+import { inventoryKeys, useBulkImportUnits } from '../../services/inventory.service.js';
+import { xhrJsonTarget } from '../../services/api-client.js';
+import { UploadCard } from '../ui/UploadCard.js';
 import type { BulkImportReport } from '@propbot/shared';
 
 interface BulkImportUnitsModalProps {
@@ -26,22 +29,24 @@ export const BulkImportUnitsModal: React.FC<BulkImportUnitsModalProps> = ({
 }) => {
   const [csvContent, setCsvContent] = useState('');
   const [report, setReport] = useState<BulkImportReport | null>(null);
-  const [fileName, setFileName] = useState('');
+  const queryClient = useQueryClient();
 
   const bulkImportMutation = useBulkImportUnits();
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = event => {
-      const text = event.target?.result as string;
-      setCsvContent(text);
-    };
-    reader.readAsText(file);
+  const handleReport = (res: BulkImportReport) => {
+    setReport(res);
+    if (res.importedCount > 0 && onSuccess) {
+      onSuccess();
+    }
+  };
+
+  // a CSV file goes straight to the import endpoint through the upload card
+  const handleUploaded = (res: BulkImportReport) => {
+    void queryClient.invalidateQueries({ queryKey: inventoryKeys.units(projectId) });
+    void queryClient.invalidateQueries({ queryKey: inventoryKeys.project(projectId) });
+    handleReport(res);
   };
 
   const handleDownloadSample = () => {
@@ -57,14 +62,10 @@ export const BulkImportUnitsModal: React.FC<BulkImportUnitsModalProps> = ({
   const handleImport = async () => {
     if (!csvContent.trim()) return;
     try {
-      const res = await bulkImportMutation.mutateAsync({
+      handleReport(await bulkImportMutation.mutateAsync({
         projectId,
         input: { csvContent },
-      });
-      setReport(res);
-      if (res.importedCount > 0 && onSuccess) {
-        onSuccess();
-      }
+      }));
     } catch {
       // handled by mutation error
     }
@@ -107,23 +108,18 @@ export const BulkImportUnitsModal: React.FC<BulkImportUnitsModalProps> = ({
             </button>
           </div>
 
-          {/* File Upload Box */}
-          <div className="rounded-xl border-2 border-dashed border-slate-200 p-5 text-center dark:border-slate-800 hover:border-blue-400 transition-colors">
-            <input
-              type="file"
-              accept=".csv,.txt"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="csv-file-input"
-            />
-            <label htmlFor="csv-file-input" className="cursor-pointer block">
-              <UploadCloud className="mx-auto h-8 w-8 text-slate-400 mb-2" />
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {fileName ? fileName : 'Click to select CSV file from computer'}
-              </p>
-              <p className="text-[11px] text-slate-400 mt-1">Accepts CSV files with up to 500 unit rows</p>
-            </label>
-          </div>
+          {/* The file is imported as soon as it is picked; the card shows the upload live */}
+          <UploadCard
+            {...xhrJsonTarget(`/api/properties/projects/${projectId}/units/import`)}
+            body={f => f.text().then(csvContent => JSON.stringify({ csvContent }))}
+            title="Upload unit CSV"
+            accept=".csv,.txt"
+            maxBytes={512 * 1024}
+            hint="Up to 500 unit rows · .csv"
+            demo={false}
+            onComplete={(_file, _url, reply) => handleUploaded((reply as { data: BulkImportReport }).data)}
+            style={{ width: '100%' }}
+          />
 
           {/* Textarea Editor */}
           <div>

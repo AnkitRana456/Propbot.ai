@@ -11,25 +11,39 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { QaPair } from '@propbot/shared';
+import { xhrJsonTarget } from '../../services/api-client.js';
+import { UploadCard } from '../ui/UploadCard.js';
 
 interface AddSourceModalProps {
   isOpen: boolean;
+  chatbotId: string;
   onClose: () => void;
   onSubmitText: (title: string, content: string) => Promise<void>;
   onSubmitQa: (title: string, pairs: QaPair[]) => Promise<void>;
   onSubmitCrawl: (title: string, url: string, maxPages: number, maxDepth: number) => Promise<void>;
-  onSubmitFile: (title: string, file: File) => Promise<void>;
+  /** a document finished uploading (the upload card sends it itself, with live progress) */
+  onFileUploaded: () => void;
 }
+
+// the upload endpoint takes JSON with the file as a base64 data URL
+const readDataUrl = (f: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(f);
+  });
 
 type TabType = 'text' | 'file' | 'crawl' | 'qa';
 
 export const AddSourceModal: React.FC<AddSourceModalProps> = ({
   isOpen,
+  chatbotId,
   onClose,
   onSubmitText,
   onSubmitQa,
   onSubmitCrawl,
-  onSubmitFile,
+  onFileUploaded,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('file');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +55,6 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
 
   // File tab state
   const [fileTitle, setFileTitle] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Crawl tab state
   const [crawlTitle, setCrawlTitle] = useState('');
@@ -57,16 +70,6 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
   ]);
 
   if (!isOpen) return null;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      if (!fileTitle) {
-        setFileTitle(file.name.replace(/\.[^/.]+$/, ''));
-      }
-    }
-  };
 
   const handleAddQaPair = () => {
     setQaPairs([...qaPairs, { question: '', answer: '' }]);
@@ -95,10 +98,6 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
         if (!textTitle.trim()) throw new Error('Source title is required.');
         if (textContent.trim().length < 10) throw new Error('Content must be at least 10 characters.');
         await onSubmitText(textTitle.trim(), textContent.trim());
-      } else if (activeTab === 'file') {
-        if (!selectedFile) throw new Error('Please select a file to upload.');
-        if (!fileTitle.trim()) throw new Error('Document title is required.');
-        await onSubmitFile(fileTitle.trim(), selectedFile);
       } else if (activeTab === 'crawl') {
         if (!crawlUrl.trim() || !crawlUrl.startsWith('http')) {
           throw new Error('Please enter a valid HTTP or HTTPS website URL.');
@@ -212,36 +211,32 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Master Brochure & Specifications 2026"
+                  placeholder="Defaults to the file name, e.g. Master Brochure 2026"
                   value={fileTitle}
                   onChange={e => setFileTitle(e.target.value)}
                   className="w-full px-3.5 py-2 border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-primary)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)]"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5 font-mono">
-                  Attach Document (PDF, DOCX, TXT, CSV, XLSX)
-                </label>
-                <div className="border-2 border-dashed border-[var(--border)] hover:border-[var(--accent)] rounded-xl p-6 text-center cursor-pointer transition-colors bg-[var(--surface-muted)]/50">
-                  <input
-                    type="file"
-                    id="file-upload"
-                    className="hidden"
-                    accept=".pdf,.docx,.txt,.csv,.xlsx"
-                    onChange={handleFileChange}
-                  />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <UploadCloud className="w-10 h-10 mx-auto text-[var(--text-muted)] mb-2" />
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">
-                      {selectedFile ? selectedFile.name : 'Click to upload or drag & drop'}
-                    </p>
-                    <p className="text-xs text-[var(--text-muted)] mt-1">
-                      PDF, DOCX, TXT, CSV, or XLSX up to 25 MB
-                    </p>
-                  </label>
-                </div>
-              </div>
+              {/* The document uploads as soon as it is picked; the limits match the API's upload guard */}
+              <UploadCard
+                {...xhrJsonTarget(`/api/chatbots/${chatbotId}/knowledge/sources/upload`)}
+                body={(f, name) =>
+                  readDataUrl(f).then(fileBase64 =>
+                    JSON.stringify({ title: fileTitle.trim() || name.replace(/\.[^/.]+$/, ''), fileName: name, mimeType: f.type || undefined, fileBase64 }),
+                  )
+                }
+                title="Attach document"
+                accept=".pdf,.docx,.txt,.md,.csv,.json"
+                maxBytes={10 * 1024 * 1024}
+                hint="Up to 10 MB · .pdf .docx .txt .md .csv .json"
+                demo={false}
+                onComplete={() => {
+                  setFileTitle('');
+                  onFileUploaded();
+                }}
+                style={{ width: '100%' }}
+              />
             </div>
           )}
 
@@ -411,16 +406,18 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-muted)] rounded-lg transition-colors"
             >
-              Cancel
+              {activeTab === 'file' ? 'Close' : 'Cancel'}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 text-xs font-semibold text-white bg-[var(--accent)] hover:brightness-110 rounded-lg shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {isSubmitting ? 'Ingesting & Vectorizing...' : 'Save & Ingest'}
-            </button>
+            {activeTab !== 'file' && (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-5 py-2 text-xs font-semibold text-white bg-[var(--accent)] hover:brightness-110 rounded-lg shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {isSubmitting ? 'Ingesting & Vectorizing...' : 'Save & Ingest'}
+              </button>
+            )}
           </div>
         </form>
       </div>

@@ -52,21 +52,6 @@ export const knowledgeService = {
     });
   },
 
-  async uploadFileSource(
-    chatbotId: string,
-    file: File,
-    title: string,
-  ): Promise<KnowledgeSourceResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-
-    return apiRequest<KnowledgeSourceResponse>(`/api/chatbots/${chatbotId}/knowledge/sources/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-  },
-
   async reTrainSource(chatbotId: string, sourceId: string): Promise<KnowledgeSourceResponse> {
     return apiRequest<KnowledgeSourceResponse>(
       `/api/chatbots/${chatbotId}/knowledge/sources/${sourceId}/retrain`,

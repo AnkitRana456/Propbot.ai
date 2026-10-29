@@ -170,7 +170,7 @@ export const agentVersionContentSchema = z.object({
   conditions: z.array(agentConditionSchema).max(20).default([]),
   knowledge: agentKnowledgeSchema,
   formId: z.string().uuid().nullable().optional(),
-  model: modelIdSchema.default('gemini-3.8-flash'),
+  model: modelIdSchema.default('gemini-2.0-flash'),
   temperature: z.number().min(0).max(1).default(0.7),
   maxOutputTokens: z.number().int().min(100).max(2000).default(600),
   flags: agentFlagsSchema,

@@ -2,7 +2,8 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { CurrentPlanCard } from '../src/components/billing/CurrentPlanCard.js';
 import { UsageMeters } from '../src/components/billing/UsageMeters.js';
-import { PlanComparisonGrid } from '../src/components/billing/PlanComparisonGrid.js';
+import { renderToString } from 'react-dom/server';
+import PricingTicket, { type Plan } from '../src/components/billing/PricingTicket.js';
 import { InvoicesTable } from '../src/components/billing/InvoicesTable.js';
 import { LeadCreditsCard } from '../src/components/billing/LeadCreditsCard.js';
 import { SubscriptionPage } from '../src/pages/SubscriptionPage.js';
@@ -128,17 +129,23 @@ describe('Frontend Subscription & Billing Components & Page', () => {
     expect(el.props.usage?.whatsappNumbers.percentage).toBe(100);
   });
 
-  it('renders PlanComparisonGrid with tier options and checkout handler', () => {
-    const handleSelectPlan = vi.fn();
+  it('renders PricingTicket with plan pills, a locked current plan and no CTA before a claim', () => {
+    const base = { priceLabel: 'Per month', toLabel: 'Chats a month', cta: '', href: '' };
+    const plans: Plan[] = [
+      { ...base, id: 'starter', name: 'Starter', code: 'ST', price: '₹2,999', to: '1,000', plan: 'Starter', seats: '5 users', access: '3 chatbots' },
+      { ...base, id: 'growth', name: 'Growth', code: 'GR', price: '₹7,999', to: '5,000', plan: 'Growth', seats: '15 users', access: '10 chatbots', current: true },
+    ];
 
-    const el = React.createElement(PlanComparisonGrid, {
-      currentPlan: 'starter',
-      onSelectPlan: handleSelectPlan,
-      isLoading: false,
-    });
+    const locked = renderToString(<PricingTicket plans={plans} start="growth" backdrop={false} loadFont={false} />);
+    expect(locked).toContain('Starter');
+    expect(locked).toContain('₹7,999');
+    expect(locked).toContain('Your plan');
+    expect(locked).toContain('aria-disabled="true"');
+    expect(locked).not.toContain('Claimed');
 
-    expect(el).toBeDefined();
-    expect(el.props.currentPlan).toBe('starter');
+    const open = renderToString(<PricingTicket plans={plans} start="starter" backdrop={false} loadFont={false} />);
+    expect(open).toContain('Pull to claim');
+    expect(open).toContain('aria-label="Pull to claim Starter"');
   });
 
   it('renders InvoicesTable with historical invoice downloads', () => {

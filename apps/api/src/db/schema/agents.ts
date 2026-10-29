@@ -136,7 +136,7 @@ export const agentVersions = pgTable(
       .notNull()
       .default(sql`'{}'::jsonb`),
     formId: uuid('form_id').references(() => forms.id, { onDelete: 'set null' }),
-    model: varchar('model', { length: 80 }).notNull().default('gemini-3.8-flash'),
+    model: varchar('model', { length: 80 }).notNull().default('gemini-2.0-flash'),
     temperature: numeric('temperature', { precision: 3, scale: 2 }).notNull().default('0.70'),
     maxOutputTokens: integer('max_output_tokens').notNull().default(600),
     flags: jsonb('flags')

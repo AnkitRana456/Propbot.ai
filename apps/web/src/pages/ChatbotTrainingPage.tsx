@@ -97,14 +97,6 @@ export const ChatbotTrainingPage: React.FC = () => {
     },
   });
 
-  const fileMutation = useMutation({
-    mutationFn: (input: { title: string; file: File }) =>
-      knowledgeService.uploadFileSource(chatbotId!, input.file, input.title),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledgeSources', chatbotId] });
-    },
-  });
-
   const retrainMutation = useMutation({
     mutationFn: (sourceId: string) => knowledgeService.reTrainSource(chatbotId!, sourceId),
     onMutate: sourceId => setRetrainingId(sourceId),
@@ -320,6 +312,7 @@ export const ChatbotTrainingPage: React.FC = () => {
       {/* Modals */}
       <AddSourceModal
         isOpen={isAddModalOpen}
+        chatbotId={chatbotId!}
         onClose={() => setIsAddModalOpen(false)}
         onSubmitText={async (title, content) => {
           await textMutation.mutateAsync({ title, content });
@@ -330,9 +323,7 @@ export const ChatbotTrainingPage: React.FC = () => {
         onSubmitCrawl={async (title, url, maxPages, maxDepth) => {
           await crawlMutation.mutateAsync({ title, url, maxPages, maxDepth });
         }}
-        onSubmitFile={async (title, file) => {
-          await fileMutation.mutateAsync({ title, file });
-        }}
+        onFileUploaded={() => void queryClient.invalidateQueries({ queryKey: ['knowledgeSources', chatbotId] })}
       />
 
       <QaOverridesModal
