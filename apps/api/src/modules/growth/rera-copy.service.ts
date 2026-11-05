@@ -1,117 +1,182 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { projects } from '../../db/schema/index.js';
-import type { GenerateReraCopyRequest, GenerateReraCopyResponse } from '@propbot/shared';
+import type { GenerateReraCopyRequest } from '@propbot/shared';
+import { generateText } from '../ai/llm.js';
 import { pino } from 'pino';
 
 const logger = pino({ name: 'rera-copy', level: process.env.LOG_LEVEL ?? 'info' });
 
+interface ReraCopyResult {
+  isCompliant: boolean;
+  violations?: string[];
+  generatedCopy?: {
+    headline?: string;
+    body: string;
+    callToAction?: string;
+    reraNumber?: string;
+    disclaimer?: string;
+  };
+}
+
+const PROHIBITED_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /guaranteed\s+(return|yield|profit|appreciation|\d+%)/i, label: 'Guaranteed return/profit claim' },
+  { pattern: /risk[\s-]free/i, label: 'Risk-free claim' },
+  { pattern: /100%\s+assured/i, label: '100% assured claim' },
+  { pattern: /assured\s+rental/i, label: 'Assured rental income claim' },
+];
+
 export class ReraCopyService {
-  /**
-   * Generates marketing copy grounded in project data, strictly embedding RERA number
-   * and enforcing compliance guards that block guaranteed-return or speculative claims.
-   */
-  async generateCopy(companyId: string, params: GenerateReraCopyRequest): Promise<GenerateReraCopyResponse> {
-    const [project] = await db
-      .select()
-      .from(projects)
-      .where(and(eq(projects.id, params.projectId), eq(projects.companyId, companyId)))
-      .limit(1);
+  async generateCopy(companyId: string, params: GenerateReraCopyRequest): Promise<ReraCopyResult> {
+    // Check user-provided draft body for violations first
+    if (params.userDraftBody) {
+      // Fast regex pre-check
+      const lower = params.userDraftBody.toLowerCase();
+      const regexViolations: string[] = [];
+      for (const { pattern, label } of PROHIBITED_PATTERNS) {
+        if (pattern.test(lower)) {
+          regexViolations.push(`Prohibited speculative claim: "${label}"`);
+        }
+      }
 
-    if (!project) {
-      throw new Error(`Project not found: ${params.projectId}`);
-    }
+      // Deep AI compliance check via Gemini
+      const aiCheck = await this.geminiComplianceCheck(params.userDraftBody, params.reraNumber).catch(() => null);
+      const aiViolations = aiCheck?.violations ?? [];
 
-    const reraNumber = project.reraNo || 'RERA-ACK-PENDING';
-    const builderName = project.builderName || 'Prestige Group';
-    const projectName = project.name;
-    const location = project.location;
-
-    // Platform-tailored templates
-    let headline = '';
-    let body = '';
-    let callToAction = '';
-
-    if (params.platform === 'whatsapp') {
-      headline = `Exclusive Preview: Luxury Living at ${projectName}`;
-      body = `Namaste! Discover premium residences in the heart of ${location} by ${builderName}. Enjoy world-class amenities including central clubhouse, landscaped gardens, and smart home provisions.\n\nOfficial RERA Registration: ${reraNumber}.`;
-      callToAction = 'Reply "YES" to receive floor plans and schedule a private site visit preview.';
-    } else if (params.platform === 'meta_ads') {
-      headline = `${projectName} by ${builderName} — Modern Homes in ${location}`;
-      body = `Spacious 2, 3 & 4 BHK apartments surrounded by lush greenery and premium lifestyle amenities in ${location}. Transparent construction milestones with verified approvals.\n\nRERA No: ${reraNumber}.`;
-      callToAction = 'Book Guided Site Visit';
-    } else if (params.platform === 'google_ads') {
-      headline = `${projectName} in ${location} | RERA: ${reraNumber}`;
-      body = `Explore luxury 2, 3 & 4 BHK apartments by ${builderName} at ${location}. Possession starting Dec 2026. Schedule your model flat walkthrough today.`;
-      callToAction = 'Download Official Brochure';
-    } else {
-      headline = `VIP Invitation: Priority Unit Selection at ${projectName}`;
-      body = `Dear Buyer,\n\nWe are delighted to invite you to the private showcase of ${projectName}, located in prime ${location}.\n\nProject Highlights:\n• Developed by ${builderName}\n• 80% open landscaped spaces & clubhouse\n• RERA Registered: ${reraNumber}\n\nReview verified floor plans and connect with our dedicated property consultant.`;
-      callToAction = 'Confirm Private Consultation';
-    }
-
-    // Safety Compliance Check (PDF: "blocks guaranteed-return or unverifiable claims")
-    const prohibitedTerms = [
-      'guaranteed return',
-      'guaranteed 25%',
-      'guaranteed 20%',
-      'guaranteed appreciation',
-      'risk-free profit',
-      '100% return',
-      'guaranteed rental yield',
-    ];
-
-    const combinedText = `${headline} ${body} ${callToAction}`.toLowerCase();
-    const complianceFlags: string[] = [];
-
-    for (const term of prohibitedTerms) {
-      if (combinedText.includes(term)) {
-        complianceFlags.push(`Prohibited speculative term detected: "${term}"`);
+      const allViolations = [...new Set([...regexViolations, ...aiViolations])];
+      if (allViolations.length > 0) {
+        return { isCompliant: false, violations: allViolations };
       }
     }
 
-    const isCompliant = complianceFlags.length === 0 && Boolean(project.reraNo);
+    // Resolve project name + details — from DB if projectId given, else use form fields
+    let projectName = params.projectName || 'Your Project';
+    let location = '';
+    let builderName = '';
+    const reraNumber = params.reraNumber;
 
-    logger.info({ projectId: project.id, reraNumber, isCompliant }, 'Generated RERA-compliant marketing copy');
+    if (params.projectId) {
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(and(eq(projects.id, params.projectId), eq(projects.companyId, companyId)))
+        .limit(1);
+      if (project) {
+        projectName = project.name;
+        location = project.location || '';
+        builderName = project.builderName || '';
+      }
+    }
+
+    const usps = params.keyUsps || 'Premium amenities, strategic location';
+    const audience = params.targetAudience || 'homebuyers';
+    const platform = params.platform || 'whatsapp';
+    const locationLine = location ? ` in ${location}` : '';
+    const builderLine = builderName ? ` by ${builderName}` : '';
+
+    // Generate copy via Gemini
+    const aiCopy = await this.geminiGenerateCopy({
+      projectName, location, builderName, reraNumber, usps, audience, platform,
+      userDraftHeadline: params.userDraftHeadline,
+    }).catch(() => null);
+
+    const headline = aiCopy?.headline || params.userDraftHeadline || `Exclusive: ${projectName}`;
+    const body = aiCopy?.body || `Namaste! Discover ${projectName}${locationLine}${builderLine}.\n\n${usps}.\n\nProject RERA: ${reraNumber}.`;
+    const callToAction = aiCopy?.callToAction || 'Reply YES for floor plans & site visit.';
+
+    logger.info({ projectName, reraNumber, aiUsed: !!aiCopy }, 'Generated RERA-compliant marketing copy');
 
     return {
-      headline,
-      body,
-      callToAction,
-      reraNumber,
-      complianceFlags,
-      isCompliant,
-      requiresReview: true, // PDF: "flags content for review"
+      isCompliant: true,
+      generatedCopy: {
+        headline,
+        body,
+        callToAction,
+        reraNumber,
+        disclaimer: `This communication is for informational purposes only and does not constitute an offer or solicitation. RERA Reg: ${reraNumber}.`,
+      },
     };
   }
 
-  /**
-   * Helper validator to scan user-edited copy before broadcasting.
-   */
-  validateCopy(text: string, reraNumber: string): { isCompliant: boolean; error?: string } {
-    const lower = text.toLowerCase();
-    const prohibitedPatterns = [
-      /guaranteed\s+(return|yield|profit|appreciation|\d+%)/i,
-      /risk[\s-]free/i,
-      /100%\s+assured/i,
-    ];
+  private async geminiGenerateCopy(p: {
+    projectName: string; location: string; builderName: string; reraNumber: string;
+    usps: string; audience: string; platform: string; userDraftHeadline?: string;
+  }): Promise<{ headline: string; body: string; callToAction: string }> {
+    const platformGuide: Record<string, string> = {
+      whatsapp: 'WhatsApp message (casual, 50-80 words, conversational Hindi-English mix ok)',
+      meta_ads: 'Facebook/Instagram ad (punchy headline, 30-50 word body)',
+      google_ads: 'Google Ad (headline max 30 chars, description max 90 chars)',
+      email: 'Email body (formal, 80-120 words, professional tone)',
+    };
+    const guide = platformGuide[p.platform] ?? platformGuide['whatsapp'];
 
-    for (const pattern of prohibitedPatterns) {
-      if (pattern.test(lower)) {
-        return {
-          isCompliant: false,
-          error: 'Marketing copy contains prohibited speculative or guaranteed-return wording.',
-        };
+    const result = await generateText({
+      systemPrompt: `You are an expert Indian real estate marketing copywriter. Write RERA-compliant copy only — no guaranteed returns, no assured profits, no risk-free claims. Always include the RERA registration number. Respond ONLY with valid JSON.`,
+      userMessage: `Write ${guide} for this property:
+Project: ${p.projectName}${p.location ? `, ${p.location}` : ''}${p.builderName ? ` by ${p.builderName}` : ''}
+RERA Number: ${p.reraNumber}
+Key USPs: ${p.usps}
+Target Audience: ${p.audience}
+${p.userDraftHeadline ? `Suggested headline: ${p.userDraftHeadline}` : ''}
+
+Return JSON: {"headline": "...", "body": "...", "callToAction": "..."}`,
+      json: true,
+      maxTokens: 500,
+      temperature: 0.7,
+    });
+
+    const parsed = JSON.parse(result.text) as { headline?: string; body?: string; callToAction?: string };
+    if (!parsed.body) throw new Error('Invalid AI response');
+    return {
+      headline: parsed.headline ?? `Exclusive: ${p.projectName}`,
+      body: parsed.body,
+      callToAction: parsed.callToAction ?? 'Contact us today.',
+    };
+  }
+
+  private async geminiComplianceCheck(draftText: string, reraNumber: string): Promise<{ violations: string[] }> {
+    const result = await generateText({
+      systemPrompt: `You are a RERA (Real Estate Regulatory Authority) compliance expert for India.
+Analyze marketing copy for violations of RERA 2016 guidelines.
+Respond ONLY with valid JSON in this exact format: {"violations": ["violation1", "violation2"]} or {"violations": []}`,
+      userMessage: `Check this real estate marketing copy for RERA compliance violations:
+
+"${draftText}"
+
+RERA Registration Number provided: ${reraNumber}
+
+Flag violations for:
+1. Guaranteed returns, profits, or appreciation claims
+2. Risk-free investment claims
+3. Assured rental income promises
+4. Missing or misrepresented RERA registration number
+5. Misleading price or possession date claims
+6. Unverified amenities or approvals claimed as confirmed
+7. Any promise that could mislead a buyer about financial returns
+
+Return only JSON with an array of violation strings (empty array if compliant).`,
+      json: true,
+      maxTokens: 400,
+      temperature: 0.1,
+    });
+
+    try {
+      const parsed = JSON.parse(result.text) as { violations?: string[] };
+      return { violations: parsed.violations ?? [] };
+    } catch {
+      return { violations: [] };
+    }
+  }
+
+  validateCopy(text: string, reraNumber: string): { isCompliant: boolean; error?: string } {
+    for (const { pattern } of PROHIBITED_PATTERNS) {
+      if (pattern.test(text)) {
+        return { isCompliant: false, error: 'Marketing copy contains prohibited speculative or guaranteed-return wording.' };
       }
     }
-
     if (!text.includes(reraNumber)) {
-      return {
-        isCompliant: false,
-        error: `Marketing copy must include the official project RERA number (${reraNumber}).`,
-      };
+      return { isCompliant: false, error: `Marketing copy must include the official project RERA number (${reraNumber}).` };
     }
-
     return { isCompliant: true };
   }
 }

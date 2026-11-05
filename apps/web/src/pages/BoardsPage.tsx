@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, KanbanSquare, MessageSquare, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, KanbanSquare, MessageSquare, AlertCircle, X } from 'lucide-react';
 import type { BoardItem, BoardTaskItem } from '@propbot/shared';
 import {
   useAddTaskComment,
@@ -104,23 +104,59 @@ const Kanban: React.FC<{ board: BoardItem }> = ({ board }) => {
 };
 
 export const BoardsPage: React.FC = () => {
+  const DEFAULT_COLS = [{ key: 'todo', label: 'To do' }, { key: 'doing', label: 'In progress' }, { key: 'done', label: 'Done' }];
   const { data, isLoading, error } = useBoards();
   const create = useCreateBoard();
   const del = useDeleteBoard();
   const [selected, setSelected] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [cols, setCols] = useState(DEFAULT_COLS);
+  const [newCol, setNewCol] = useState('');
+  const [showColEditor, setShowColEditor] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const boards = data ?? [];
   const current = boards.find(b => b.id === selected) ?? boards[0];
 
+  const addCol = () => {
+    const label = newCol.trim();
+    if (!label || cols.length >= 12) return;
+    const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_' + cols.length;
+    setCols([...cols, { key, label }]);
+    setNewCol('');
+  };
+
+  const removeCol = (key: string) => setCols(cols.filter(c => c.key !== key));
+
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
-        <div><h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Boards</h1><p className="mt-1 text-xs text-slate-500 sm:text-sm">Track follow-ups, documentation and loan processing as simple boards. Drag a card to move it.</p></div>
-        <form onSubmit={e => { e.preventDefault(); setErr(null); create.mutateAsync({ name, columns: [{ key: 'todo', label: 'To do' }, { key: 'doing', label: 'In progress' }, { key: 'done', label: 'Done' }] }).then(b => { setName(''); setSelected(b.id); }, x => setErr(errMsg(x, 'Could not create the board.'))); }} className="flex gap-2">
-          <input aria-label="New board name" required minLength={2} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Loan processing" className={inputCls} />
-          <button type="submit" disabled={create.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3 text-xs font-bold text-white cursor-pointer"><Plus className="h-4 w-4" /> Board</button>
-        </form>
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Boards</h1><p className="mt-1 text-xs text-slate-500 sm:text-sm">Track follow-ups, documentation and loan processing as simple boards. Drag a card to move it.</p></div>
+          <form onSubmit={e => { e.preventDefault(); setErr(null); create.mutateAsync({ name, columns: cols }).then(b => { setName(''); setCols(DEFAULT_COLS); setShowColEditor(false); setSelected(b.id); }, x => setErr(errMsg(x, 'Could not create the board.'))); }} className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <input aria-label="New board name" required minLength={2} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Loan processing" className={inputCls} />
+              <button type="button" onClick={() => setShowColEditor(v => !v)} className="rounded-xl border border-slate-200 px-3 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300 cursor-pointer">Columns ({cols.length})</button>
+              <button type="submit" disabled={create.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3 text-xs font-bold text-white cursor-pointer"><Plus className="h-4 w-4" /> Board</button>
+            </div>
+            {showColEditor && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                <p className="mb-2 text-[11px] font-semibold text-slate-500">Columns (drag to reorder not yet supported)</p>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {cols.map(c => (
+                    <span key={c.key} className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-200 px-2 py-0.5 text-xs dark:bg-slate-700 dark:border-slate-600 dark:text-white">
+                      {c.label}
+                      {cols.length > 1 && <button type="button" onClick={() => removeCol(c.key)} className="text-slate-400 hover:text-rose-500 cursor-pointer"><X className="h-3 w-3" /></button>}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-1.5">
+                  <input value={newCol} onChange={e => setNewCol(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCol(); }}} placeholder="New column name" className={`${inputCls} flex-1`} />
+                  <button type="button" onClick={addCol} className="rounded-xl bg-slate-900 px-3 text-xs font-semibold text-white dark:bg-slate-600 cursor-pointer">Add</button>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
       {(error || err) && <p className="text-sm text-rose-600" role="alert">{err ?? error?.message}</p>}
       {isLoading ? <Skeleton className="h-40 w-full" /> : boards.length === 0 ? (

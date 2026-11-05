@@ -31,14 +31,14 @@ export function WhatsAppOverviewTab({
     <div className="space-y-6">
       {/* Top Banner if not connected */}
       {!isConnected && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Zap className="h-5 w-5 text-amber-600 flex-shrink-0" />
+            <Zap className="h-5 w-5 text-amber-600 dark:text-amber-300 flex-shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-amber-900">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
                 WhatsApp Business Cloud API is not connected
               </p>
-              <p className="text-xs text-amber-700">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
                 Configure your Meta credentials and webhook URL to enable 24/7 AI auto-replies.
               </p>
             </div>
@@ -54,34 +54,34 @@ export function WhatsAppOverviewTab({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
               Messages Today
             </p>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+            <div className="p-2 bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 rounded-lg">
               <MessageSquare className="h-4 w-4" />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
+          <p className="mt-2 text-2xl font-bold text-text">
             {isLoadingKpi ? '...' : kpi?.messagesToday ?? 0}
           </p>
-          <p className="text-xs text-gray-500 mt-1">Across all WhatsApp leads</p>
+          <p className="text-xs text-text-muted mt-1">Across all WhatsApp leads</p>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
               AI Resolution Rate
             </p>
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+            <div className="p-2 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 rounded-lg">
               <Bot className="h-4 w-4" />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
+          <p className="mt-2 text-2xl font-bold text-text">
             {isLoadingKpi ? '...' : `${kpi?.aiResolutionRate ?? 92}%`}
           </p>
-          <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+          <div className="mt-2 w-full bg-surface-2 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${kpi?.aiResolutionRate ?? 92}%` }}
@@ -89,34 +89,34 @@ export function WhatsAppOverviewTab({
           </div>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
               Human Handoffs
             </p>
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+            <div className="p-2 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-300 rounded-lg">
               <UserCheck className="h-4 w-4" />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
+          <p className="mt-2 text-2xl font-bold text-text">
             {isLoadingKpi ? '...' : kpi?.handoffsCount ?? 0}
           </p>
-          <p className="text-xs text-gray-500 mt-1">Keywords & frustrated sentiment</p>
+          <p className="text-xs text-text-muted mt-1">Keywords & frustrated sentiment</p>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
               Avg Response Time
             </p>
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+            <div className="p-2 bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-300 rounded-lg">
               <Clock className="h-4 w-4" />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
+          <p className="mt-2 text-2xl font-bold text-text">
             {isLoadingKpi ? '...' : `${kpi?.avgFirstResponseSeconds ?? 1.8}s`}
           </p>
-          <p className="text-xs text-emerald-600 font-medium mt-1">Instant 24/7 AI latency</p>
+          <p className="text-xs text-emerald-600 dark:text-emerald-300 font-medium mt-1">Instant 24/7 AI latency</p>
         </div>
       </div>
 
@@ -136,47 +136,47 @@ export function WhatsAppOverviewTab({
           </div>
           <button
             onClick={onGoToInbox}
-            className="mt-5 inline-flex items-center justify-center px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg shadow-sm transition"
+            className="mt-5 inline-flex items-center justify-center px-4 py-2 bg-surface text-blue-700 dark:text-blue-300 hover:bg-blue-50 text-sm font-semibold rounded-lg shadow-sm transition"
           >
             Open Shared Inbox <ArrowRight className="h-4 w-4 ml-1.5" />
           </button>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-xl p-6 flex flex-col justify-between shadow-sm">
+        <div className="bg-surface border border-border rounded-xl p-6 flex flex-col justify-between shadow-sm">
           <div>
-            <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 mb-3">
+            <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 mb-3">
               <Zap className="h-3 w-3 mr-1" />
               Campaigns
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Broadcast Templates</h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <h3 className="text-lg font-bold text-text">Broadcast Templates</h3>
+            <p className="text-sm text-text-muted mt-1">
               Dispatch approved WhatsApp templates to segmented leads with rate-limiting and consent
               safeguards.
             </p>
           </div>
           <button
             onClick={onOpenBroadcast}
-            className="mt-5 inline-flex items-center justify-center px-4 py-2 border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-semibold rounded-lg transition"
+            className="mt-5 inline-flex items-center justify-center px-4 py-2 border border-border text-text/80 hover:bg-surface-2 text-sm font-semibold rounded-lg transition"
           >
             New Broadcast Campaign
           </button>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-xl p-6 flex flex-col justify-between shadow-sm">
+        <div className="bg-surface border border-border rounded-xl p-6 flex flex-col justify-between shadow-sm">
           <div>
-            <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700 mb-3">
+            <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 mb-3">
               <ShieldCheck className="h-3 w-3 mr-1" />
               Guarded Safety
             </div>
-            <h3 className="text-lg font-bold text-gray-900">AI Guardrail Queue</h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <h3 className="text-lg font-bold text-text">AI Guardrail Queue</h3>
+            <p className="text-sm text-text-muted mt-1">
               Outbound AI replies containing price, discounts or payment links are automatically held
               for human approval in Tier 2.
             </p>
           </div>
-          <div className="mt-5 flex items-center justify-between text-xs text-gray-500 border-t border-gray-100 pt-3">
+          <div className="mt-5 flex items-center justify-between text-xs text-text-muted border-t border-border pt-3">
             <span>Linked Chatbot:</span>
-            <span className="font-semibold text-gray-900">{config?.chatbotName || 'Default Concierge'}</span>
+            <span className="font-semibold text-text">{config?.chatbotName || 'Default Concierge'}</span>
           </div>
         </div>
       </div>

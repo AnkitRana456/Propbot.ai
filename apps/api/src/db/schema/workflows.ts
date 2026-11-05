@@ -48,6 +48,7 @@ export const workflowRuns = pgTable(
     currentNodeId: varchar('current_node_id', { length: 100 }),
     context: jsonb('context').notNull().default({}),
     error: text('error'),
+    resumeAt: timestamp('resume_at', { withTimezone: true }),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -57,6 +58,7 @@ export const workflowRuns = pgTable(
     index('workflow_runs_company_idx').on(table.companyId),
     index('workflow_runs_workflow_idx').on(table.workflowId),
     index('workflow_runs_status_idx').on(table.companyId, table.status),
+    index('workflow_runs_resume_idx').on(table.status, table.resumeAt),
   ],
 );
 

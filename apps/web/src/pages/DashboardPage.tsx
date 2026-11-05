@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarCheck, CalendarX2, Inbox, RefreshCw, ShieldAlert, TrendingDown, TrendingUp, UserPlus } from 'lucide-react';
+import { ArrowRight, CalendarCheck, CalendarX2, Flame, Inbox, RefreshCw, ShieldAlert, TrendingDown, TrendingUp, UserPlus, Users, Zap, type LucideIcon } from 'lucide-react';
 import type { LeadItemResponse } from '@propbot/shared';
 import { useAuth } from '../contexts/AuthContext.js';
 import { useLeads } from '../services/leads.service.js';
@@ -28,14 +28,23 @@ const Trend: React.FC<{ pct: number | null }> = ({ pct }) => {
   );
 };
 
-const StatCard: React.FC<{ label: string; value: number | string; trend?: number | null; spark?: number[]; loading: boolean; hint?: string }> = ({ label, value, trend, spark, loading, hint }) => (
-  <Card className="p-5">
-    <p className="text-sm font-medium text-text-muted">{label}</p>
-    <div className="mt-2 flex items-end justify-between gap-3">
-      {loading ? <Skeleton className="h-9 w-16" /> : <p className="text-3xl font-bold tabular-nums tracking-tight text-text">{value}</p>}
+const StatCard: React.FC<{
+  label: string; value: number | string; trend?: number | null; spark?: number[];
+  loading: boolean; hint?: string; icon: LucideIcon;
+  iconCls: string; // e.g. "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300"
+}> = ({ label, value, trend, spark, loading, hint, icon: Icon, iconCls }) => (
+  <Card className="p-5 group hover:-translate-y-0.5 transition-transform duration-200">
+    <div className="flex items-start justify-between gap-2">
+      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider leading-tight">{label}</p>
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconCls}`}>
+        <Icon className="h-5 w-5" aria-hidden />
+      </div>
+    </div>
+    <div className="mt-3 flex items-end justify-between gap-3">
+      {loading ? <Skeleton className="h-9 w-16" /> : <p className="text-3xl font-black tabular-nums tracking-tight text-text">{value}</p>}
       {spark && !loading && <Sparkline data={spark} label={`${label} trend, last 14 days`} />}
     </div>
-    <div className="mt-2 min-h-[1rem]">{loading ? null : trend !== undefined ? <Trend pct={trend} /> : <span className="text-xs text-text-muted">{hint}</span>}</div>
+    <div className="mt-2 min-h-[1.25rem]">{loading ? null : trend !== undefined ? <Trend pct={trend} /> : <span className="text-xs text-text-muted">{hint}</span>}</div>
   </Card>
 );
 
@@ -92,10 +101,10 @@ export const DashboardPage: React.FC = () => {
       )}
 
       <section aria-label="Key numbers" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Leads (last 30 days)" value={last30} trend={trendPercent(series)} spark={series.slice(-14).map(p => p.count)} loading={loading} />
-        <StatCard label="Total leads" value={leadsQuery.data?.total ?? 0} hint={`${hot} hot right now`} loading={loading} />
-        <StatCard label="Visits today" value={todayQuery.data?.total ?? 0} hint={`${visitsQuery.data?.total ?? 0} upcoming`} loading={todayQuery.isLoading} />
-        <StatCard label="Booked" value={booked} hint={leads.length ? `${Math.round((booked / leads.length) * 100)}% of loaded leads` : 'No leads yet'} loading={loading} />
+        <StatCard label="Leads (last 30 days)" value={last30} trend={trendPercent(series)} spark={series.slice(-14).map(p => p.count)} loading={loading} icon={Zap} iconCls="bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300" />
+        <StatCard label="Total leads" value={leadsQuery.data?.total ?? 0} hint={`${hot} hot right now`} loading={loading} icon={Users} iconCls="bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300" />
+        <StatCard label="Visits today" value={todayQuery.data?.total ?? 0} hint={`${visitsQuery.data?.total ?? 0} upcoming`} loading={todayQuery.isLoading} icon={CalendarCheck} iconCls="bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" />
+        <StatCard label="Booked" value={booked} hint={leads.length ? `${Math.round((booked / leads.length) * 100)}% of loaded leads` : 'No leads yet'} loading={loading} icon={Flame} iconCls="bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-300" />
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">

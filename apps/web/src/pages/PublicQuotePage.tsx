@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Building2, Printer } from 'lucide-react';
 import { apiRequest } from '../services/api-client.js';
 import type { CostSheetRecord } from '../services/inventory.service.js';
 
@@ -44,7 +45,20 @@ export const PublicQuotePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg text-text print:bg-white">
-      <div className="mx-auto max-w-2xl px-6 py-10 print:py-4">
+      {/* Top brand bar */}
+      <div className="bg-gradient-to-r from-accent to-indigo-700 px-6 py-4 print:hidden">
+        <div className="mx-auto max-w-2xl flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+              <Building2 className="h-4 w-4" />
+            </div>
+            <span className="text-sm font-bold tracking-wide">PropBot Pro</span>
+          </div>
+          <span className="text-xs text-white/70">Official Cost Sheet</span>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-2xl px-6 py-8 print:py-4">
         {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div>
@@ -57,8 +71,9 @@ export const PublicQuotePage: React.FC = () => {
           </div>
           <button
             onClick={() => window.print()}
-            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2 print:hidden"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2 print:hidden"
           >
+            <Printer className="h-4 w-4" />
             Print / Save PDF
           </button>
         </div>
@@ -104,9 +119,9 @@ export const PublicQuotePage: React.FC = () => {
               <span className="tabular-nums">− {fmt(totals.discount ?? 0)}</span>
             </div>
           )}
-          <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
-            <span>Net payable</span>
-            <span className="tabular-nums text-accent">{fmt(totals.netPayable ?? 0)}</span>
+          <div className="flex justify-between rounded-xl bg-accent/10 px-3 py-3 -mx-1 mt-1 text-base font-bold border border-accent/20">
+            <span className="text-text">Total payable</span>
+            <span className="tabular-nums text-accent text-lg">{fmt(totals.netPayable ?? 0)}</span>
           </div>
         </div>
 

@@ -5,7 +5,7 @@ import { chatbots, deliveryJobs, integrations, users } from '../../db/schema/ind
 import { buildLeadCapturedPayload, type FlatLeadWebhookPayload } from '../webhooks/lead-webhook-payload.js';
 import { integrationsService } from '../integrations/integrations.service.js';
 import { CRM_PROVIDERS } from '../integrations/crm/crm-providers.js';
-import { buildLeadAlertMail, sendMail } from './mailer.js';
+import { buildLeadAlertMail, sendMail, isSmtpConfigured } from './mailer.js';
 
 const log = pino({ name: 'delivery-jobs', level: process.env.LOG_LEVEL ?? 'info' });
 
@@ -170,6 +170,7 @@ export class DeliveryJobsService {
     const payload = job.payload as { lead: FlatLeadWebhookPayload; recipients?: string[] };
 
     if (job.kind === 'lead_email_alert') {
+      if (!isSmtpConfigured()) return { status: 'skipped', reason: 'Email automations disabled.' };
       const result = await sendMail(buildLeadAlertMail(payload.lead, payload.recipients ?? []));
       if (!result.sent) return { status: 'skipped', reason: 'SMTP is not configured (set SMTP_HOST).' };
       return { status: 'success', externalId: result.messageId };

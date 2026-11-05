@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { segmentsService } from './segments.service.js';
-import { campaignsService } from './campaigns.service.js';
+import { campaignsService, campaignLogger } from './campaigns.service.js';
 import { askPipelineService } from './ask-pipeline.service.js';
 import { bookingPaymentsService } from './booking-payments.service.js';
 import { reraCopyService } from './rera-copy.service.js';
@@ -74,8 +74,11 @@ export class GrowthController {
     try {
       const companyId = req.companyId!;
       const { id } = req.params;
-      const data = await campaignsService.launchCampaign(companyId, id!);
-      res.json({ success: true, data });
+      // Respond immediately — email dispatch runs in background
+      res.json({ success: true, data: { campaignId: id, status: 'running' } });
+      campaignsService.launchCampaign(companyId, id!).catch(err =>
+        campaignLogger.error({ err, campaignId: id }, 'Campaign launch failed'),
+      );
     } catch (err) {
       next(err);
     }

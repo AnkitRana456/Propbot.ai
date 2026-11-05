@@ -13,6 +13,7 @@ let transport: Transporter | null = null;
 let transportOverride: Transporter | null = null;
 
 export function isSmtpConfigured(): boolean {
+  if (process.env.DISABLE_EMAIL_AUTOMATIONS === 'true') return false;
   return Boolean(transportOverride || process.env.SMTP_HOST);
 }
 

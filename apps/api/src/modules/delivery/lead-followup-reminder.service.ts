@@ -2,7 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { pino } from 'pino';
 import { db } from '../../db/index.js';
 import { deliveryJobs, users, chatbots } from '../../db/schema/index.js';
-import { sendMail, isSmtpConfigured, escapeHtml, singleLine } from './mailer.js';
+import { sendMail, isSmtpConfigured, escapeHtml } from './mailer.js';
 import type { MailMessage } from './mailer.js';
 
 const log = pino({ name: 'lead-followup-reminder', level: process.env.LOG_LEVEL ?? 'info' });
@@ -54,43 +54,58 @@ const REMINDER_DAYS: Array<{ key: string; days: number; label: string }> = [
   { key: 'day_7', days: 7, label: '7-day follow-up' },
 ];
 
-function buildReminderMail(
-  lead: { name: string; phone: string; email: string | null; source: string; createdAt: Date },
-  reminderLabel: string,
-  recipients: string[],
-): MailMessage {
-  const daysSince = Math.floor((Date.now() - lead.createdAt.getTime()) / 86_400_000);
-  const subject = `⏰ Follow-up reminder: ${singleLine(lead.name)} (${singleLine(lead.phone)})`;
-  const text = [
-    `Follow-up reminder: ${reminderLabel}`,
-    '',
-    `Name    : ${lead.name}`,
-    `Phone   : ${lead.phone}`,
-    `Email   : ${lead.email || '-'}`,
-    `Source  : ${lead.source}`,
-    `Lead age: ${daysSince} day(s)`,
-    '',
-    'This lead has not been contacted yet. Please reach out as soon as possible.',
-  ].join('\n');
+interface BatchedLead {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  source: string;
+  createdAt: Date;
+  reminderLabel: string;
+  reminderKey: string;
+}
+
+function buildBatchedReminderMail(leads: BatchedLead[], recipients: string[]): MailMessage {
+  const count = leads.length;
+  const subject = `⏰ ${count} lead${count > 1 ? 's' : ''} need follow-up`;
+
+  const rows = leads.map(l => {
+    const daysSince = Math.floor((Date.now() - l.createdAt.getTime()) / 86_400_000);
+    return `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #f3f4f6;font-weight:600">${escapeHtml(l.name)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f3f4f6"><a href="tel:${escapeHtml(l.phone)}" style="color:#2563eb">${escapeHtml(l.phone)}</a></td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f3f4f6;color:#6b7280">${escapeHtml(l.reminderLabel)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f3f4f6;text-align:right;color:#6b7280">${daysSince}d</td>
+    </tr>`;
+  }).join('');
+
+  const textLines = leads.map(l => {
+    const daysSince = Math.floor((Date.now() - l.createdAt.getTime()) / 86_400_000);
+    return `• ${l.name} (${l.phone}) — ${l.reminderLabel} — ${daysSince} day(s)`;
+  });
 
   const html = `
-<div style="font-family:sans-serif;max-width:540px;margin:0 auto">
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
   <div style="background:#f59e0b;padding:12px 20px;border-radius:8px 8px 0 0">
-    <h2 style="margin:0;color:#fff;font-size:16px">⏰ Follow-up Reminder — ${escapeHtml(reminderLabel)}</h2>
+    <h2 style="margin:0;color:#fff;font-size:16px">⏰ ${count} Lead${count > 1 ? 's' : ''} Need Follow-up</h2>
   </div>
   <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px">
-    <p style="color:#374151;margin:0 0 16px">This lead has been waiting for <strong>${daysSince} day(s)</strong> without a follow-up. Please reach out now.</p>
-    <table cellpadding="8" style="border-collapse:collapse;width:100%;font-size:13px">
-      <tr style="background:#f9fafb"><td style="color:#6b7280;width:120px">Name</td><td style="font-weight:600">${escapeHtml(lead.name)}</td></tr>
-      <tr><td style="color:#6b7280">Phone</td><td><a href="tel:${escapeHtml(lead.phone)}" style="color:#2563eb">${escapeHtml(lead.phone)}</a></td></tr>
-      <tr style="background:#f9fafb"><td style="color:#6b7280">Email</td><td>${escapeHtml(lead.email || '-')}</td></tr>
-      <tr><td style="color:#6b7280">Source</td><td>${escapeHtml(lead.source)}</td></tr>
-      <tr style="background:#f9fafb"><td style="color:#6b7280">Lead age</td><td>${daysSince} day(s)</td></tr>
+    <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#f9fafb">
+          <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:500">Name</th>
+          <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:500">Phone</th>
+          <th style="padding:8px 10px;text-align:left;color:#6b7280;font-weight:500">Reminder</th>
+          <th style="padding:8px 10px;text-align:right;color:#6b7280;font-weight:500">Age</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
     </table>
     <p style="margin:16px 0 0;font-size:12px;color:#9ca3af">Sent by PropBot Pro • Follow-up Automation</p>
   </div>
 </div>`;
 
+  const text = [`${count} lead(s) need follow-up:`, '', ...textLines].join('\n');
   return { to: recipients, subject, text, html };
 }
 
@@ -125,26 +140,32 @@ async function getRecipients(companyId: string, chatbotId: string | null): Promi
 
 export class LeadFollowupReminderService {
   /**
-   * Sweeps all companies' leads and enqueues reminder emails for day 1, 3, 7.
-   * Runs hourly in the worker. The unique DB index prevents duplicate sends.
+   * Sweeps all companies' leads and sends ONE batched email per company listing all
+   * leads due for day-1, day-3, or day-7 follow-up. Unique DB index prevents re-sends.
    */
   async sweep(): Promise<{ enqueued: number; sent: number }> {
     if (!isSmtpConfigured()) return { enqueued: 0, sent: 0 };
 
-    let enqueued = 0;
-    let sent = 0;
+    // Collect all due leads across all reminder intervals
+    type DueRow = {
+      id: string; company_id: string; name: string; phone: string;
+      email: string | null; source: string; created_at: string;
+      chatbot_id: string | null; reminder_key: string; reminder_label: string;
+    };
+
+    const allDue: DueRow[] = [];
 
     for (const reminder of REMINDER_DAYS) {
-      const windowStart = new Date(Date.now() - (reminder.days * 86_400_000) - 7_200_000); // day X ± 2h window
+      const windowStart = new Date(Date.now() - (reminder.days * 86_400_000) - 7_200_000);
       const windowEnd   = new Date(Date.now() - (reminder.days * 86_400_000) + 7_200_000);
 
-      // Find leads created in this time window that are still 'new' or 'contacted'
-      // and don't already have a reminder job for this day key
-      const dueleads = await db.execute(sql`
+      const result = await db.execute(sql`
         SELECT l.id, l.company_id, l.source, l.created_at,
-               l.chatbot_id, l.assigned_agent_id,
+               l.chatbot_id,
                c.first_name || ' ' || COALESCE(c.last_name, '') AS name,
-               c.phone, c.email
+               c.phone, c.email,
+               ${reminder.key}  AS reminder_key,
+               ${reminder.label} AS reminder_label
         FROM leads l
         JOIN contacts c ON c.id = l.contact_id
         WHERE l.created_at >= ${windowStart.toISOString()}
@@ -160,60 +181,74 @@ export class LeadFollowupReminderService {
         LIMIT 100
       `);
 
-      const rows = (Array.isArray(dueleads) ? dueleads : (dueleads as { rows?: unknown[] }).rows || []) as Array<{
-        id: string; company_id: string; name: string; phone: string;
-        email: string | null; source: string; created_at: string;
-        chatbot_id: string | null; assigned_agent_id: string | null;
-      }>;
+      const rows = (Array.isArray(result) ? result : (result as { rows?: unknown[] }).rows ?? []) as DueRow[];
+      allDue.push(...rows);
+    }
 
-      for (const row of rows) {
-        try {
-          const recipients = await getRecipients(row.company_id, row.chatbot_id);
-          if (recipients.length === 0) continue;
+    if (allDue.length === 0) return { enqueued: 0, sent: 0 };
 
-          const leadData = {
-            name: row.name,
-            phone: row.phone,
-            email: row.email,
-            source: row.source,
-            createdAt: new Date(row.created_at),
-          };
-          const mail = buildReminderMail(leadData, reminder.label, recipients);
+    // Group by company
+    const byCompany = new Map<string, DueRow[]>();
+    for (const row of allDue) {
+      const list = byCompany.get(row.company_id) ?? [];
+      list.push(row);
+      byCompany.set(row.company_id, list);
+    }
 
-          // Insert job row (unique index silently ignores duplicates)
+    let enqueued = 0;
+    let sent = 0;
+
+    for (const [companyId, rows] of byCompany) {
+      try {
+        const recipients = await getRecipients(companyId, rows[0]!.chatbot_id);
+        if (recipients.length === 0) continue;
+
+        const batchedLeads: BatchedLead[] = rows.map(r => ({
+          id: r.id,
+          name: r.name,
+          phone: r.phone,
+          email: r.email,
+          source: r.source,
+          createdAt: new Date(r.created_at),
+          reminderLabel: r.reminder_label,
+          reminderKey: r.reminder_key,
+        }));
+
+        // Insert delivery_jobs for each lead (dedup guard)
+        for (const lead of batchedLeads) {
           await db.insert(deliveryJobs).values({
-            companyId: row.company_id,
-            leadId: row.id,
+            companyId,
+            leadId: lead.id,
             kind: 'lead_followup_reminder',
-            provider: reminder.key,
-            payload: { lead: leadData, recipients, reminderKey: reminder.key, reminderLabel: reminder.label },
+            provider: lead.reminderKey,
+            payload: { lead, recipients, reminderKey: lead.reminderKey, reminderLabel: lead.reminderLabel },
             status: 'pending',
             maxAttempts: 2,
           }).onConflictDoNothing();
-
-          // Send email
-          const result = await sendMail(mail);
-          if (result.sent) {
-            // Mark success
-            await db.execute(sql`
-              UPDATE delivery_jobs SET status = 'success', attempts = 1, updated_at = now()
-              WHERE lead_id = ${row.id} AND kind = 'lead_followup_reminder' AND provider = ${reminder.key}
-            `);
-            sent++;
-            log.info({ leadId: row.id, reminderKey: reminder.key, recipients }, 'Follow-up reminder email sent.');
-          }
-
-          // Also send WhatsApp to lead's phone (non-blocking, best-effort)
-          const daysSince = Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86_400_000);
-          const whatsAppSent = await sendWhatsAppReminder(row.phone, leadData.name, reminder.label, daysSince);
-          if (whatsAppSent) {
-            log.info({ leadId: row.id, phone: row.phone, reminderKey: reminder.key }, 'Follow-up reminder WhatsApp sent.');
-          }
-
-          enqueued++;
-        } catch (err) {
-          log.error({ err, leadId: row.id, reminderKey: reminder.key }, 'Failed to send follow-up reminder.');
         }
+
+        const mail = buildBatchedReminderMail(batchedLeads, recipients);
+        const result = await sendMail(mail);
+
+        if (result.sent) {
+          const leadIds = batchedLeads.map(l => l.id);
+          await db.execute(sql`
+            UPDATE delivery_jobs SET status = 'success', attempts = 1, updated_at = now()
+            WHERE lead_id = ANY(${leadIds}::uuid[]) AND kind = 'lead_followup_reminder'
+          `);
+          sent++;
+          log.info({ companyId, leadCount: leadIds.length, recipients }, 'Batched follow-up reminder email sent.');
+        }
+
+        // WhatsApp: send per-lead (best-effort)
+        for (const lead of batchedLeads) {
+          const daysSince = Math.floor((Date.now() - lead.createdAt.getTime()) / 86_400_000);
+          await sendWhatsAppReminder(lead.phone, lead.name, lead.reminderLabel, daysSince);
+        }
+
+        enqueued += batchedLeads.length;
+      } catch (err) {
+        log.error({ err, companyId }, 'Failed to send batched follow-up reminder.');
       }
     }
 

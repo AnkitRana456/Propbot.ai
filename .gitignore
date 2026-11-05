@@ -47,3 +47,9 @@ redis_data/
 
 # Tool cache / artifacts
 graphify-out/
+
+# Video recordings and media demos
+*.mp4
+*.mov
+*.avi
+

@@ -26,7 +26,7 @@ export function WhatsAppInboxTab() {
   const { data: activeDetail, isLoading: isLoadingDetail } = useWhatsappConversationDetail(activeId);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col md:flex-row">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm flex flex-col md:flex-row">
       {/* Left Pane: Conversation List */}
       <WhatsAppConversationList
         conversations={conversations}

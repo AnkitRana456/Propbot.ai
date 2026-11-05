@@ -50,10 +50,10 @@ export const KpiCard: React.FC<KpiCardProps> = ({
 
   return (
     <div
-      className={`group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 ${styles.ring}`}
+      className={`group relative flex flex-col justify-between rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${styles.ring}`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+        <span className="text-xs font-semibold tracking-wide text-text-muted uppercase">
           {title}
         </span>
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${styles.bg}`}>
@@ -62,7 +62,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       </div>
 
       <div className="mt-4 flex items-baseline justify-between">
-        <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        <span className="text-3xl font-extrabold tracking-tight text-text">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </span>
 

@@ -11,6 +11,7 @@ import { deliveryJobsService } from './modules/delivery/delivery-jobs.service.js
 import { paymentsService } from './modules/payments/payments.service.js';
 import { callCampaignsService } from './modules/voice/call-campaigns.service.js';
 import { flowEngine } from './modules/flows/flow-engine.js';
+import { workflowEngineService } from './modules/workflows/workflow-engine.service.js';
 import { rollupService } from './modules/analytics/rollup.service.js';
 import './modules/crm/next-best-action.service.js';
 import { db } from './db/index.js';
@@ -96,6 +97,8 @@ const flowInterval = setInterval(async () => {
   flowLoopBusy = true;
   try {
     const resumed = await flowEngine.resumeDue();
+    const resumedRuns = await workflowEngineService.resumeDueRuns();
+    if (resumedRuns > 0) workerLogger.info({ resumedRuns }, 'Resumed workflow runs after their wait step.');
     const scheduled = await flowEngine.runDueSchedules();
     const expired = await paymentsService.expireStale();
     if (expired > 0) workerLogger.info({ expired }, 'Expired unpaid payment links.');

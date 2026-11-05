@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
+import { desc } from 'drizzle-orm';
 import { db } from '../../db/index.js';
+import { whatsappConfigs } from '../../db/schema/index.js';
 import { retrievalService } from '../ai/retrieval.service.js';
 import { leadsService } from '../leads/leads.service.js';
 
@@ -31,11 +33,14 @@ export class TwilioWhatsAppController {
       console.info('[Twilio] inbound', { from: fromPhone, to: toDigits, body });
 
       // Find which company owns this sandbox number
-      const allConfigs = await db.query.whatsappConfigs.findMany({
-        columns: { companyId: true, chatbotId: true, businessPhoneNumber: true, status: true },
-      });
+      // Order by updatedAt desc so the most recently configured config wins as fallback
+      // shortcut: Twilio sandbox uses shared number so phone match won't work; most-recently-updated wins
+      const allConfigs = await db
+        .select({ companyId: whatsappConfigs.companyId, chatbotId: whatsappConfigs.chatbotId, businessPhoneNumber: whatsappConfigs.businessPhoneNumber, status: whatsappConfigs.status })
+        .from(whatsappConfigs)
+        .orderBy(desc(whatsappConfigs.updatedAt));
 
-      // Match by business phone number, else use first record
+      // Match by business phone number, else use most-recently-updated record
       const matched = allConfigs.find(
         c => c.businessPhoneNumber?.replace(/\D/g, '') === toDigits,
       );
@@ -62,9 +67,7 @@ export class TwilioWhatsAppController {
             targetChatbotId,
             { query: body, topK: 4, similarityThreshold: 0.65, streaming: false },
             {
-              agentInstructions: profileName
-                ? `The visitor's name is ${profileName}. Address them naturally.`
-                : undefined,
+              agentInstructions: `This is a WhatsApp conversation — keep replies to 2-3 sentences maximum. No bullet points, no long lists. Answer only what was asked.${profileName ? ` The visitor's name is ${profileName}.` : ''} Only use facts from the knowledge base; if unavailable, offer to connect with a property consultant.`,
             },
           );
           const timeoutPromise = new Promise<null>(resolve =>

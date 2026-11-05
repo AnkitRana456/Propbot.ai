@@ -110,23 +110,23 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-surface rounded-2xl shadow-2xl border border-border w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-900 text-white">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-slate-900 text-white">
           <div className="flex items-center space-x-2.5">
             <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
               <Smartphone className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-sm font-bold">Simulate Inbound WhatsApp Message</h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-text-faint">
                 Test 24/7 AI conversational qualification, sentiment analysis & human handoff
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded-lg text-text-faint hover:text-white hover:bg-slate-800 transition"
           >
             <X className="h-4 w-4" />
           </button>
@@ -135,7 +135,7 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
         <form onSubmit={handleSimulate} className="p-6 space-y-5 overflow-y-auto">
           {/* Preset Buttons */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-2">
+            <label className="block text-xs font-bold text-text/80 mb-2">
               Select Preset Test Scenario
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -146,12 +146,12 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
                   onClick={() => handleSelectPreset(p.id)}
                   className={`text-left p-2.5 rounded-xl border text-xs transition flex flex-col justify-between ${
                     selectedPreset === p.id
-                      ? 'border-blue-500 bg-blue-50/60 text-blue-900 ring-1 ring-blue-500'
-                      : 'border-gray-200 bg-gray-50/60 hover:bg-gray-100/70 text-gray-700'
+                      ? 'border-blue-500 bg-blue-50/60 text-blue-900 dark:text-blue-300 ring-1 ring-blue-500'
+                      : 'border-border bg-surface-2 hover:bg-surface-2 text-text/80'
                   }`}
                 >
                   <div className="font-semibold truncate">{p.title}</div>
-                  <div className="flex items-center space-x-1.5 mt-1 text-[11px] text-gray-500">
+                  <div className="flex items-center space-x-1.5 mt-1 text-[11px] text-text-muted">
                     {p.isVoice ? (
                       <Mic className="h-3 w-3 text-purple-500" />
                     ) : (
@@ -167,7 +167,7 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
           {/* Form Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
+              <label className="block text-xs font-bold text-text/80 mb-1">
                 Buyer WhatsApp Number *
               </label>
               <input
@@ -179,12 +179,12 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
                 }}
                 required
                 placeholder="+91 98765 43210"
-                className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-xs px-3 py-2 bg-surface-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
+              <label className="block text-xs font-bold text-text/80 mb-1">
                 Buyer Contact Name
               </label>
               <input
@@ -195,23 +195,23 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
                   setName(e.target.value);
                 }}
                 placeholder="e.g. Aarav Sharma"
-                className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-xs px-3 py-2 bg-surface-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-bold text-gray-700">Message Content *</label>
-              <label className="inline-flex items-center space-x-1.5 text-xs text-gray-600 cursor-pointer">
+              <label className="text-xs font-bold text-text/80">Message Content *</label>
+              <label className="inline-flex items-center space-x-1.5 text-xs text-text-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isVoiceNote}
                   onChange={e => setIsVoiceNote(e.target.checked)}
-                  className="h-3.5 w-3.5 text-purple-600 rounded focus:ring-purple-500"
+                  className="h-3.5 w-3.5 text-purple-600 dark:text-purple-300 rounded focus:ring-purple-500"
                 />
                 <span className="flex items-center space-x-1">
-                  <Mic className="h-3 w-3 text-purple-600" />
+                  <Mic className="h-3 w-3 text-purple-600 dark:text-purple-300" />
                   <span>Simulate Voice Note</span>
                 </span>
               </label>
@@ -225,23 +225,23 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
               }}
               required
               placeholder="Type inbound message text..."
-              className="w-full text-xs p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full text-xs p-3 bg-surface-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
 
           {/* Result Alert */}
           {result && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 animate-in fade-in">
-              <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-800">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <div className="p-3.5 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 rounded-xl space-y-1.5 animate-in fade-in">
+              <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
                 <span>Message Received & Processed by PropBot AI!</span>
               </div>
               {result.responseSnippet && (
-                <div className="text-xs text-gray-700 bg-white p-2.5 rounded-lg border border-emerald-100 flex items-start space-x-2">
-                  <Bot className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-text/80 bg-surface p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-500/30 flex items-start space-x-2">
+                  <Bot className="h-4 w-4 text-blue-600 dark:text-blue-300 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-semibold text-gray-900">Bot Auto-Response: </span>
-                    <span className="text-gray-600">{result.responseSnippet}</span>
+                    <span className="font-semibold text-text">Bot Auto-Response: </span>
+                    <span className="text-text-muted">{result.responseSnippet}</span>
                   </div>
                 </div>
               )}
@@ -253,7 +253,7 @@ export function SimulateInboundModal({ isOpen, onClose, onSuccess }: SimulateInb
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+              className="px-4 py-2 text-xs font-semibold text-text-muted hover:bg-surface-2 rounded-xl transition"
             >
               {result ? 'Done' : 'Cancel'}
             </button>

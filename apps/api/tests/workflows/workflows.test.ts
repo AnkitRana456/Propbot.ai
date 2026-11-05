@@ -2,7 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/server.js';
 import { testDb, cleanupTestDatabase } from '../helpers/test-db.js';
-import { companies, users, companyAiSettings, leads, contacts } from '../../src/db/schema/index.js';
+import { eq } from 'drizzle-orm';
+import { companies, users, companyAiSettings, leads, contacts, workflowRuns } from '../../src/db/schema/index.js';
 import { signAccessToken } from '../../src/modules/auth/auth.utils.js';
 import { workflowEngineService } from '../../src/modules/workflows/workflow-engine.service.js';
 import { WORKFLOW_TEMPLATES } from '../../src/modules/workflows/workflow-templates.js';
@@ -316,6 +317,85 @@ describe('Phase 15B: Workflow Automation Engine & Canvas Endpoints', () => {
     expect(stepsRes.body.data.length).toBe(2);
     expect(stepsRes.body.data[0].nodeType).toBe('trigger');
     expect(stepsRes.body.data[1].nodeType).toBe('action');
+  });
+
+  describe('wait steps and conditions', () => {
+    const trigger = { id: 't', type: 'trigger' as const, config: { event_type: 'lead_hot' } };
+    const wait = { id: 'w', type: 'action' as const, config: { action_kind: 'wait' as const, parameters: { hours: 1 } } };
+    const tag = { id: 'a', type: 'action' as const, config: { action_kind: 'add_tag' as const, parameters: { tag: 'x' } } };
+    const edge = (source: string, target: string) => ({ id: `${source}-${target}`, source, target });
+
+    async function activeWorkflow(name: string, definition: unknown) {
+      const created = await request(app).post('/api/workflows').set('Authorization', `Bearer ${tokenA}`).send({ name, definition });
+      expect(created.status).toBe(201);
+      await request(app).post(`/api/workflows/${created.body.data.id}/activate`).set('Authorization', `Bearer ${tokenA}`);
+      return created.body.data.id as string;
+    }
+
+    const makeDue = (runId: string) =>
+      testDb.update(workflowRuns).set({ resumeAt: new Date(Date.now() - 1000) }).where(eq(workflowRuns.id, runId));
+    const stepsOf = (runId: string) => workflowEngineService.getRunSteps(companyAId, runId);
+
+    it('pauses at a wait step and only continues once the time has passed', async () => {
+      const workflowId = await activeWorkflow('Wait Flow', { nodes: [trigger, wait, tag], edges: [edge('t', 'w'), edge('w', 'a')] });
+
+      const started = await workflowEngineService.executeWorkflowRun(companyAId, workflowId, null, {});
+      expect(started.status).toBe('paused');
+
+      const [paused] = await testDb.select().from(workflowRuns).where(eq(workflowRuns.id, started.runId));
+      expect(paused!.currentNodeId).toBe('a');
+      expect(paused!.resumeAt!.getTime()).toBeGreaterThan(Date.now() + 59 * 60_000);
+      expect(await stepsOf(started.runId)).toHaveLength(2);
+
+      await workflowEngineService.resumeDueRuns();
+      expect(await stepsOf(started.runId)).toHaveLength(2);
+
+      await makeDue(started.runId);
+      expect(await workflowEngineService.resumeDueRuns()).toBeGreaterThanOrEqual(1);
+
+      const [done] = await testDb.select().from(workflowRuns).where(eq(workflowRuns.id, started.runId));
+      expect(done!.status).toBe('completed');
+      expect(done!.resumeAt).toBeNull();
+      expect(await stepsOf(started.runId)).toHaveLength(3);
+    });
+
+    it('cancels a waiting run when the workflow was switched off', async () => {
+      const workflowId = await activeWorkflow('Paused Mid Wait', { nodes: [trigger, wait, tag], edges: [edge('t', 'w'), edge('w', 'a')] });
+      const started = await workflowEngineService.executeWorkflowRun(companyAId, workflowId, null, {});
+
+      await request(app).post(`/api/workflows/${workflowId}/pause`).set('Authorization', `Bearer ${tokenA}`);
+      await makeDue(started.runId);
+      await workflowEngineService.resumeDueRuns();
+
+      const [run] = await testDb.select().from(workflowRuns).where(eq(workflowRuns.id, started.runId));
+      expect(run!.status).toBe('cancelled');
+      expect(await stepsOf(started.runId)).toHaveLength(2);
+    });
+
+    it('does not wait during a dry run', async () => {
+      const workflowId = await activeWorkflow('Dry Wait', { nodes: [trigger, wait, tag], edges: [edge('t', 'w'), edge('w', 'a')] });
+      const result = await workflowEngineService.executeWorkflowRun(companyAId, workflowId, null, {}, { dryRun: true });
+      expect(result).toMatchObject({ status: 'completed', stepsExecuted: 3 });
+    });
+
+    it('stops at a false condition, using the lead as it is now', async () => {
+      const condition = { id: 'c', type: 'condition' as const, config: { field: 'intent_score', operator: 'greater_than', value: 74 } };
+      const workflowId = await activeWorkflow('Condition Flow', { nodes: [trigger, condition, tag], edges: [edge('t', 'c'), edge('c', 'a')] });
+
+      const [contact] = await testDb.insert(contacts).values({ companyId: companyAId, firstName: 'Neha', phone: '+919876543211' }).returning();
+      const [lead] = await testDb
+        .insert(leads)
+        .values({ companyId: companyAId, contactId: contact!.id, source: 'web_chat', status: 'new', intentScore: 40 })
+        .returning();
+
+      const cold = await workflowEngineService.executeWorkflowRun(companyAId, workflowId, null, { lead_id: lead!.id });
+      expect(cold.status).toBe('completed');
+      expect(await stepsOf(cold.runId)).toHaveLength(2);
+
+      await testDb.update(leads).set({ intentScore: 90 }).where(eq(leads.id, lead!.id));
+      const hot = await workflowEngineService.executeWorkflowRun(companyAId, workflowId, null, { lead_id: lead!.id });
+      expect(await stepsOf(hot.runId)).toHaveLength(3);
+    });
   });
 
   it('enforces multi-tenant isolation: Company B cannot access Company A workflows or runs', async () => {

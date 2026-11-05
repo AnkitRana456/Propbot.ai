@@ -38,15 +38,15 @@ export function BroadcastCampaignModal({ isOpen, onClose }: BroadcastCampaignMod
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-surface rounded-2xl max-w-md w-full shadow-xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Zap className="h-5 w-5 text-purple-600" />
-            <h3 className="text-sm font-bold text-gray-900">New Broadcast Campaign</h3>
+            <Zap className="h-5 w-5 text-purple-600 dark:text-purple-300" />
+            <h3 className="text-sm font-bold text-text">New Broadcast Campaign</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition"
+            className="p-1 text-text-faint hover:text-text-muted rounded-lg hover:bg-surface-2 transition"
           >
             <X className="h-4 w-4" />
           </button>
@@ -54,34 +54,34 @@ export function BroadcastCampaignModal({ isOpen, onClose }: BroadcastCampaignMod
 
         {successResult ? (
           <div className="p-8 text-center space-y-3">
-            <div className="h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center font-bold">
+            <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 mx-auto flex items-center justify-center font-bold">
               ✓
             </div>
-            <h4 className="text-sm font-bold text-gray-900">Broadcast Dispatched</h4>
-            <p className="text-xs text-gray-600">
+            <h4 className="text-sm font-bold text-text">Broadcast Dispatched</h4>
+            <p className="text-xs text-text-muted">
               Successfully sent to {successResult.sentCount} of {successResult.totalRecipients} eligible leads.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Campaign Name *</label>
+              <label className="block text-xs font-bold text-text/80 mb-1">Campaign Name *</label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="e.g. Q4 Luxury Launch VIP Preview"
                 required
-                className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-xs px-3 py-2 bg-surface-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">WhatsApp Template *</label>
+              <label className="block text-xs font-bold text-text/80 mb-1">WhatsApp Template *</label>
               <select
                 value={templateName}
                 onChange={e => setTemplateName(e.target.value)}
-                className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-xs px-3 py-2 bg-surface-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="property_inquiry_details">property_inquiry_details (Approved)</option>
                 <option value="site_visit_invitation">site_visit_invitation (Approved)</option>
@@ -90,7 +90,7 @@ export function BroadcastCampaignModal({ isOpen, onClose }: BroadcastCampaignMod
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
+              <label className="block text-xs font-bold text-text/80 mb-1">
                 Target Segment (Min Intent Score: {minScore})
               </label>
               <input
@@ -102,25 +102,25 @@ export function BroadcastCampaignModal({ isOpen, onClose }: BroadcastCampaignMod
                 onChange={e => setMinScore(Number(e.target.value))}
                 className="w-full accent-blue-600"
               />
-              <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+              <div className="flex justify-between text-[10px] text-text-faint mt-0.5">
                 <span>All Leads (0)</span>
                 <span>Warm Leads (35+)</span>
                 <span>Hot Leads (70+)</span>
               </div>
             </div>
 
-            <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 flex items-start space-x-2 text-[11px] text-purple-900">
-              <ShieldCheck className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/15 rounded-xl border border-purple-100 dark:border-purple-500/30 flex items-start space-x-2 text-[11px] text-purple-900 dark:text-purple-300">
+              <ShieldCheck className="h-4 w-4 text-purple-600 dark:text-purple-300 flex-shrink-0 mt-0.5" />
               <span>
                 <strong>Opt-in Safeguard:</strong> Leads who sent STOP or opted out are automatically excluded to preserve compliance.
               </span>
             </div>
 
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-border">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                className="px-3.5 py-2 text-xs font-semibold text-text-muted hover:bg-surface-2 rounded-lg transition"
               >
                 Cancel
               </button>

@@ -85,7 +85,7 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
 
   if (isLoading || !conversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 text-gray-400 text-xs">
+      <div className="flex-1 flex items-center justify-center bg-surface-2 text-text-faint text-xs">
         {isLoading ? 'Loading conversation thread...' : 'Select a conversation from the left pane'}
       </div>
     );
@@ -110,19 +110,19 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
   const isWindowExpired = conversation.serviceWindowExpired;
 
   return (
-    <div className="flex-1 flex flex-col bg-white h-[700px]">
+    <div className="flex-1 flex flex-col bg-surface h-[700px]">
       {/* Thread Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white z-10">
+      <div className="p-4 border-b border-border flex items-center justify-between bg-surface z-10">
         <div>
           <div className="flex items-center space-x-2">
-            <h2 className="text-sm font-bold text-gray-900">{conversation.visitorName}</h2>
+            <h2 className="text-sm font-bold text-text">{conversation.visitorName}</h2>
             <span
               className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
                 conversation.status === 'needs_human'
-                  ? 'bg-amber-100 text-amber-800'
+                  ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300'
                   : conversation.status === 'bot'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-gray-100 text-gray-700'
+                  ? 'bg-blue-100 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300'
+                  : 'bg-surface-2 text-text/80'
               }`}
             >
               {conversation.status === 'needs_human'
@@ -132,7 +132,7 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
                 : 'Closed'}
             </span>
           </div>
-          <p className="text-xs text-gray-500 font-mono mt-0.5">{conversation.visitorPhone}</p>
+          <p className="text-xs text-text-muted font-mono mt-0.5">{conversation.visitorPhone}</p>
         </div>
 
         {/* Action Controls */}
@@ -141,7 +141,7 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
             <button
               onClick={() => resumeAiMutation.mutate(conversation.id)}
               disabled={resumeAiMutation.isPending}
-              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg transition"
+              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 rounded-lg transition"
             >
               <Play className="h-3 w-3 mr-1" /> Resume AI
             </button>
@@ -149,7 +149,7 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
             <button
               onClick={() => takeoverMutation.mutate(conversation.id)}
               disabled={takeoverMutation.isPending}
-              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition"
+              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 rounded-lg transition"
             >
               <Pause className="h-3 w-3 mr-1" /> Take Over
             </button>
@@ -159,9 +159,9 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
             <button
               onClick={() => closeMutation.mutate(conversation.id)}
               disabled={closeMutation.isPending}
-              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100 border border-gray-200 rounded-lg transition"
+              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-text-muted hover:bg-surface-2 border border-border rounded-lg transition"
             >
-              <XCircle className="h-3 w-3 mr-1 text-gray-400" /> Close
+              <XCircle className="h-3 w-3 mr-1 text-text-faint" /> Close
             </button>
           )}
         </div>
@@ -169,23 +169,23 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
 
       {/* 24-Hour Window Notification Banner */}
       {isWindowExpired ? (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-xs text-amber-800">
+        <div className="bg-amber-50 dark:bg-amber-500/15 border-b border-amber-200 dark:border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300">
           <div className="flex items-center space-x-1.5">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
             <span>
               <strong>24-Hour Customer Window Expired.</strong> Freeform messaging blocked by Meta policy. Send an approved template.
             </span>
           </div>
           <button
             onClick={() => setSelectedTemplate('property_inquiry_details')}
-            className="px-2 py-0.5 text-[11px] font-semibold bg-amber-200 hover:bg-amber-300 rounded text-amber-900 transition"
+            className="px-2 py-0.5 text-[11px] font-semibold bg-amber-200 hover:bg-amber-300 rounded text-amber-900 dark:text-amber-300 transition"
           >
             Select Template
           </button>
         </div>
       ) : (
-        <div className="bg-emerald-50/60 border-b border-emerald-100 px-4 py-1.5 flex items-center space-x-2 text-[11px] text-emerald-800">
-          <Clock className="h-3.5 w-3.5 text-emerald-600" />
+        <div className="bg-emerald-50/60 border-b border-emerald-100 dark:border-emerald-500/30 px-4 py-1.5 flex items-center space-x-2 text-[11px] text-emerald-800 dark:text-emerald-300">
+          <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
           <span>
             24-Hour Window Active ({conversation.serviceWindowRemainingHours}h remaining) — Freeform messages permitted.
           </span>
@@ -193,9 +193,9 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
       )}
 
       {/* Messages Thread Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/40">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-surface-2">
         {conversation.messages.length === 0 ? (
-          <div className="text-center text-xs text-gray-400 py-10">No messages in this conversation</div>
+          <div className="text-center text-xs text-text-faint py-10">No messages in this conversation</div>
         ) : (
           conversation.messages.map(msg => {
             const isVisitor = msg.senderType === 'visitor';
@@ -208,15 +208,15 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
                 className={`flex flex-col ${isVisitor ? 'items-start' : 'items-end'}`}
               >
                 {/* Sender Tag */}
-                <div className="flex items-center space-x-1 text-[10px] text-gray-400 mb-1 px-1">
+                <div className="flex items-center space-x-1 text-[10px] text-text-faint mb-1 px-1">
                   {isVisitor ? (
                     <span>{conversation.visitorName}</span>
                   ) : isBot ? (
-                    <span className="inline-flex items-center text-blue-600 font-semibold">
+                    <span className="inline-flex items-center text-blue-600 dark:text-blue-300 font-semibold">
                       <Bot className="h-2.5 w-2.5 mr-0.5" /> PropBot AI
                     </span>
                   ) : (
-                    <span className="inline-flex items-center text-indigo-600 font-semibold">
+                    <span className="inline-flex items-center text-indigo-600 dark:text-indigo-300 font-semibold">
                       <User className="h-2.5 w-2.5 mr-0.5" /> Agent
                     </span>
                   )}
@@ -233,24 +233,24 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${
                     isGuarded
-                      ? 'bg-amber-50 border border-amber-300 text-amber-900'
+                      ? 'bg-amber-50 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/30 text-amber-900 dark:text-amber-300'
                       : isVisitor
-                      ? 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm'
+                      ? 'bg-surface border border-border text-text rounded-bl-sm'
                       : isBot
                       ? 'bg-blue-600 text-white rounded-br-sm'
                       : 'bg-indigo-600 text-white rounded-br-sm'
                   }`}
                 >
                   {isGuarded && (
-                    <div className="flex items-center text-amber-700 font-semibold text-[11px] mb-1">
+                    <div className="flex items-center text-amber-700 dark:text-amber-300 font-semibold text-[11px] mb-1">
                       <ShieldAlert className="h-3.5 w-3.5 mr-1" />
                       Guarded AI Reply (Held for Approval)
                     </div>
                   )}
 
                   {Boolean(msg.metadata?.isVoiceNote) && (
-                    <div className="flex items-center text-purple-600 font-semibold text-[10px] mb-1 bg-purple-50 px-2 py-0.5 rounded-full inline-flex">
-                      <Mic className="h-2.5 w-2.5 mr-1 text-purple-600 animate-pulse" />
+                    <div className="flex items-center text-purple-600 dark:text-purple-300 font-semibold text-[10px] mb-1 bg-purple-50 dark:bg-purple-500/15 px-2 py-0.5 rounded-full inline-flex">
+                      <Mic className="h-2.5 w-2.5 mr-1 text-purple-600 dark:text-purple-300 animate-pulse" />
                       Voice Note (Transcribed)
                     </div>
                   )}
@@ -259,14 +259,14 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
 
                   {/* Inline Translation on Visitor Message */}
                   {isVisitor && (
-                    <div className="mt-1.5 pt-1 border-t border-gray-100 flex items-center justify-between text-[10px]">
+                    <div className="mt-1.5 pt-1 border-t border-border flex items-center justify-between text-[10px]">
                       <button
                         type="button"
                         onClick={() => handleTranslate(msg.id, msg.content)}
                         disabled={translatingIds[msg.id]}
-                        className="inline-flex items-center text-gray-500 hover:text-blue-600 transition font-medium"
+                        className="inline-flex items-center text-text-muted hover:text-blue-600 transition font-medium"
                       >
-                        <Languages className="h-2.5 w-2.5 mr-1 text-gray-400" />
+                        <Languages className="h-2.5 w-2.5 mr-1 text-text-faint" />
                         {translatingIds[msg.id]
                           ? 'Translating...'
                           : translations[msg.id]
@@ -277,8 +277,8 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
                   )}
 
                   {translations[msg.id] ? (
-                    <div className="mt-1.5 p-2 bg-blue-50/80 border border-blue-100 rounded-lg text-blue-900 text-xs">
-                      <div className="text-[10px] font-semibold text-blue-600 mb-0.5">
+                    <div className="mt-1.5 p-2 bg-blue-50/80 border border-blue-100 dark:border-blue-500/30 rounded-lg text-blue-900 dark:text-blue-300 text-xs">
+                      <div className="text-[10px] font-semibold text-blue-600 dark:text-blue-300 mb-0.5">
                         Translated from {translations[msg.id]?.language}:
                       </div>
                       <p className="leading-relaxed">{translations[msg.id]?.text}</p>
@@ -306,18 +306,18 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
       </div>
 
       {/* Input / Send Area */}
-      <form onSubmit={handleSend} className="p-3 border-t border-gray-200 bg-white space-y-2">
+      <form onSubmit={handleSend} className="p-3 border-t border-border bg-surface space-y-2">
         {/* Suggest Replies Pills if any */}
         {suggestedReplies.length > 0 && (
-          <div className="p-2 bg-purple-50/60 border border-purple-100 rounded-xl space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-semibold text-purple-700">
+          <div className="p-2 bg-purple-50/60 border border-purple-100 dark:border-purple-500/30 rounded-xl space-y-1">
+            <div className="flex items-center justify-between text-[10px] font-semibold text-purple-700 dark:text-purple-300">
               <span className="flex items-center">
-                <Sparkles className="h-3 w-3 mr-1 text-purple-600" /> AI Suggested Replies
+                <Sparkles className="h-3 w-3 mr-1 text-purple-600 dark:text-purple-300" /> AI Suggested Replies
               </span>
               <button
                 type="button"
                 onClick={() => setSuggestedReplies([])}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-text-faint hover:text-text-muted"
               >
                 Dismiss
               </button>
@@ -328,10 +328,10 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
                   key={sug.id}
                   type="button"
                   onClick={() => setMessageText(sug.text)}
-                  className="text-left text-xs bg-white hover:bg-purple-100/70 border border-purple-200 text-purple-950 rounded-lg px-2.5 py-1.5 transition shadow-2xs"
+                  className="text-left text-xs bg-surface hover:bg-purple-100/70 border border-purple-200 dark:border-purple-500/30 text-purple-950 rounded-lg px-2.5 py-1.5 transition shadow-2xs"
                 >
-                  <span className="font-semibold block text-[11px] text-purple-800">{sug.title}</span>
-                  <span className="text-gray-600 line-clamp-1 text-[11px]">{sug.text}</span>
+                  <span className="font-semibold block text-[11px] text-purple-800 dark:text-purple-300">{sug.title}</span>
+                  <span className="text-text-muted line-clamp-1 text-[11px]">{sug.text}</span>
                 </button>
               ))}
             </div>
@@ -349,7 +349,7 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
                   setMessageText(`[Template: ${e.target.value}]`);
                 }
               }}
-              className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-xs bg-surface-2 border border-border rounded-lg px-2.5 py-1.5 text-text/80 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Quick Replies / Templates</option>
               <option value="property_inquiry_details">Property Details Template</option>
@@ -358,7 +358,7 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
             </select>
 
             {selectedTemplate && (
-              <span className="inline-flex items-center text-[11px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded font-medium">
+              <span className="inline-flex items-center text-[11px] text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-500/15 px-2 py-0.5 rounded font-medium">
                 <FileText className="h-3 w-3 mr-1" /> Template selected
               </span>
             )}
@@ -370,9 +370,9 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
               type="button"
               onClick={handleFetchSuggestions}
               disabled={suggestReplyMutation.isPending}
-              className="inline-flex items-center text-xs font-semibold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg px-2.5 py-1.5 transition"
+              className="inline-flex items-center text-xs font-semibold text-purple-700 dark:text-purple-300 hover:text-purple-800 bg-purple-50 dark:bg-purple-500/15 hover:bg-purple-100 border border-purple-200 dark:border-purple-500/30 rounded-lg px-2.5 py-1.5 transition"
             >
-              <Sparkles className="h-3.5 w-3.5 mr-1 text-purple-600" />
+              <Sparkles className="h-3.5 w-3.5 mr-1 text-purple-600 dark:text-purple-300" />
               {suggestReplyMutation.isPending ? 'Generating...' : 'Suggest Reply'}
             </button>
           )}
@@ -389,7 +389,7 @@ export function WhatsAppChatThread({ conversation, isLoading }: WhatsAppChatThre
             disabled={isWindowExpired && !selectedTemplate}
             value={messageText}
             onChange={e => setMessageText(e.target.value)}
-            className="flex-1 text-xs px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition disabled:opacity-50"
+            className="flex-1 text-xs px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-surface transition disabled:opacity-50"
           />
           <button
             type="submit"

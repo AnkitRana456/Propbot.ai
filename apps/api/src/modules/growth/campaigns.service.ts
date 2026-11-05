@@ -2,6 +2,7 @@ import { eq, and, sql, gte } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { campaigns, campaignRecipients, contacts } from '../../db/schema/index.js';
 import { segmentsService } from './segments.service.js';
+import { sendMail } from '../delivery/mailer.js';
 import type { CreateCampaignRequest, SegmentFilterCriteria } from '@propbot/shared';
 import { pino } from 'pino';
 
@@ -97,6 +98,8 @@ export class CampaignsService {
             email: contacts.email,
             altPhone: contacts.altPhone,
             lifecycleStage: contacts.lifecycleStage,
+            firstName: contacts.firstName,
+            lastName: contacts.lastName,
           })
           .from(contacts)
           .where(and(eq(contacts.companyId, companyId)))
@@ -160,19 +163,51 @@ export class CampaignsService {
       if (chosenVariant === 'A') variantCountA++;
       else variantCountB++;
 
-      // 4. Record successful dispatch
+      // 4. Dispatch message on selected channel
+      let dispatchOk = false;
+      let dispatchError: string | undefined;
+
+      if (c.channel === 'email') {
+        const recipientEmail = contact?.email;
+        const variantData = chosenVariant === 'B' && c.variantB
+          ? (c.variantB as { body: string })
+          : (c.variantA as { body: string });
+        const messageBody = variantData?.body || '';
+        const leadName = contact
+          ? [contact.firstName, contact.lastName].filter(Boolean).join(' ') || 'there'
+          : 'there';
+        const personalised = messageBody.replace(/\{\{name\}\}/gi, leadName);
+
+        if (recipientEmail) {
+          const result = await sendMail({
+            to: [recipientEmail],
+            subject: c.name,
+            text: personalised,
+            html: `<p>${personalised.replace(/\n/g, '<br/>')}</p>`,
+          });
+          dispatchOk = result.sent;
+          if (!result.sent) dispatchError = result.reason;
+        } else {
+          dispatchError = 'No email address';
+        }
+      } else {
+        // WhatsApp/SMS: mock send (no real dispatch in sandbox)
+        dispatchOk = true;
+      }
+
       await db.insert(campaignRecipients).values({
         companyId,
         campaignId: c.id,
         contactId: lead.contactId,
         leadId: lead.id,
         variant: chosenVariant,
-        status: 'sent',
-        sentAt: new Date(),
-        channelMessageId: `msg_${Date.now()}_${sentCount}`,
+        status: dispatchOk ? 'sent' : 'failed',
+        sentAt: dispatchOk ? new Date() : null,
+        channelMessageId: dispatchOk ? `msg_${Date.now()}_${sentCount}` : null,
+        error: dispatchError,
       });
 
-      sentCount++;
+      if (dispatchOk) sentCount++;
     }
 
     // Update campaign stats and status

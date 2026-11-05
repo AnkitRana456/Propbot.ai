@@ -123,10 +123,15 @@ export const createBookingPaymentLinkRequestSchema = z.object({
 // ==========================================
 
 export const generateReraCopyRequestSchema = z.object({
-  projectId: z.string().uuid(),
-  platform: z.enum(['whatsapp', 'meta_ads', 'google_ads', 'email']),
+  projectId: z.string().uuid().optional(),
+  projectName: z.string().min(1).optional(),
+  reraNumber: z.string().min(1),
+  platform: z.enum(['whatsapp', 'meta_ads', 'google_ads', 'email']).default('whatsapp'),
   targetAudience: z.string().optional(),
-  focusAspects: z.array(z.string()).optional(), // e.g. ["amenities", "location", "payment_plan"]
+  keyUsps: z.string().optional(),
+  userDraftHeadline: z.string().optional(),
+  userDraftBody: z.string().optional(),
+  focusAspects: z.array(z.string()).optional(),
 });
 
 export const generateReraCopyResponseSchema = z.object({

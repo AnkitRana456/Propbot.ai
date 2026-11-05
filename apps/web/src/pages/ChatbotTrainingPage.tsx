@@ -161,22 +161,22 @@ export const ChatbotTrainingPage: React.FC = () => {
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-6">
       {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <Link to="/chatbots" className="hover:text-slate-800 transition-colors flex items-center gap-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
+            <Link to="/chatbots" className="hover:text-text transition-colors flex items-center gap-1">
               <ArrowLeft className="w-3.5 h-3.5" />
               Chatbots
             </Link>
             <span>/</span>
-            <span className="text-slate-700">{chatbot?.name || 'Agent'}</span>
+            <span className="text-text/80">{chatbot?.name || 'Agent'}</span>
             <span>/</span>
-            <span className="text-emerald-700">Knowledge Base & RAG</span>
+            <span className="text-emerald-700 dark:text-emerald-300">Knowledge Base & RAG</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl font-extrabold text-text tracking-tight flex items-center gap-3">
             <span>Knowledge Base Training</span>
             {chatbot?.status && (
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
                 {chatbot.status}
               </span>
             )}
@@ -188,12 +188,12 @@ export const ChatbotTrainingPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsOverridesModalOpen(true)}
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 text-xs font-semibold text-text/80 bg-surface hover:bg-surface-2 border border-border rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
           >
-            <Sparkles className="w-4 h-4 text-purple-600" />
+            <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-300" />
             <span>Priority Overrides</span>
             {overrides.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-800 font-bold">
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 dark:bg-purple-500/15 text-purple-800 dark:text-purple-300 font-bold">
                 {overrides.length}
               </span>
             )}
@@ -202,9 +202,9 @@ export const ChatbotTrainingPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsInboxModalOpen(true)}
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 text-xs font-semibold text-text/80 bg-surface hover:bg-surface-2 border border-border rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
           >
-            <Inbox className="w-4 h-4 text-blue-600" />
+            <Inbox className="w-4 h-4 text-blue-600 dark:text-blue-300" />
             <span>Unanswered Inbox</span>
             {pendingUnansweredCount > 0 && (
               <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500 text-white font-bold animate-pulse">
@@ -226,43 +226,43 @@ export const ChatbotTrainingPage: React.FC = () => {
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
-          <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-600">
+        <div className="p-4 rounded-xl bg-surface border border-border shadow-xs flex items-center gap-3.5">
+          <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
             <Database className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-black text-slate-900">{sources.length}</div>
-            <div className="text-xs text-slate-500 font-medium">Knowledge Sources</div>
+            <div className="text-xl font-black text-text">{sources.length}</div>
+            <div className="text-xs text-text-muted font-medium">Knowledge Sources</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
-          <div className="p-2.5 rounded-lg bg-blue-50 text-blue-600">
+        <div className="p-4 rounded-xl bg-surface border border-border shadow-xs flex items-center gap-3.5">
+          <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300">
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-black text-slate-900">{totalChunks}</div>
-            <div className="text-xs text-slate-500 font-medium">Indexed Chunks</div>
+            <div className="text-xl font-black text-text">{totalChunks}</div>
+            <div className="text-xs text-text-muted font-medium">Indexed Chunks</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
-          <div className="p-2.5 rounded-lg bg-purple-50 text-purple-600">
+        <div className="p-4 rounded-xl bg-surface border border-border shadow-xs flex items-center gap-3.5">
+          <div className="p-2.5 rounded-lg bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-300">
             <Cpu className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-black text-slate-900">Task Router</div>
-            <div className="text-xs text-slate-500 font-medium">Tiered LLM & Embeddings</div>
+            <div className="text-xl font-black text-text">Task Router</div>
+            <div className="text-xs text-text-muted font-medium">Tiered LLM & Embeddings</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
-          <div className="p-2.5 rounded-lg bg-teal-50 text-teal-600">
+        <div className="p-4 rounded-xl bg-surface border border-border shadow-xs flex items-center gap-3.5">
+          <div className="p-2.5 rounded-lg bg-teal-50 dark:bg-teal-500/15 text-teal-600 dark:text-teal-300">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xl font-black text-emerald-700">Strict Anti-Hallucination</div>
-            <div className="text-xs text-slate-500 font-medium">Grounded RAG Guardrails</div>
+            <div className="text-xl font-black text-emerald-700 dark:text-emerald-300">Strict Anti-Hallucination</div>
+            <div className="text-xs text-text-muted font-medium">Grounded RAG Guardrails</div>
           </div>
         </div>
       </div>
@@ -273,10 +273,10 @@ export const ChatbotTrainingPage: React.FC = () => {
         <div className="lg:col-span-7 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              <h2 className="text-sm font-bold text-text uppercase tracking-wider">
                 Ground Truth Sources
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-text-muted">
                 Documents and FAQs your AI agent references when answering visitor questions.
               </p>
             </div>
@@ -284,7 +284,7 @@ export const ChatbotTrainingPage: React.FC = () => {
               type="button"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['knowledgeSources', chatbotId] })}
               title="Refresh source statuses"
-              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-1.5 text-text-faint hover:text-text-muted hover:bg-surface-2 rounded-lg transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
