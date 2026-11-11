@@ -1,19 +1,20 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useReducedMotion } from '../../lib/use-reduced-motion.js';
+import { Glyph, type GlyphName } from './icons.js';
 
-/** Emoji families for the different parts of the page. The dancers (💃 🕺) show up in most of them. */
+/** Confetti families for the different parts of the page: small line icons, never emoji. */
 export const EMOJI_SETS = {
-  party: ['🎉', '🥳', '✨', '💃', '🕺', '🏠', '🔑', '🎈'],
-  home: ['🏠', '🏡', '🔑', '🛋️', '🪴', '✨', '💃', '🕺'],
-  tower: ['🏢', '🏙️', '🏗️', '🔑', '🕺', '✨', '📈'],
-  land: ['🌳', '🌿', '📍', '📐', '🌱', '🕺', '🌼'],
-  shop: ['🏬', '🛍️', '💰', '📈', '💃', '✨', '🤝'],
-  money: ['💰', '💸', '📈', '🤝', '🎉', '✨'],
-  chat: ['💬', '📲', '🤖', '👋', '✨', '💃'],
-  calendar: ['📅', '✅', '🔔', '✨', '🕺'],
-  spark: ['✨', '⭐', '🌟', '💫'],
-} as const;
+  party: ['key', 'spark', 'tile', 'check'],
+  home: ['key', 'tile', 'spark'],
+  tower: ['tile', 'key', 'spark'],
+  land: ['pin', 'spark', 'check'],
+  shop: ['bag', 'coin', 'spark'],
+  money: ['coin', 'spark', 'check'],
+  chat: ['chat', 'spark', 'check'],
+  calendar: ['cal', 'check', 'spark'],
+  spark: ['spark'],
+} as const satisfies Record<string, readonly GlyphName[]>;
 export type EmojiSet = keyof typeof EMOJI_SETS;
 
 export interface BurstOptions {
@@ -30,7 +31,8 @@ interface Particle {
   id: number;
   x: number;
   y: number;
-  emoji: string;
+  emoji: GlyphName;
+  brass: boolean;
   dx: number;
   dy: number;
   dur: number;
@@ -53,7 +55,7 @@ const MAX_PARTICLES = 90;
 const pickSet = (set: BurstOptions['set']): readonly string[] => (Array.isArray(set) ? set : EMOJI_SETS[(set as EmojiSet) ?? 'party'] ?? EMOJI_SETS.party);
 
 /**
- * Renders a full-screen layer where emojis fly out of a click, turn in 3D and dance as they fall.
+ * Renders a full-screen layer where small icons fly out of a click, turn in 3D and flutter as they fall.
  * Also lets any element opt in with data-burst="party" (or a set name). Does nothing for visitors who
  * ask their system for reduced motion.
  */
@@ -67,8 +69,7 @@ export const EmojiBurstProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (reduced || typeof window === 'undefined') return;
       const pool = pickSet(set);
       const made: Particle[] = Array.from({ length: count }, (_, i) => {
-        const emoji = pool[Math.floor(Math.random() * pool.length)] ?? '✨';
-        const dancer = emoji === '💃' || emoji === '🕺';
+        const emoji = (pool[Math.floor(Math.random() * pool.length)] ?? 'spark') as GlyphName;
         // fan upwards, a little sideways, with some variation in how far each one flies
         const angle = -Math.PI * (0.08 + 0.84 * Math.random());
         const dist = (90 + Math.random() * 190) * spread;
@@ -77,11 +78,12 @@ export const EmojiBurstProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           x,
           y,
           emoji,
+          brass: Math.random() < 0.4,
           dx: Math.cos(angle) * dist,
           dy: Math.sin(angle) * dist,
           dur: 1500 + Math.random() * 1000,
           delay: i * 18 + Math.random() * 120,
-          size: dancer ? 40 + Math.random() * 14 : 24 + Math.random() * 20,
+          size: 14 + Math.random() * 12,
           beat: 0.34 + Math.random() * 0.34,
         };
       });
@@ -130,7 +132,7 @@ export const EmojiBurstProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                   {
                     left: p.x,
                     top: p.y,
-                    fontSize: p.size,
+                    color: p.brass ? 'var(--brass)' : 'var(--accent)',
                     '--dx': `${p.dx}px`,
                     '--dy': `${p.dy}px`,
                     '--dur': `${p.dur}ms`,
@@ -142,7 +144,9 @@ export const EmojiBurstProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                   if (e.target === e.currentTarget) setParticles(prev => prev.filter(q => q.id !== p.id));
                 }}
               >
-                <span className="emoji-dance">{p.emoji}</span>
+                <span className="emoji-dance">
+                  <Glyph name={p.emoji} size={p.size} />
+                </span>
               </span>
             ))}
           </div>,

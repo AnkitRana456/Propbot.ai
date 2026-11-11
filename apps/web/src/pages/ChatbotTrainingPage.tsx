@@ -146,7 +146,9 @@ export const ChatbotTrainingPage: React.FC = () => {
     history: Array<{ role: 'visitor' | 'assistant'; content: string }>,
     visitorName?: string,
   ): Promise<RagQueryResponse> => {
-    return knowledgeService.testQuery(chatbotId!, { query, history, visitorName });
+    const response = await knowledgeService.testQuery(chatbotId!, { query, history, visitorName });
+    void queryClient.invalidateQueries({ queryKey: ['unanswered', chatbotId] });
+    return response;
   };
 
   const handleOpenCorrect = (question: string) => {

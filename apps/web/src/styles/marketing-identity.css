@@ -1,0 +1,112 @@
+/* Identity of the public site (everything is scoped to .mkt so the CRM is untouched).
+   Colour values come from components/marketing/config.ts, motion values from motion.ts. */
+
+.mkt {
+  --accent: rgb(var(--accent-rgb));
+  /* tower windows and stage dots: teal while live, brass once booked */
+  --status-new-fg: var(--stage-1);
+  --status-qualified-fg: var(--stage-2);
+  --status-site-visit-fg: var(--stage-3);
+  --status-won-fg: var(--stage-4);
+  position: relative;
+}
+.mkt .text-gradient { background-image: linear-gradient(100deg, var(--accent) 0%, var(--accent) 45%, var(--brass) 100%); }
+
+/* ───────── type ───────── */
+/* headlines keep the site's own sans (Inter), exactly as before the redesign */
+.mk-display { font-family: var(--font-sans); font-weight: 700; letter-spacing: -0.025em; }
+.mk-mono { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.fig { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; }
+.fig b { color: var(--accent); font-weight: 600; white-space: nowrap; }
+.fig i { display: block; width: 2.5rem; height: 1px; background: currentColor; opacity: 0.5; }
+.fig.center { justify-content: center; }
+
+/* headline words rise out of a mask, one word at a time (never per character: that breaks Devanagari) */
+.words .w { display: inline-block; overflow: clip; overflow-clip-margin: 0.12em; vertical-align: bottom; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.words .w > span { display: inline-block; transform: translateY(110%); transition: transform var(--mk-word) var(--mk-ease); transition-delay: calc(var(--i) * var(--mk-stagger)); }
+.words.in .w > span { transform: none; }
+/* the hero headline plays on load from CSS alone, so it can never stay hidden waiting for a script */
+.words.auto .w > span { transition: none; animation: wordIn var(--mk-word) var(--mk-ease) calc(var(--i) * var(--mk-stagger)) both; }
+@keyframes wordIn { from { transform: translateY(110%); } to { transform: none; } }
+
+/* ───────── three surfaces ───────── */
+/* 1. plain: text on the page, separated by a hairline */
+.s-plain { border-top: 1px solid var(--border); padding-top: 1.25rem; }
+/* 2. outlined, with crop marks in the corners (drawings, specs, comparisons) */
+.s-crop {
+  --m: 10px;
+  position: relative;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 0 / var(--m) 1.5px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 0 0 / 1.5px var(--m) no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 100% 0 / var(--m) 1.5px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 100% 0 / 1.5px var(--m) no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 0 100% / var(--m) 1.5px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 0 100% / 1.5px var(--m) no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / var(--m) 1.5px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / 1.5px var(--m) no-repeat;
+  background-origin: border-box;
+}
+/* 3. elevated product card: the only surface that casts a shadow */
+.s-product { border-radius: 14px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-float), inset 0 1px 0 rgb(255 255 255 / 0.06); }
+
+/* ───────── texture ───────── */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: var(--grain, 0.05);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* dimension ticks down the left edge of a section, like the margin of a drawing */
+.ticks { position: relative; }
+.ticks::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px 12px) 0 0 / 5px 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--text-faint) 0 1px, transparent 1px 60px) 0 0 / 9px 100% no-repeat;
+  opacity: 0.8;
+}
+/* a measurement line with end ticks and a label in the middle */
+.dim { display: flex; align-items: center; gap: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.dim::before, .dim::after { content: ''; flex: 1; height: 7px; border-inline: 1px solid currentColor; background: linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat; opacity: 0.45; }
+
+/* a line that wipes across as a section arrives (replaces plain fades) */
+.wipe { display: block; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: 0 50%; transition: transform 1.1s var(--mk-ease); }
+.wipe.in { transform: none; }
+
+/* rolling numbers */
+.odo { display: inline-flex; line-height: 1; font-variant-numeric: tabular-nums; }
+.odo-d { display: inline-block; height: 1em; overflow: clip; }
+.odo-d > span { display: block; transition: transform 0.7s var(--mk-ease); }
+.odo-d i { display: block; height: 1em; font-style: normal; }
+
+/* accordion that opens with its real height (no layout jump, no fixed max-height) */
+.acc { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s var(--mk-ease), visibility 0.4s; visibility: hidden; }
+.acc[data-open='true'] { grid-template-rows: 1fr; visibility: visible; }
+.acc > div { overflow: hidden; }
+
+/* muted grey is too faint on the tinted closing band */
+.mkt #demo :is(.fig, .text-text-muted) { color: var(--text); }
+
+/* booked and sold are the brass moments */
+.mkt .m3d-board > span:last-child { background: var(--brass); color: #1a1206; border-color: color-mix(in srgb, var(--brass) 70%, #000); }
+.mkt .tower-btn { height: 2.5rem; min-width: 2.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .acc { transition: none; }
+  .words .w > span, .wipe { transform: none !important; transition: none !important; animation: none !important; }
+  .odo-d > span { transition: none; }
+}
+@media (max-width: 767px) {
+  .ticks::before { display: none; }
+}

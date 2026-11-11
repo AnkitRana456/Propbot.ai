@@ -66,9 +66,13 @@ export const ModelScene: React.FC<ModelSceneProps> = ({ Model, emojis, name, sol
           celebrate();
         }
       }}
+      data-cursor="Tap"
       {...bind(e => celebrate({ x: e.clientX, y: e.clientY }))}
       className={`relative cursor-grab focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent active:cursor-grabbing ${className}`}
     >
+      <span aria-hidden className="stamp" data-on={sold}>
+        {soldLabel}
+      </span>
       <Scene3D width={width} height={height} anchor={anchor} stageRef={stage} dancing={dancing} onDanceEnd={() => setDancing(false)}>
         <Model sold={sold} />
       </Scene3D>

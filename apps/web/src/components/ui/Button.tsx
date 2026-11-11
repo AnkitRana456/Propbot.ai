@@ -30,7 +30,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantStyles = {
     primary:
-      'bg-accent text-on-accent hover:bg-accent-hover active:bg-accent-hover focus-visible:ring-accent shadow-sm',
+      'btn-sheen bg-accent text-on-accent hover:bg-accent-hover active:bg-accent-hover focus-visible:ring-accent shadow-sm',
     secondary:
       'bg-surface-2 text-text border border-border hover:bg-surface-3 active:bg-surface-3 focus-visible:ring-accent',
     outline:

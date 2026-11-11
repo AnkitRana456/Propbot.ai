@@ -59,13 +59,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       <aside
         id="app-sidebar"
         aria-label="Main navigation"
-        className={`fixed bottom-0 left-0 top-0 z-50 flex w-[240px] flex-col border-r border-border bg-surface transition-transform duration-300 md:static md:z-auto md:transition-[width] ${
+        className={`fixed bottom-0 left-0 top-0 z-50 sidebar-premium flex w-[240px] flex-col border-r border-border bg-surface transition-transform duration-300 md:static md:z-auto md:transition-[width] ${
           rail ? 'md:w-16' : 'md:w-[240px]'
         } ${isMobileOpen ? 'translate-x-0 shadow-float' : '-translate-x-full md:translate-x-0'}`}
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-on-accent">
+            <span aria-hidden className="brand-mark flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-on-accent">
               <Compass className="h-[18px] w-[18px]" />
             </span>
             <span className={`min-w-0 ${rail ? 'md:hidden' : ''}`}>
@@ -110,8 +110,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
                           onClick={onCloseMobile}
                           title={rail ? item.label : undefined}
                           className={({ isActive }) =>
-                            `group flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition-colors ${rail ? 'md:justify-center md:px-0' : ''} ${
-                              isActive ? 'bg-accent-soft font-semibold text-accent' : 'text-text-muted hover:bg-surface-2 hover:text-text'
+                            `group flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition-all duration-200 ${rail ? 'md:justify-center md:px-0' : ''} ${
+                              isActive ? 'nav-item-active font-semibold text-accent' : 'text-text-muted hover:translate-x-0.5 hover:bg-surface-2 hover:text-text'
                             }`
                           }
                         >

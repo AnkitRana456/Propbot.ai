@@ -1,5 +1,7 @@
 @import './styles/tokens.css';
 @import './styles/marketing3d.css';
+@import './styles/marketing-identity.css';
+@import './styles/marketing-motion.css';
 
 @tailwind base;
 @tailwind components;
@@ -400,3 +402,70 @@ html {
   .float-y, .float-y-slow, .drift, .btn-sheen:hover::after { animation: none !important; }
 }
 
+/* ─────────────── App polish: canvas, brand, hero, page motion ─────────────── */
+
+.app-canvas {
+  background-image:
+    radial-gradient(900px 480px at 100% -10%, var(--accent-glow), transparent 70%),
+    radial-gradient(700px 420px at 12% 110%, var(--brass-glow), transparent 70%);
+}
+.brand-mark {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #22D3EE));
+  box-shadow: 0 6px 14px -6px var(--accent-glow-strong);
+}
+:is(a, button).bg-accent {
+  background-image: linear-gradient(135deg, rgb(var(--accent-rgb)), color-mix(in srgb, rgb(var(--accent-rgb)) 72%, #22D3EE));
+  box-shadow: 0 6px 14px -8px var(--accent-glow-strong);
+}
+.hero-band {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(120deg, #0B5F58, #0F766E 45%, #0E7490);
+  box-shadow: var(--shadow-lg);
+}
+.hero-band::before {
+  content: '';
+  position: absolute;
+  inset: -40% -10% auto auto;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.18), transparent);
+}
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.5rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  transition: background-color 200ms var(--ease-smooth);
+}
+.hero-chip:hover { background: rgba(255, 255, 255, 0.24); }
+.stat-card { position: relative; overflow: hidden; }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--brass));
+  opacity: 0;
+  transition: opacity 200ms var(--ease-smooth);
+}
+.stat-card:hover::before { opacity: 1; }
+.channel-tile { transition: transform 200ms var(--ease-out-expo), box-shadow 200ms var(--ease-out-expo), border-color 200ms; }
+.channel-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: rgb(var(--accent-rgb) / 0.4); }
+.page-enter { animation: pageEnter 320ms var(--ease-out-expo) both; }
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter { animation: none; }
+  .channel-tile:hover { transform: none; }
+}

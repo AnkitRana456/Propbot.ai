@@ -1,0 +1,98 @@
+/* Scroll and interaction pieces of the public site. Scoped by class; values come from config.ts and motion.ts. */
+
+/* ───────── smooth scrolling (Lenis) ───────── */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* ───────── progress tower: the page as a building ───────── */
+.ptower { position: fixed; right: 14px; top: 50%; z-index: 30; transform: translateY(-50%); flex-direction: column; align-items: center; }
+.ptower-roof { width: 2px; height: 14px; background: var(--text-faint); }
+.ptower ol { display: flex; flex-direction: column-reverse; gap: 0; padding: 2px; border: 1px solid var(--border); border-radius: 4px; background: color-mix(in srgb, var(--surface) 85%, transparent); backdrop-filter: blur(6px); }
+/* 24px targets (WCAG 2.5.8); the visible floor is the padded content box */
+.ptower button { position: relative; display: block; width: 24px; height: 24px; padding: 5px 3px; background-clip: content-box; border-radius: 2px; background-color: color-mix(in srgb, var(--text) 10%, transparent); transition: background-color 0.5s var(--mk-ease), box-shadow 0.5s var(--mk-ease), transform 0.2s; }
+.ptower button[data-lit="true"] { background-color: var(--accent); }
+.ptower button[data-lit="true"][data-last="true"] { background-color: var(--brass); }
+.ptower button[aria-current] { transform: scaleX(1.25); }
+.ptower button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ptower button span { position: absolute; right: 30px; top: 50%; transform: translate(6px, -50%); white-space: nowrap; padding: 3px 8px; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+.ptower button:is(:hover, :focus-visible) span { opacity: 1; transform: translate(0, -50%); }
+.pbar { position: fixed; left: 0; right: 0; top: 64px; z-index: 39; height: 2px; }
+.pbar > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--brass)); transform: scaleX(0); transform-origin: 0 50%; }
+
+/* ───────── journey ───────── */
+.jdot { position: absolute; left: 50%; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px rgb(var(--accent-rgb) / 0.2), 0 0 18px rgb(var(--accent-rgb) / 0.9); transition: background-color 0.4s, box-shadow 0.4s; }
+.jdot[data-booked="true"] { background: var(--brass); box-shadow: 0 0 0 5px rgb(var(--brass-rgb) / 0.22), 0 0 18px rgb(var(--brass-rgb) / 0.9); }
+.jpanel { animation: jIn 0.5s var(--mk-ease) both; }
+@keyframes jIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.jbubble { width: fit-content; max-width: 85%; padding: 0.6rem 0.9rem; border-radius: 14px 14px 14px 4px; background: var(--surface-2); color: var(--text); font-size: 0.875rem; line-height: 1.45; animation: jIn 0.45s var(--mk-ease) both; }
+.jbubble.bot { margin-left: auto; border-radius: 14px 14px 4px 14px; background: var(--accent-soft); border: 1px solid rgb(var(--accent-rgb) / 0.35); }
+.jtyping { display: flex; gap: 4px; padding: 0.8rem 0.9rem; }
+.jtyping i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: jBlink 1s ease-in-out infinite; }
+.jtyping i:nth-child(2) { animation-delay: 0.15s; }
+.jtyping i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes jBlink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+.jring { stroke-dashoffset: 8; animation: jRing 1.1s var(--mk-ease) both; }
+@keyframes jRing { from { stroke-dashoffset: 100; } }
+.jchip { padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.75rem; animation: jIn 0.4s var(--mk-ease) both; }
+.jdrop { animation: jDrop 0.7s cubic-bezier(0.3, 1.5, 0.5, 1) 0.15s both; }
+@keyframes jDrop { from { opacity: 0; transform: translateY(-70px) rotate(-5deg); } to { opacity: 1; transform: none; } }
+.jtower { display: flex; flex-direction: column-reverse; gap: 5px; width: 6.5rem; margin-inline: auto; padding: 8px; border: 1px solid var(--border); border-bottom-width: 4px; background: var(--surface); }
+.jtower li { display: flex; gap: 5px; height: 26px; }
+.jtower i { flex: 1; border-radius: 2px; background: color-mix(in srgb, var(--text) 9%, transparent); transition: background-color 0.5s var(--mk-ease), box-shadow 0.5s; }
+.jtower li[data-lit="true"] i { background: var(--accent); box-shadow: 0 0 8px rgb(var(--accent-rgb) / 0.5); }
+.jtower li[data-lit="true"][data-top="true"] i { background: var(--brass); box-shadow: 0 0 10px rgb(var(--brass-rgb) / 0.7); }
+.jstatic :is(.jbubble, .jchip, .jdrop, .jring, .stamp) { animation: none; }
+
+/* ───────── sold / booked stamp ───────── */
+.stamp { position: absolute; left: 50%; top: 42%; z-index: 5; padding: 0.3rem 0.9rem; border: 3px solid var(--brass); border-radius: 6px; color: var(--brass); font-size: 1.5rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; pointer-events: none; opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(2.4); background: color-mix(in srgb, var(--bg) 55%, transparent); }
+.stamp[data-on="true"] { opacity: 1; transform: translate(-50%, -50%) rotate(-12deg); animation: stampIn 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) 0.5s both; }
+.stamp.flat { position: static; font-size: 1.1rem; transform: rotate(-8deg); animation-name: stampInFlat; }
+@keyframes stampIn { from { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(2.6); } to { opacity: 1; transform: translate(-50%, -50%) rotate(-12deg) scale(1); } }
+@keyframes stampInFlat { from { opacity: 0; transform: rotate(-8deg) scale(2.2); } to { opacity: 1; transform: rotate(-8deg) scale(1); } }
+
+/* a new lead glows brass for a moment */
+.brass-glow { animation: brassGlow 2.4s ease-out both; }
+@keyframes brassGlow { 0%, 35% { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass), 0 0 22px rgb(var(--brass-rgb) / 0.55); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* ───────── before / after with a draggable divider ───────── */
+.cmp { --label: 14rem; }
+.cmp-row { display: grid; grid-template-columns: var(--label) calc((100% - var(--label)) * var(--split-n, 0.5)) 1fr; align-items: center; min-height: 3.75rem; border-top: 1px solid var(--border); font-size: 0.875rem; }
+.cmp-row > * { padding: 0 1.25rem; min-width: 0; }
+.cmp-head { border-top: 0; min-height: 3rem; }
+.cmp-before, .cmp-after { display: flex; align-items: center; gap: 0.6rem; height: 100%; min-height: 3.75rem; }
+.cmp-before { color: var(--text-muted); filter: grayscale(1); opacity: 0.75; }
+.cmp-before svg { animation: mkSpin 9s linear infinite; }
+.cmp-after { color: var(--text); font-weight: 500; background: rgb(var(--accent-rgb) / 0.07); }
+.cmp-after svg { animation: cmpPop 2.8s var(--mk-ease) calc(var(--i) * 0.25s) infinite; }
+@keyframes cmpPop { 0%, 70%, 100% { transform: scale(1); } 80% { transform: scale(1.5); } }
+@keyframes mkSpin { to { transform: rotate(360deg); } }
+.cmp-handle { position: absolute; top: 0; bottom: 0; left: calc(var(--label) + (100% - var(--label)) * var(--split-n, 0.5)); width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
+.cmp-handle i { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px; border-radius: 50%; background: var(--accent); box-shadow: 0 6px 18px rgb(0 0 0 / 0.4); }
+.cmp-handle i::before, .cmp-handle i::after { content: ""; position: absolute; top: 50%; width: 7px; height: 7px; border: solid var(--on-accent); border-width: 0 0 2px 2px; }
+.cmp-handle i::before { left: 9px; transform: translateY(-50%) rotate(45deg); }
+.cmp-handle i::after { right: 9px; transform: translateY(-50%) rotate(-135deg); }
+.cmp-range { position: absolute; top: 0; bottom: 0; left: var(--label); width: calc(100% - var(--label)); height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+.cmp:has(.cmp-range:focus-visible) .cmp-handle i { outline: 3px solid var(--text); outline-offset: 3px; }
+
+/* ───────── ROI buildings ───────── */
+.roi-bars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; }
+.roi-bars > div { display: flex; flex-direction: column; justify-content: flex-end; height: 11.5rem; }
+.roi-bar { --fill: var(--accent); display: block; width: 100%; min-height: 6px; border-radius: 3px 3px 0 0; transition: height 0.6s var(--mk-ease); background:
+  repeating-linear-gradient(to bottom, transparent 0 9px, var(--surface) 9px 12px),
+  repeating-linear-gradient(to right, transparent 0 14px, var(--surface) 14px 18px),
+  var(--fill); }
+.roi-bar[data-last="true"] { --fill: var(--brass); }
+
+/* ───────── cursor ring (fine pointers only) ───────── */
+.mk-cursor { position: fixed; left: 0; top: 0; z-index: 95; width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 1.5px solid var(--accent); border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.2s, width 0.25s var(--mk-ease), height 0.25s var(--mk-ease), margin 0.25s var(--mk-ease), background-color 0.25s; }
+.mk-cursor[data-on="1"] { opacity: 0.9; }
+.mk-cursor[data-link="1"] { width: 48px; height: 48px; margin: -24px 0 0 -24px; background: rgb(var(--accent-rgb) / 0.12); }
+.mk-cursor[data-label]:not([data-label=""]) { width: 64px; height: 64px; margin: -32px 0 0 -32px; background: var(--accent); }
+.mk-cursor::after { content: attr(data-label); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--on-accent); font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+
+@media (prefers-reduced-motion: reduce) {
+  .jpanel, .jbubble, .jchip, .jdrop, .jring, .jtyping i, .stamp, .brass-glow, .cmp-before svg, .cmp-after svg { animation: none !important; }
+  .roi-bar, .ptower button { transition: none; }
+  .mk-cursor { display: none; }
+}

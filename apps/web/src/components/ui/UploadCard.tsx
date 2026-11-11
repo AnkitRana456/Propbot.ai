@@ -38,10 +38,10 @@ export type UploadCardProps = {
 };
 
 const CSS = `.up, .up *{box-sizing: border-box;}
-.up{font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;--page: #e9eaec; --card: #18181a; --card-line: #2b2b2f; --panel: #222225; --panel-line: #2e2e33; --text: #f2f2f4; --dim: #9a9aa3; --faint: #5f5f68; --blue: #3d7cf0; --blue-hi: #6fa0ff; --off: #e6e6ea; --off-dim: #3a3a40; --green: #3ccf7a; --red: #ff5d5d;}
+.up{font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;--page:var(--bg,#FAFAF7); --card:var(--surface,#fff); --card-line:var(--border,#E6E7E2); --panel:var(--surface-2,#F3F4F1); --panel-line:var(--border,#E6E7E2); --text:var(--text,#14181F); --dim:var(--text-muted,#667085); --faint:var(--text-faint,#8A93A3); --blue:var(--accent,#0F766E); --blue-hi:var(--accent,#0F766E); --off:var(--border,#E6E7E2); --off-dim:var(--surface-3,#E9EBE5); --green:var(--success,#15803D); --red:var(--danger,#B42318);}
 .up button, .up input{font: inherit; color: inherit;}
 .up .mono{font-family: 'JetBrains Mono', ui-monospace, monospace;}
-.up{width: min(100%, 480px); padding: 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--card-line); color: var(--text); box-shadow: 0 30px 60px -30px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.2);}
+.up{width: min(100%, 480px); padding: 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--card-line); color: var(--text); box-shadow: var(--shadow-md, 0 4px 8px -2px rgba(20,24,31,.07));}
 .up-h{display: flex; align-items: center; gap: 12px; padding: 4px 6px 14px; font-size: 19px; font-weight: 500; letter-spacing: -.01em;}
 .up-h svg{flex: none;}
 .up-h .state{margin-left: auto; font: 500 11px/1 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); display: inline-flex; align-items: center; gap: 7px;}
@@ -55,11 +55,11 @@ const CSS = `.up, .up *{box-sizing: border-box;}
 .up .view{display: none;}
 .up[data-v=drop] .v-drop, .up[data-v=prog] .v-prog, .up[data-v=done] .v-done, .up[data-v=error] .v-error{display: block; animation: up-viewIn .28s cubic-bezier(.2,.8,.2,1);}
 @keyframes up-viewIn{from { opacity: 0; transform: translateY(4px); }}
-.up .drop{display: grid; place-items: center; gap: 10px; min-height: 162px; padding: 18px; border-radius: 10px; border: 1.5px dashed #3c3c43; text-align: center; cursor: pointer; transition: border-color .2s, background-color .2s;}
-.up .drop:hover, .up .drop:focus-visible{border-color: #55555e; outline: 0;}
-.up .drop.over{border-color: var(--blue); background: rgba(61,124,240,.08);}
-.up .drop .ico{width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #2c2c31; transition: transform .25s cubic-bezier(.3,1.4,.5,1), background-color .2s;}
-.up .drop.over .ico{transform: translateY(-4px) scale(1.06); background: rgba(61,124,240,.2);}
+.up .drop{display: grid; place-items: center; gap: 10px; min-height: 162px; padding: 18px; border-radius: 10px; border: 1.5px dashed var(--border,#E6E7E2); text-align: center; cursor: pointer; transition: border-color .2s, background-color .2s;}
+.up .drop:hover, .up .drop:focus-visible{border-color: var(--blue); outline: 0;}
+.up .drop.over{border-color: var(--blue); background: var(--accent-glow, rgba(15,118,110,.08));}
+.up .drop .ico{width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3,#E9EBE5); transition: transform .25s cubic-bezier(.3,1.4,.5,1), background-color .2s;}
+.up .drop.over .ico{transform: translateY(-4px) scale(1.06); background: var(--accent-soft, rgba(15,118,110,.15));}
 .up .drop b{font-weight: 500; font-size: 15px;}
 .up .drop b u{text-decoration: none; color: var(--blue-hi);}
 .up .drop small{color: var(--dim); font: 400 11.5px/1.4 'JetBrains Mono', monospace;}
@@ -84,11 +84,11 @@ const CSS = `.up, .up *{box-sizing: border-box;}
 .up .stats .eta{color: var(--dim);}
 .up[data-s=paused] .stats{color: var(--dim);}
 .up .actions{display: flex; gap: 8px; margin-top: 18px;}
-.up .btn{flex: 1; height: 34px; border-radius: 9px; border: 1px solid #3a3a40; background: #1c1c1f; color: var(--text); font-size: 13px; cursor: pointer; transition: background-color .15s, border-color .15s, transform .1s;}
-.up .btn:hover{background: #26262a; border-color: #4a4a52;}
+.up .btn{flex: 1; height: 34px; border-radius: 9px; border: 1px solid var(--border,#E6E7E2); background: var(--surface-2,#F3F4F1); color: var(--text); font-size: 13px; cursor: pointer; transition: background-color .15s, border-color .15s, transform .1s;}
+.up .btn:hover{background: var(--surface-3,#E9EBE5); border-color: var(--border,#E6E7E2);}
 .up .btn:active{transform: scale(.98);}
-.up .btn.pri{background: var(--blue); border-color: var(--blue);}
-.up .btn.pri:hover{background: #4f8bf7;}
+.up .btn.pri{background: var(--blue); border-color: var(--blue); color: #fff;}
+.up .btn.pri:hover{background: var(--accent-hover,#0B5F58); border-color: var(--accent-hover,#0B5F58);}
 .up .btn:focus-visible, .up .demo:focus-visible{outline: 2px solid var(--blue-hi); outline-offset: 2px;}
 .up .btn[hidden]{display: none;}
 .up .btn:disabled{opacity: .5; cursor: default;}

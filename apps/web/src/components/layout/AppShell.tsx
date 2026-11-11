@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { Navigate, Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar.js';
 import { TopBar } from './TopBar.js';
 import { Calendar, Compass, LayoutDashboard, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext.js';
 import { Skeleton } from '../common/Skeleton.js';
+import { breadcrumbFor } from '../../config/navigation.js';
 
 const COLLAPSE_KEY = 'propbot_sidebar_collapsed';
 const MOBILE_TABS = [
@@ -35,6 +36,11 @@ export const AppShell: React.FC = () => {
     }
   }, [isCollapsed]);
 
+  // Layout effect, so a page that sets its own title in an effect (the 404 page) still wins
+  useLayoutEffect(() => {
+    if (isAuthenticated) document.title = `${breadcrumbFor(location.pathname).filter(b => b.label !== 'Details').at(-1)?.label ?? 'Overview'} | PropBot Pro`;
+  }, [location.pathname, isAuthenticated]);
+
   if (!isInitialized) {
     return (
       <div className="flex h-screen w-full bg-bg" role="status" aria-label="Loading your workspace">
@@ -56,7 +62,7 @@ export const AppShell: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-bg text-text">
+    <div className="app-canvas flex h-screen w-full overflow-hidden bg-bg text-text">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-accent">
         Skip to content
       </a>
@@ -66,7 +72,7 @@ export const AppShell: React.FC = () => {
       <div className="relative z-10 flex h-full min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar onOpenMobileMenu={() => setIsMobileOpen(true)} />
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto px-4 py-6 pb-20 focus:outline-none sm:px-6 md:pb-8 lg:px-8">
-          <div className="mx-auto max-w-7xl">
+          <div key={location.pathname} className="page-enter mx-auto max-w-[1520px]">
             <Outlet />
           </div>
         </main>

@@ -21,6 +21,12 @@ const billing = requirePermission('manage_billing');
 const sales = requirePermission('edit_leads');
 
 export const paymentsRouter: Router = Router();
+
+// Public: simulated payment page (dev only — requires provider='manual')
+paymentsRouter.get('/orders/simulated/:id/public', h(async (req, res) => {
+  send(res, await paymentsService.getPublicSimulated(z.string().uuid().parse(req.params.id)));
+}));
+
 paymentsRouter.use(authenticate, tenantGuard);
 
 paymentsRouter.get('/profile', billing, h(async (req, res) => send(res, await paymentsService.getProfile(company(req)))));

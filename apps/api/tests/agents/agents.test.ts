@@ -41,10 +41,20 @@ describe('P1: agents, versions and runtime', () => {
     setAttributeExtractor(null);
   });
 
+  it('opens an agent whose stored model was retired, using the default model', async () => {
+    const created = await api('post', '/api/agents').send({ name: 'Retired Model Agent' });
+    expect(created.status).toBe(201);
+    await testDb.update(agentVersions).set({ model: 'gemini-retired' }).where(eq(agentVersions.agentId, created.body.data.agent.id));
+
+    const res = await api('get', `/api/agents/${created.body.data.agent.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.versions[0].model).toBe('gemini-2.0-flash');
+  });
+
   it('exposes the Gemini model registry and the real-estate templates', async () => {
     const models = await api('get', '/api/agents/models');
-    expect(models.body.data.default).toBe('gemini-3.8-flash');
-    expect(models.body.data.models.map((m: { id: string }) => m.id)).toContain('gemini-3.1-flash-lite');
+    expect(models.body.data.default).toBe('gemini-2.0-flash');
+    expect(models.body.data.models.map((m: { id: string }) => m.id)).toContain('gemini-2.0-flash-lite');
     const tpl = await api('get', '/api/agents/templates');
     expect(tpl.body.data.map((t: { id: string }) => t.id)).toEqual(expect.arrayContaining(['lead_qualifier', 'site_visit_booker', 'emi_helper', 'reengagement']));
   });
@@ -58,7 +68,7 @@ describe('P1: agents, versions and runtime', () => {
       expect(res.status).toBe(201);
       agentId = res.body.data.agent.id;
       expect(res.body.data.versions).toHaveLength(1);
-      expect(res.body.data.versions[0]).toMatchObject({ version: 1, status: 'draft', model: 'gemini-3.8-flash' });
+      expect(res.body.data.versions[0]).toMatchObject({ version: 1, status: 'draft', model: 'gemini-2.0-flash' });
       v1 = res.body.data.versions[0].id;
       expect(res.body.data.agent.activeVersion).toBeNull();
 
@@ -70,9 +80,9 @@ describe('P1: agents, versions and runtime', () => {
     });
 
     it('edits the draft in place, validates content and rejects foreign references', async () => {
-      const ok = await api('put', `/api/agents/${agentId}/draft`).send({ temperature: 0.4, model: 'gemini-3.1-flash-lite', changeNote: 'cheaper model' });
+      const ok = await api('put', `/api/agents/${agentId}/draft`).send({ temperature: 0.4, model: 'gemini-2.0-flash-lite', changeNote: 'cheaper model' });
       expect(ok.status).toBe(200);
-      expect(ok.body.data).toMatchObject({ id: v1, version: 1, temperature: 0.4, model: 'gemini-3.1-flash-lite' });
+      expect(ok.body.data).toMatchObject({ id: v1, version: 1, temperature: 0.4, model: 'gemini-2.0-flash-lite' });
 
       expect((await api('put', `/api/agents/${agentId}/draft`).send({ model: 'gpt-4o' })).status).toBe(400);
       expect((await api('put', `/api/agents/${agentId}/draft`).send({ temperature: 3 })).status).toBe(400);
@@ -178,7 +188,7 @@ describe('P1: agents, versions and runtime', () => {
         prompt: { jobDescription: 'SECRET-JOB-MARKER for {{company_name}}', style: 'Reply in rhyme.' },
         variables: [{ key: 'company_name', source: 'company.name', defaultValue: 'x' }],
         conditions: [{ id: 'c1', field: 'visitor.message', operator: 'contains', value: 'loan', appendPrompt: 'LOAN-MARKER: be precise about EMI.' }],
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-2.0-flash-lite',
         temperature: 0.25,
         maxOutputTokens: 321,
       });
@@ -202,7 +212,7 @@ describe('P1: agents, versions and runtime', () => {
       expect(opts.agentInstructions).toContain('SECRET-JOB-MARKER for ');
       expect(opts.agentInstructions).not.toContain('{{');
       expect(opts.agentInstructions).not.toContain('LOAN-MARKER');
-      expect(opts).toMatchObject({ model: 'gemini-3.1-flash-lite', temperature: 0.25, maxTokens: 321 });
+      expect(opts).toMatchObject({ model: 'gemini-2.0-flash-lite', temperature: 0.25, maxTokens: 321 });
       expect(opts.history).toEqual([]);
 
       await say(s, 'I need a home loan');
@@ -340,7 +350,7 @@ describe('P1: agents, versions and runtime', () => {
     it('runs a draft before publishing and reports prompt, tokens and model', async () => {
       const res = await api('post', `/api/agents/${agentId}/test`).send({ versionId: v2, messages: [{ role: 'visitor', content: 'What is the price?' }], variables: { visitor_name: 'Asha' } });
       expect(res.status).toBe(200);
-      expect(res.body.data).toMatchObject({ version: 2, model: 'gemini-3.8-flash' });
+      expect(res.body.data).toMatchObject({ version: 2, model: 'gemini-2.0-flash' });
       expect(typeof res.body.data.reply).toBe('string');
       expect(res.body.data.instructions).toContain('JOB');
       expect(res.body.data.instructions).toContain('Asha');

@@ -61,6 +61,7 @@ export const NAV_ORDER: Array<{ type: 'link'; label: string; href: string; wide?
   { type: 'menu', id: 'usecases' },
   { type: 'menu', id: 'features' },
   { type: 'link', label: 'How it works', href: '#how', wide: true },
+  { type: 'link', label: 'ROI calculator', href: '#roi', wide: true },
   { type: 'link', label: 'Pricing', href: '#pricing' },
   { type: 'link', label: 'FAQ', href: '#faq', wide: true },
 ];

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Send,
   Sparkles,
@@ -46,6 +46,12 @@ export const TestChatWidget: React.FC<TestChatWidgetProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [expandedCitations, setExpandedCitations] = useState<Record<string, boolean>>({});
   const [visitorName, setVisitorName] = useState<string | undefined>();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Keep the newest message in view
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [messages, isLoading]);
 
   const samplePrompts = [
     'What is the starting price?',
@@ -127,36 +133,29 @@ export const TestChatWidget: React.FC<TestChatWidgetProps> = ({
     setVisitorName(undefined);
   };
 
-  const getConfidenceBadge = (confidence: number, overrideApplied?: boolean) => {
-    if (overrideApplied) {
+  const getGroundingBadge = (meta: RagQueryResponse) => {
+    if (meta.overrideApplied) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
           <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-300" />
-          Override (100%)
+          Verified override
         </span>
       );
     }
-    const pct = Math.round(confidence * 100);
-    if (pct >= 85) {
+    if (meta.isGrounded) {
+      // Greetings and polite off-topic replies use no source, so they claim none
+      if (meta.citations.length === 0) return null;
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
           <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-300" />
-          {pct}% Confidence
-        </span>
-      );
-    }
-    if (pct >= 65) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
-          <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-300" />
-          {pct}% Moderate Confidence
+          From your sources
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
-        <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-300" />
-        {pct}% Low Confidence
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
+        <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-300" />
+        Not in knowledge base
       </span>
     );
   };
@@ -185,7 +184,7 @@ export const TestChatWidget: React.FC<TestChatWidgetProps> = ({
       </div>
 
       {/* Messages stream */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-surface-2">
+      <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4 bg-surface-2">
         {messages.map(msg => {
           const isUser = msg.sender === 'user';
           const meta = msg.responseMeta;
@@ -210,7 +209,7 @@ export const TestChatWidget: React.FC<TestChatWidgetProps> = ({
                       : 'bg-surface text-text border border-border rounded-tl-sm shadow-sm'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                  <p className="whitespace-pre-wrap">{msg.text.replace(/\*([^*\n]+)\*/g, '$1')}</p>
                 </div>
 
                 {isUser && (
@@ -224,7 +223,7 @@ export const TestChatWidget: React.FC<TestChatWidgetProps> = ({
               {!isUser && meta && (
                 <div className="pl-9 space-y-2 w-full max-w-[92%]">
                   <div className="flex items-center gap-2 flex-wrap text-[10px] text-text-muted">
-                    {getConfidenceBadge(meta.confidence, meta.overrideApplied)}
+                    {getGroundingBadge(meta)}
                     <span className="flex items-center gap-1 font-mono">
                       <Zap className="w-3 h-3 text-amber-500" />
                       {meta.latencyMs}ms

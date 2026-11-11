@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Billboard, Box, Emoji, GableRoof, Group, Island, Shadow, SignPost, Tree, WindowGrid, staticStates } from './Models3D.js';
+import { Billboard, Box, GableRoof, Marker, Group, Island, Shadow, SignPost, Tree, WindowGrid, staticStates } from './Models3D.js';
 
 /** The four kinds of property PropBot sells: a villa, a plot of land, an apartment block and a shop. */
 
@@ -58,7 +58,7 @@ export const VillaModel: React.FC<ModelProps> = ({ sold }) => (
     <SignPost x={64} z={112} sold={sold} />
 
     <Billboard y={166} z={-8} bob>
-      <Emoji>🔑</Emoji>
+      <Marker name="key" />
     </Billboard>
   </>
 );
@@ -120,7 +120,7 @@ export const PlotModel: React.FC<ModelProps> = ({ sold }) => (
     <SignPost x={-100} z={108} sold={sold} />
 
     <Billboard y={112} bob>
-      <Emoji>📍</Emoji>
+      <Marker name="pin" />
     </Billboard>
   </Group>
 );
@@ -153,7 +153,7 @@ export const ApartmentModel: React.FC<ModelProps> = ({ sold }) => {
       <Tree x={118} z={64} pine s={0.8} />
       <SignPost x={-96} z={104} sold={sold} />
       <Billboard y={9 + h + 78} bob>
-        <Emoji>⭐</Emoji>
+        <Marker name="spark" />
       </Billboard>
     </>
   );
@@ -202,7 +202,7 @@ export const ShopModel: React.FC<ModelProps> = ({ sold }) => (
     <Tree x={126} z={-52} s={0.9} />
     <SignPost x={-84} z={100} sold={sold} labels={['TO LET', 'LEASED']} />
     <Billboard y={9 + 112} bob>
-      <Emoji>🛍️</Emoji>
+      <Marker name="bag" />
     </Billboard>
   </>
 );

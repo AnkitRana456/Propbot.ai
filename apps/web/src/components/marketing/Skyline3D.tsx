@@ -56,21 +56,24 @@ export const FlipSign: React.FC = () => {
         ref={button}
         type="button"
         aria-pressed={sold}
-        aria-label={sold ? 'Sold. Press to put it back on the market.' : 'For sale. Press to sell it.'}
+        aria-label={sold ? 'SOLD Booked with PropBot. Press to put it back on the market.' : 'FOR SALE Your next listing. Press to sell it.'}
         onClick={() => {
           setSold(s => !s);
           burstFrom(button.current, 'party', 24);
+          // the sign is the invitation: once it has flipped, put the visitor in the first field
+          if (!sold) window.setTimeout(() => document.getElementById('demo-name')?.focus(), 750);
         }}
+        data-cursor="Flip"
         className="group block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         style={{ perspective: 900 }}
       >
         <span aria-hidden className="mx-auto block h-3 w-[86%] rounded-t bg-text/70" />
-        <span className="relative block h-32 w-72 transition-transform duration-700 ease-out group-hover:-translate-y-1 sm:w-80" style={{ transformStyle: 'preserve-3d', transform: `rotateX(${sold ? 180 : 0}deg)`, transformOrigin: '50% 0' }}>
+        <span className="relative block h-32 w-72 transition-transform duration-700 ease-out group-hover:-translate-y-1 sm:w-80" style={{ transformStyle: 'preserve-3d', transform: `rotateX(${sold ? 180 : 0}deg)`, transformOrigin: '50% 50%' }}>
           <span style={face} className="flex flex-col items-center justify-center rounded-2xl border-4 border-text bg-surface text-text shadow-float">
             <span className="text-3xl font-extrabold tracking-wide">FOR SALE</span>
             <span className="mt-1 text-xs font-semibold uppercase tracking-widest text-text-muted">Your next listing</span>
           </span>
-          <span style={{ ...face, transform: 'rotateX(180deg)' }} className="flex flex-col items-center justify-center rounded-2xl border-4 border-accent-hover bg-accent text-on-accent shadow-float">
+          <span style={{ ...face, transform: 'rotateX(180deg)' }} className="flex flex-col items-center justify-center rounded-2xl border-4 border-brass bg-brass text-[#1a1206] shadow-float">
             <span className="text-4xl font-extrabold tracking-wide">SOLD</span>
             <span className="mt-1 text-xs font-semibold uppercase tracking-widest opacity-90">Booked with PropBot</span>
           </span>

@@ -50,8 +50,8 @@ export class ChatbotsService {
         updatedAt: chatbots.updatedAt,
         deletedAt: chatbots.deletedAt,
         agentId: chatbots.agentId,
-        leadsCount: sql<number>`coalesce((select count(*)::int from ${leads} where ${leads.chatbotId} = ${chatbots.id} and ${leads.deletedAt} is null), 0)`,
-        conversationsCount: sql<number>`coalesce((select count(*)::int from ${conversations} where ${conversations.chatbotId} = ${chatbots.id}), 0)`,
+        leadsCount: sql<number>`coalesce((select count(*)::int from ${leads} where ${leads}.chatbot_id = "chatbots"."id" and ${leads}.deleted_at is null), 0)`,
+        conversationsCount: sql<number>`coalesce((select count(*)::int from ${conversations} where ${conversations}.chatbot_id = "chatbots"."id"), 0)`,
       })
       .from(chatbots)
       .where(and(...conditions))
@@ -98,8 +98,8 @@ export class ChatbotsService {
         updatedAt: chatbots.updatedAt,
         deletedAt: chatbots.deletedAt,
         agentId: chatbots.agentId,
-        leadsCount: sql<number>`coalesce((select count(*)::int from ${leads} where ${leads.chatbotId} = ${chatbots.id} and ${leads.deletedAt} is null), 0)`,
-        conversationsCount: sql<number>`coalesce((select count(*)::int from ${conversations} where ${conversations.chatbotId} = ${chatbots.id}), 0)`,
+        leadsCount: sql<number>`coalesce((select count(*)::int from ${leads} where ${leads}.chatbot_id = "chatbots"."id" and ${leads}.deleted_at is null), 0)`,
+        conversationsCount: sql<number>`coalesce((select count(*)::int from ${conversations} where ${conversations}.chatbot_id = "chatbots"."id"), 0)`,
       })
       .from(chatbots)
       .where(

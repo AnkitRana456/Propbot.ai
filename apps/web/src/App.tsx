@@ -25,10 +25,12 @@ const Contact360Page = React.lazy(() => import('./pages/Contact360Page.js').then
 const ControlsPage = React.lazy(() => import('./pages/ControlsPage.js').then((m) => ({ default: m.ControlsPage })));
 const ChangelogPage = React.lazy(() => import('./pages/ChangelogPage.js').then((m) => ({ default: m.ChangelogPage })));
 const BillingPage = React.lazy(() => import('./pages/BillingPage.js').then((m) => ({ default: m.BillingPage })));
+const SimulatedPayPage = React.lazy(() => import('./pages/SimulatedPayPage.js').then((m) => ({ default: m.SimulatedPayPage })));
 const StyleguidePage = React.lazy(() => import('./pages/StyleguidePage.js').then((m) => ({ default: m.StyleguidePage })));
 const FormsPage = React.lazy(() => import('./pages/FormsPage.js').then((m) => ({ default: m.FormsPage })));
 const LeadsPage = React.lazy(() => import('./pages/LeadsPage.js').then((m) => ({ default: m.LeadsPage })));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage.js').then((m) => ({ default: m.NotFoundPage })));
+const TasksPage = React.lazy(() => import('./pages/TasksPage.js').then((m) => ({ default: m.TasksPage })));
 const ClientsPage = React.lazy(() => import('./pages/ClientsPage.js').then((m) => ({ default: m.ClientsPage })));
 const ContactsPage = React.lazy(() => import('./pages/ContactsPage.js').then((m) => ({ default: m.ContactsPage })));
 const PropertiesPage = React.lazy(() => import('./pages/PropertiesPage.js').then((m) => ({ default: m.PropertiesPage })));
@@ -82,6 +84,7 @@ export const App: React.FC = () => {
       <Route path="/survey/:token" element={<AppointmentSurveyPage />} />
       <Route path="/quote/:token" element={<PublicQuotePage />} />
       <Route path="/walk-in/:token" element={<WalkInKioskPage />} />
+      <Route path="/pay/simulated/:id" element={<SimulatedPayPage />} />
 
       {/* 2. Authenticated CRM Application Shell */}
       <Route path="/app" element={<AppShell />}>
@@ -117,6 +120,7 @@ export const App: React.FC = () => {
         <Route path="whatsapp" element={<WhatsAppPage />} />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="clients" element={<ClientsPage />} />
+        <Route path="tasks" element={<TasksPage />} />
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="properties" element={<PropertiesPage />} />
         <Route path="properties/:id" element={<ProjectDetailPage />} />

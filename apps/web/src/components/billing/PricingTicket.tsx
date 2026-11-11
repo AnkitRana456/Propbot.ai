@@ -50,15 +50,15 @@ const CSS = `/* kit-shield: undo Tailwind preflight inside the component (Kit) *
 :where(.pt) :where(summary) { display: revert; }
 :where(.pt) ::placeholder { color: revert; opacity: revert; }
 
-.pt{--page:#fff;--card:#1c1c1d;--stub:#262628;--ink:#f4f4f5;--mute:#7a7a80;--line:#3a3a3d;position:relative;width:100%;font-family:'Inter Tight',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink);box-sizing:border-box;overflow:hidden;user-select:none;-webkit-user-select:none}
+.pt{--page:var(--bg,#FAFAF7);--card:var(--surface,#fff);--stub:var(--surface-2,#f3f4f1);--ink:var(--text,#14181F);--mute:var(--text-muted,#667085);--line:var(--border,#E6E7E2);position:relative;width:100%;font-family:'Inter Tight',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink);box-sizing:border-box;overflow:hidden;user-select:none;-webkit-user-select:none}
 .pt *,.pt *::before,.pt *::after{box-sizing:border-box}
 :where(.pt) button,:where(.pt) a{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:none}
 .pt.bd{background:var(--page);min-height:100vh;display:grid;place-items:center;padding:24px 16px}
 .pt-col{display:flex;flex-direction:column;align-items:center;gap:22px}
-.pt-pills{display:flex;gap:4px;padding:4px;border-radius:999px;background:#f2f2f3;border:1px solid #e8e8ea}
-.pt-pill{height:30px;padding:0 14px;border-radius:999px;font-size:13px;color:#77777d;transition:background .2s,color .2s}
-.pt-pill:hover{color:#111}
-.pt-pill.on{background:#1c1c1d;color:#fff}
+.pt-pills{display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--surface-2,#f3f4f1);border:1px solid var(--border,#E6E7E2)}
+.pt-pill{height:30px;padding:0 14px;border-radius:999px;font-size:13px;color:var(--text-muted,#667085);transition:background .2s,color .2s}
+.pt-pill:hover{color:var(--text,#14181F)}
+.pt-pill.on{background:var(--accent,#0F766E);color:#fff}
 .pt-stage{position:relative;width:var(--tw);height:var(--th)}
 .pt-tk{position:absolute;left:0;top:0;width:100%;height:100%;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
 .pt-main{position:absolute;left:0;top:0;width:var(--mw);height:100%;padding:calc(var(--s) * .05) calc(var(--s) * .06);background:var(--card);border-radius:calc(var(--s) * .035) 0 0 calc(var(--s) * .035);display:flex;flex-direction:column;justify-content:space-between;transform-origin:0 50%}
@@ -80,7 +80,7 @@ const CSS = `/* kit-shield: undo Tailwind preflight inside the component (Kit) *
 .pt-swap{animation:pt-in .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes pt-in{from{opacity:0;filter:blur(4px);transform:translateY(4px)}to{opacity:1;filter:none;transform:none}}
 .pt-stub{position:absolute;top:0;height:100%;padding:calc(var(--s) * .035) calc(var(--s) * .024) calc(var(--s) * .03) calc(var(--s) * .024 + var(--j));border-radius:0 calc(var(--s) * .035) calc(var(--s) * .035) 0;background:var(--stub);display:flex;flex-direction:column;align-items:center;justify-content:space-between;cursor:grab;touch-action:none;transform-origin:var(--j) 100%;outline:none;z-index:3;transition:background .2s;will-change:transform}
-.pt-stub:hover{background:#2e2e31}
+.pt-stub:hover{background:var(--surface-3,#E9EBE5)}
 .pt-stub:active{cursor:grabbing}
 .pt-stub[aria-disabled=true]{cursor:default}
 /* the perforation: a row of small holes just inside the stub's edge */
@@ -91,15 +91,15 @@ const CSS = `/* kit-shield: undo Tailwind preflight inside the component (Kit) *
 .pt-qr svg{width:100%;height:100%;display:block}
 .pt-pull{font-size:calc(var(--s) * .022);color:#8d8d93;white-space:nowrap;transition:color .2s}
 .pt-stub:hover .pt-pull,.pt-stub:focus-visible .pt-pull{color:#fff}
-.pt-stub:focus-visible{background:#2e2e31}
+.pt-stub:focus-visible{background:var(--surface-3,#E9EBE5)}
 .pt-bit{position:absolute;width:3px;height:2px;border-radius:.5px;pointer-events:none;z-index:4}
 .pt-acts{display:flex;gap:8px;height:34px}
-.pt-b{height:34px;padding:0 16px;border-radius:999px;background:#fff;border:1px solid #e3e3e6!important;font-size:13px;color:#3a3a3e;display:inline-flex;align-items:center;gap:6px;animation:pt-in .4s cubic-bezier(.2,.8,.2,1) both;transition:background .15s,color .15s}
-.pt-b:hover{background:#f4f4f5;color:#111}
-.pt-b.go{background:#1c1c1d;color:#fff;border-color:#1c1c1d!important}
-.pt-b.go:hover{background:#2f45e0;border-color:#2f45e0!important;color:#fff}
+.pt-b{height:34px;padding:0 16px;border-radius:999px;background:var(--surface,#fff);border:1px solid var(--border,#E6E7E2)!important;font-size:13px;color:var(--text,#14181F);display:inline-flex;align-items:center;gap:6px;animation:pt-in .4s cubic-bezier(.2,.8,.2,1) both;transition:background .15s,color .15s}
+.pt-b:hover{background:var(--surface-2,#f3f4f1);color:var(--text,#14181F)}
+.pt-b.go{background:var(--accent,#0F766E);color:#fff;border-color:var(--accent,#0F766E)!important}
+.pt-b.go:hover{background:var(--accent-hover,#0B5F58);border-color:var(--accent-hover,#0B5F58)!important;color:#fff}
 .pt-b svg{width:13px;height:13px}
-.pt :focus-visible{outline:2px solid #2f45e0;outline-offset:2px}
+.pt :focus-visible{outline:2px solid var(--accent,#0F766E);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.pt *{animation:none!important;transition:none!important}}
 `;
 
@@ -191,7 +191,7 @@ export default function PricingTicket({ plans, start, onClaim, sound = true, bac
     const tk = tkRef.current; if (!tk || !tk.animate) return;
     for (let i = 0; i < 9; i++) {
       const b = document.createElement('span'); b.className = 'pt-bit';
-      b.style.left = MW - J / 2 + 'px'; b.style.top = H - R - Math.random() * H * .35 + 'px'; b.style.background = i % 3 ? '#2a2a2d' : '#5c5c62';
+      b.style.left = MW - J / 2 + 'px'; b.style.top = H - R - Math.random() * H * .35 + 'px'; b.style.background = i % 3 ? 'var(--surface-3,#E9EBE5)' : 'var(--border,#E6E7E2)';
       tk.appendChild(b);
       const dx = 10 + Math.random() * 40, dy = 50 + Math.random() * 90, r = (Math.random() - .5) * 720;
       b.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${dx * .5}px,${-8 - Math.random() * 12}px) rotate(${r * .4}deg)`, opacity: 1, offset: .25 }, { transform: `translate(${dx}px,${dy}px) rotate(${r}deg)`, opacity: 0 }],

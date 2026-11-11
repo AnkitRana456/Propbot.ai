@@ -1,6 +1,8 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   agentVersionContentSchema,
+  DEFAULT_AGENT_MODEL,
+  findModel,
   type AgentItem,
   type AgentVersionContent,
   type AgentVersionItem,
@@ -55,7 +57,8 @@ export function rowToContent(v: VersionRow): AgentVersionContent {
     conditions: v.conditions,
     knowledge: v.knowledge,
     formId: v.formId,
-    model: v.model,
+    // A retired model must not take a live agent down: fall back until someone picks a new one
+    model: findModel(v.model)?.id ?? DEFAULT_AGENT_MODEL,
     temperature: Number(v.temperature),
     maxOutputTokens: v.maxOutputTokens,
     flags: v.flags,

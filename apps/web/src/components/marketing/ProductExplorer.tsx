@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Check } from 'lucide-react';
 import { FEATURES, PRODUCTS, featureHref } from './content.js';
 import { BrowserFrame, PhoneFrame, Reveal, ThemedImage, Tilt } from './Frames.js';
-import { btnPrimary, btnSecondary, container, h2, lead, sectionPad } from './styles.js';
+import { SectionHead } from './Kit.js';
+import { btnPrimary, btnSecondary, container, sectionPad } from './styles.js';
 import { useReducedMotion } from '../../lib/use-reduced-motion.js';
 
 /**
@@ -43,10 +44,7 @@ export const ProductExplorer: React.FC = () => {
   return (
     <section id="explore" ref={section} className={`${sectionPad} relative overflow-clip bg-surface`} aria-labelledby="explore-title">
       <div className={container}>
-        <div className="max-w-2xl">
-          <h2 id="explore-title" className={h2}>Everything your sales team needs, in one place</h2>
-          <p className={lead}>Pick a product to see what it does. Every one of them works with the others.</p>
-        </div>
+        <SectionHead id="explore-title" n="06" label="The products" title="Everything your sales team needs, in one place" lead="Pick a product to see what it does. Every one of them works with the others." />
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[17rem_1fr]">
           <div

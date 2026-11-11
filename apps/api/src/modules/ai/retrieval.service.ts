@@ -41,6 +41,18 @@ export type RetrievalQueryResult = RagQueryResponse & {
   systemPrompt?: string;
 };
 
+const SOURCE_TAG_INSTRUCTION = `
+
+SOURCE REPORT: End your reply with one final line in exactly this format, in English, whatever language you replied in:
+[SOURCES: 1,3] listing the numbers of the context sources your answer used. Use [SOURCES: none] if the context did not contain what the visitor asked for. For a greeting or thanks that needs no facts, list [SOURCES: 0].`;
+
+/** Splits the trailing source report off a reply. sources is null when the model left it out. */
+export function parseSourceTag(text: string): { answer: string; sources: number[] | null } {
+  const m = text.match(/\s*\[SOURCES:\s*([^\]]*)\]\s*$/i);
+  if (!m) return { answer: text, sources: null };
+  return { answer: text.slice(0, m.index).trimEnd(), sources: (m[1]!.match(/\d+/g) ?? []).map(Number) };
+}
+
 export class RetrievalService {
   private pgvectorAvailable: boolean | null = null;
 
@@ -367,8 +379,7 @@ ${contextText}
     });
 
     const bestScore = citations.length > 0 ? citations[0]!.similarityScore : 0;
-    const isGrounded = bestScore >= (input.similarityThreshold || 0.65);
-    const isFallback = !isGrounded;
+    const scoreGrounded = bestScore >= (input.similarityThreshold || 0.65);
 
     // 4. Detect visitor language and fetch matching objection playbooks
     const detectedLang = languageDetectorService.detectLanguage(query);
@@ -472,7 +483,7 @@ ${contextText}
           tier: TaskTier.STRONG,
           companyId,
           chatbotId,
-          systemPrompt,
+          systemPrompt: systemPrompt + SOURCE_TAG_INSTRUCTION,
           userMessage: query,
           promptName: 'rag_grounded_answer',
           promptVersion: 'v3.0',
@@ -482,6 +493,12 @@ ${contextText}
           history: options.history,
           trace: options.trace,
         });
+
+    // Similarity alone cannot tell a real answer from a miss, so the model's own source report decides
+    const { answer, sources } = parseSourceTag(completion.text);
+    const isGrounded = sources ? sources.length > 0 : scoreGrounded;
+    const isFallback = !isGrounded;
+    const usedCitations = sources ? citations.filter((_, i) => sources.includes(i + 1 + inventoryChunks.length)) : citations;
 
     // 5. If query was ungrounded / low confidence, record into unanswered_questions inbox
     if (isFallback) {
@@ -523,9 +540,9 @@ ${contextText}
     const latencyMs = Date.now() - startTime;
 
     return {
-      answer: completion.text,
+      answer,
       confidence: bestScore,
-      citations: isGrounded ? citations : [],
+      citations: isGrounded ? usedCitations : [],
       isGrounded,
       isFallback,
       overrideApplied: false,

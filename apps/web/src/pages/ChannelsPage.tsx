@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Plug, FileText, LayoutTemplate, Send, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Trash2, Plug, FileText, LayoutTemplate, Send, CheckCircle2, RefreshCw, MessageCircle, MessagesSquare, Camera, Mail, ChevronRight, type LucideIcon } from 'lucide-react';
 import { CONNECTABLE_CHANNELS } from '@propbot/shared';
 import {
   useConnections,
@@ -16,6 +17,7 @@ import {
   useWidgets,
 } from '../services/omnichannel.service.js';
 import { useChatbots } from '../services/chatbots.service.js';
+import { useWhatsappConfig } from '../services/whatsapp.service.js';
 import { Badge } from '../components/ui/Badge.js';
 import { EmptyState } from '../components/common/EmptyState.js';
 import { Skeleton } from '../components/common/Skeleton.js';
@@ -25,6 +27,15 @@ const inputCls = 'mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 p
 const btn = 'inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-40 cursor-pointer';
 const errMsg = (e: unknown, f: string) => (e instanceof Error ? e.message : f);
 const STATUS_VARIANT: Record<string, 'mint' | 'gold' | 'slate' | 'blue'> = { connected: 'mint', error: 'gold', pending: 'blue', approved: 'mint', rejected: 'gold', draft: 'slate', disconnected: 'slate', paused: 'slate' };
+
+const TILE_CLS = 'channel-tile flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left shadow-sm cursor-pointer';
+const ChannelTile: React.FC<{ icon: LucideIcon; label: string; on: boolean; color: string }> = ({ icon: Icon, label, on, color }) => (
+  <>
+    <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: color }}><Icon className="h-5 w-5" /></span>
+    <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-text">{label}</span><span className={`block text-xs ${on ? 'font-semibold text-success' : 'text-text-muted'}`}>{on ? 'Connected' : 'Not connected'}</span></span>
+    <ChevronRight aria-hidden className="h-4 w-4 text-text-muted" />
+  </>
+);
 
 const useRun = () => {
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +58,7 @@ const Connections: React.FC = () => {
   const create = useCreateConnection();
   const test = useTestConnection();
   const del = useDeleteConnection();
+  const { data: whatsapp } = useWhatsappConfig();
   const { error, run } = useRun();
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ channel: 'instagram' as (typeof CONNECTABLE_CHANNELS)[number], name: '', account: '', token: '', appSecret: '', chatbotId: '' });
@@ -60,8 +72,20 @@ const Connections: React.FC = () => {
     }
   };
 
+  const isOn = (ch: string) => (data ?? []).some(c => c.channel === ch && c.status === 'connected');
+  const startConnect = (channel: typeof form.channel) => {
+    setForm({ ...form, channel });
+    setAdding(true);
+  };
+
   return (
     <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Link to="/whatsapp" className={TILE_CLS}><ChannelTile icon={MessageCircle} label="WhatsApp" on={whatsapp?.status === 'connected'} color="#16A34A" /></Link>
+        <button type="button" onClick={() => startConnect('messenger')} className={TILE_CLS}><ChannelTile icon={MessagesSquare} label="Messenger" on={isOn('messenger')} color="#2563EB" /></button>
+        <button type="button" onClick={() => startConnect('instagram')} className={TILE_CLS}><ChannelTile icon={Camera} label="Instagram" on={isOn('instagram')} color="#DB2777" /></button>
+        <button type="button" onClick={() => startConnect('email')} className={TILE_CLS}><ChannelTile icon={Mail} label="E-mail" on={isOn('email')} color="#D97706" /></button>
+      </div>
       <div className="flex items-center justify-between">
         <p className="text-xs text-slate-500">WhatsApp is set up on its own page. Connect Instagram, Messenger and e-mail here. Tokens are stored encrypted.</p>
         <button type="button" onClick={() => setAdding(a => !a)} className={`${btn} bg-accent text-white`}><Plus className="h-4 w-4" /> Connect</button>

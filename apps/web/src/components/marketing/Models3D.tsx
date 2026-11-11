@@ -1,3 +1,4 @@
+import { Glyph, type GlyphName } from './icons.js';
 import React, { memo, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 
 /**
@@ -182,9 +183,10 @@ export const Billboard: React.FC<{ x?: number; y?: number; z?: number; bob?: boo
   </div>
 );
 
-export const Emoji: React.FC<{ children: string; size?: number }> = ({ children, size }) => (
-  <span className="m3d-emoji" style={size ? { fontSize: size } : undefined}>
-    {children}
+/** A round badge that floats above a scene. */
+export const Marker: React.FC<{ name: GlyphName }> = ({ name }) => (
+  <span className="m3d-marker">
+    <Glyph name={name} size={20} />
   </span>
 );
 

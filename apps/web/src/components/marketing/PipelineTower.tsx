@@ -5,6 +5,7 @@ import { useEmojiBurst } from './EmojiBurst.js';
 import { useSpin } from './use-spin.js';
 import { useInView } from '../../lib/use-in-view.js';
 import { useReducedMotion } from '../../lib/use-reduced-motion.js';
+import { SITE, isLite } from './config.js';
 
 /**
  * "Deal tower": every window is a buyer. Windows light up as an enquiry becomes qualified, books a visit and
@@ -63,6 +64,8 @@ export const PipelineTower: React.FC = () => {
   const [paused, setPaused] = useState(false);
   const [dancing, setDancing] = useState(false);
   const reduced = useReducedMotion();
+  // lite: the main tower alone, so a phone draws 240 windows on 5 boxes instead of 600 on 17
+  const [lite] = useState(isLite);
   const [view, inView] = useInView<HTMLDivElement>();
   const { burst, burstFrom } = useEmojiBurst();
 
@@ -73,7 +76,7 @@ export const PipelineTower: React.FC = () => {
   const rnd = useRef(prng(99));
 
   const running = inView && !paused && !reduced;
-  const { rotate, spinUp, bind } = useSpin(stage, { initial: -32, speed: 0.16, tilt: 19, running });
+  const { rotate, spinUp, bind } = useSpin(stage, { initial: -32, speed: SITE.tower.spinSpeed, tilt: 19, running });
 
   const small = useMemo(() => [staticStates(3 * 6 * 4, 3), staticStates(3 * 9 * 4, 5), staticStates(3 * 5 * 4, 11), staticStates(3 * 7 * 4, 17)], []);
 
@@ -99,9 +102,9 @@ export const PipelineTower: React.FC = () => {
       }
       cur.current = next;
       setStates(next);
-    }, 650);
+    }, SITE.tower.tickMs * (lite ? 1.6 : 1));
     return () => window.clearInterval(id);
-  }, [running]);
+  }, [running, lite]);
 
   const counts = useMemo(() => {
     const c = [0, 0, 0, 0];
@@ -167,6 +170,7 @@ export const PipelineTower: React.FC = () => {
           if (e.key === 'ArrowLeft') rotate(-12);
           if (e.key === 'ArrowRight') rotate(12);
         }}
+        data-cursor="Drag"
         {...bind(onTap)}
         className="relative cursor-grab rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing"
       >
@@ -180,14 +184,18 @@ export const PipelineTower: React.FC = () => {
           <Box w={32} h={16} d={32} x={-34} y={12 + H} z={-30} tone="var(--m3d-concrete)" />
           <Box w={3} h={50} d={3} x={36} y={12 + H} z={34} tone="var(--m3d-concrete)" top={false} />
           <Box w={8} h={8} d={8} x={36} y={12 + H + 50} z={34} tone="#ff5a5a" className="m3d-led" />
-          {block(-170, 90, 84, 84, 6, small[0]!)}
-          {block(150, 110, 96, 90, 9, small[1]!)}
-          {block(-150, -130, 80, 80, 5, small[2]!)}
-          {block(170, -110, 90, 84, 7, small[3]!)}
-          <Tree x={-118} z={-40} pine s={1.1} />
-          <Tree x={110} z={-10} pine />
-          <Tree x={60} z={150} s={0.9} />
-          <Tree x={-60} z={140} pine s={0.9} />
+          {!lite && (
+            <>
+              {block(-170, 90, 84, 84, 6, small[0]!)}
+              {block(150, 110, 96, 90, 9, small[1]!)}
+              {block(-150, -130, 80, 80, 5, small[2]!)}
+              {block(170, -110, 90, 84, 7, small[3]!)}
+              <Tree x={-118} z={-40} pine s={1.1} />
+              <Tree x={110} z={-10} pine />
+              <Tree x={60} z={150} s={0.9} />
+              <Tree x={-60} z={140} pine s={0.9} />
+            </>
+          )}
         </Scene3D>
 
         <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-2.5 py-1 text-[11px] font-semibold text-text-muted shadow-sm">
@@ -197,7 +205,7 @@ export const PipelineTower: React.FC = () => {
 
         <ul aria-hidden className="pointer-events-none absolute left-2 top-3 hidden w-60 flex-col gap-2 md:flex">
           {events.map(ev => (
-            <li key={ev.id} className="toast-in glass flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs shadow-float">
+            <li key={ev.id} className="toast-in s-product flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs shadow-float">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: `var(--status-${STAGES[ev.stage - 1]!.key}-fg)` }} />
               <span className="font-medium text-text">{ev.text}</span>
             </li>
@@ -220,7 +228,7 @@ export const PipelineTower: React.FC = () => {
 
       <dl className="relative z-10 mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {STAGES.map((st, i) => (
-          <div key={st.key} className="glass rounded-xl px-4 py-2.5">
+          <div key={st.key} className="s-plain px-1 pb-1 !pt-2.5">
             <dt className="flex items-center gap-2 text-xs font-medium text-text-muted">
               <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: `var(--status-${st.key}-fg)` }} />
               {st.label}

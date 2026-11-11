@@ -108,6 +108,13 @@ class PaymentsService {
     return this.toItem(await this.mustOrder(companyId, id));
   }
 
+  /** Public: fetch a simulated (dev-only) order by id without companyId. */
+  async getPublicSimulated(id: string) {
+    const [o] = await db.select().from(paymentOrders).where(and(eq(paymentOrders.id, id), eq(paymentOrders.provider, 'manual')));
+    if (!o) throw notFound('Payment');
+    return this.toItem(o);
+  }
+
   /** Creates the hosted checkout (Stripe) or, in development without keys, a local simulated link. */
   private async openCheckout(order: { id: string; companyId: string; kind: string; amountMinor: number; title: string; expiresAt: Date; customerEmail?: string | null }) {
     if (stripeConfigured()) {

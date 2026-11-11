@@ -3,7 +3,8 @@ import { ModelScene } from './ModelScene.js';
 import { ApartmentModel, PlotModel, ShopModel, VillaModel } from './PropertyModels.js';
 import type { EmojiSet } from './EmojiBurst.js';
 import { Reveal } from './Frames.js';
-import { container, h2, lead, sectionPad } from './styles.js';
+import { SectionHead } from './Kit.js';
+import { container, sectionPad } from './styles.js';
 
 interface PropertyKind {
   id: string;
@@ -27,16 +28,11 @@ export const PropertyShowcase: React.FC = () => (
   <section id="showcase" className={`${sectionPad} relative overflow-clip`} aria-labelledby="showcase-title">
     <div aria-hidden className="aurora pointer-events-none absolute inset-0 opacity-60" />
     <div className={`${container} relative`}>
-      <div className="mx-auto max-w-2xl text-center">
-        <h2 id="showcase-title" className={h2}>
-          Whatever you sell, PropBot sells it with you
-        </h2>
-        <p className={`${lead} mx-auto`}>Flats, villas, plots or shops. Turn them, tap them and watch a property sell.</p>
-      </div>
-      <div className="mt-12 grid gap-6 md:grid-cols-2">
+      <SectionHead id="showcase-title" n="05" label="What you sell" title="Whatever you sell, PropBot sells it with you" lead="Flats, villas, plots or shops. Turn them, tap them and watch a property sell." center />
+      <div className="mt-12 grid gap-6 md:grid-cols-2 md:[&>*:nth-child(even)]:translate-y-10 md:pb-10">
         {KINDS.map((k, i) => (
           <Reveal key={k.id} delay={(i % 2) * 90} className="h-full">
-            <article className="h-full overflow-clip rounded-2xl border border-border bg-surface shadow-card">
+            <article className="s-product h-full overflow-clip">
               <ModelScene Model={k.Model} emojis={k.emojis} name={k.title} soldLabel={k.soldLabel} anchor={k.anchor} className="bg-gradient-to-b from-accent-soft/40 to-transparent" />
               <div className="p-5">
                 <h3 className="text-lg font-bold text-text">{k.title}</h3>

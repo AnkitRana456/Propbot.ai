@@ -32,6 +32,7 @@ import { workflowsRouter } from './routes/workflows.routes.js';
 import { growthRouter } from './routes/growth.routes.js';
 import { voiceRouter } from './routes/voice.routes.js';
 import { voiceStudioRouter } from './routes/voice-studio.routes.js';
+import { elevenLabsLlmRouter } from './routes/elevenlabs-llm.routes.js';
 import { mcpRouter } from './routes/mcp.routes.js';
 import { enterpriseRouter, statusRouter } from './routes/enterprise.routes.js';
 import { publicChatRouter } from './routes/public-chat.routes.js';
@@ -220,6 +221,8 @@ export function createApp(): Express {
   app.use('/api/growth', growthRouter);
   app.use('/api/voice/studio', voiceStudioRouter);
   app.use('/api/voice', voiceRouter);
+  // ElevenLabs Custom LLM — public endpoint (secured by x-elevenlabs-secret header)
+  app.use('/api/elevenlabs/llm', elevenLabsLlmRouter);
   app.use('/api/mcp', mcpRouter);
   app.use('/api/enterprise', enterpriseRouter);
   app.use('/api/status', statusRouter);

@@ -235,7 +235,7 @@ export const AUDIENCES = [
 ] as const;
 
 /** Every in-page address the menus point to. */
-export const SECTION_IDS = ['top', 'tour', 'showcase', 'explore', 'use-cases', 'features', 'built-for', 'how', 'pricing', 'faq', 'demo'] as const;
+export const SECTION_IDS = ['top', 'journey', 'tour', 'compare', 'showcase', 'explore', 'use-cases', 'features', 'built-for', 'how', 'roi', 'pricing', 'faq', 'demo'] as const;
 
 export const productHref = (id: string) => `#explore-${id}`;
 export const featureHref = (id: string) => `#feat-${id}`;

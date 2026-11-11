@@ -17,7 +17,7 @@ export const LeadsPage: React.FC = () => {
     <div>
       <PageHeader
         title="Leads"
-        description="Every enquiry from your chatbot, WhatsApp and forms. Click a cell to select it, then press Enter to edit."
+        description="Every enquiry from your chatbot, WhatsApp and forms. Double-click a cell to edit it, click a row for details."
         action={
           <>
             <div role="group" aria-label="View" className="flex rounded-lg border border-border bg-surface p-0.5">
