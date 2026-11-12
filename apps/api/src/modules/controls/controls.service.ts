@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import type {
   AccessLogItem,
   ChangelogItem,
@@ -168,9 +168,9 @@ class NotificationsService {
   }
 
   async list(companyId: string, userId: string, onlyUnread = false, limit = 50): Promise<{ unreadCount: number; items: NotificationEntry[] }> {
-    const where = and(eq(notifications.companyId, companyId), eq(notifications.userId, userId), onlyUnread ? eq(notifications.isRead, false) : undefined);
+    const where = and(eq(notifications.companyId, companyId), eq(notifications.userId, userId), isNull(notifications.archivedAt), onlyUnread ? eq(notifications.isRead, false) : undefined);
     const rows = await db.select().from(notifications).where(where).orderBy(desc(notifications.createdAt)).limit(Math.min(limit, 200));
-    const [{ n } = { n: 0 }] = await db.select({ n: sql<number>`count(*)::int` }).from(notifications).where(and(eq(notifications.companyId, companyId), eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    const [{ n } = { n: 0 }] = await db.select({ n: sql<number>`count(*)::int` }).from(notifications).where(and(eq(notifications.companyId, companyId), eq(notifications.userId, userId), isNull(notifications.archivedAt), eq(notifications.isRead, false)));
     return { unreadCount: n, items: rows.map(r => ({ id: r.id, type: r.type, title: r.title, message: r.message, isRead: r.isRead, linkUrl: r.linkUrl, createdAt: r.createdAt.toISOString() })) };
   }
 
@@ -179,6 +179,16 @@ class NotificationsService {
       .update(notifications)
       .set({ isRead: true })
       .where(and(eq(notifications.companyId, companyId), eq(notifications.userId, userId), eq(notifications.isRead, false), ids?.length ? inArray(notifications.id, ids) : undefined))
+      .returning({ id: notifications.id });
+    return res.length;
+  }
+
+  /** Hides (or, with archived=false, restores) notifications for this user; they stay in the table. */
+  async archive(companyId: string, userId: string, ids: string[], archived = true): Promise<number> {
+    const res = await db
+      .update(notifications)
+      .set({ archivedAt: archived ? new Date() : null })
+      .where(and(eq(notifications.companyId, companyId), eq(notifications.userId, userId), inArray(notifications.id, ids)))
       .returning({ id: notifications.id });
     return res.length;
   }

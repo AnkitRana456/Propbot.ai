@@ -7,6 +7,7 @@ import {
 } from '../../services/settings.service.js';
 import { apiRequest } from '../../services/api-client.js';
 import type { ApiKeyRecord } from '@propbot/shared';
+import { McpConnect } from './McpConnect.js';
 
 export const ApiDataPrivacyTab: React.FC = () => {
   const { data: apiKeys = [], isLoading } = useApiKeys();
@@ -73,6 +74,18 @@ export const ApiDataPrivacyTab: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {/* 0. MCP: connect an AI client to this workspace */}
+      <section aria-labelledby="mcp-h" className="grid items-center gap-6 rounded-2xl border border-border bg-surface-2 p-6 md:grid-cols-[1fr_380px]">
+        <div className="space-y-2">
+          <h3 id="mcp-h" className="text-lg font-bold text-text">Connect your AI</h3>
+          <p className="text-sm text-text-muted">
+            PropBot has an MCP server. Connect Claude Code, Cursor, VS Code or Windsurf and ask them about your leads, visits and inventory, or let them add notes, update a lead&apos;s status and book visits.
+          </p>
+          <p className="text-xs text-text-faint">Each client gets its own access key below. Revoke it to switch that client off.</p>
+        </div>
+        <McpConnect />
+      </section>
+
       {/* 1. API Keys */}
       <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
         <div className="flex items-center justify-between">

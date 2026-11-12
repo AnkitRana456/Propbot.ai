@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarCheck, CalendarX2, Inbox, RefreshCw, ShieldAlert, UserPlus, Users } from 'lucide-react';
+import { ArrowRight, CalendarCheck, CalendarX2, Flame, Inbox, RefreshCw, ShieldAlert, TrendingDown, TrendingUp, UserPlus, Users, Zap, type LucideIcon } from 'lucide-react';
 import type { LeadItemResponse } from '@propbot/shared';
 import { useAuth } from '../contexts/AuthContext.js';
 import { useLeads } from '../services/leads.service.js';
@@ -8,35 +8,57 @@ import { useAppointments } from '../services/appointments.service.js';
 import { usePendingApprovalsCount } from '../services/approvals.service.js';
 import { Card } from '../components/ui/Card.js';
 import { Button } from '../components/ui/Button.js';
+import { StatusBadge } from '../components/ui/StatusBadge.js';
 import { Skeleton } from '../components/common/Skeleton.js';
-import { AgentLeaderboard, KpiCard, LeadsByStatus, LeadsOverTime, NewestLeads, RangeSwitch, type Range } from '../components/dashboard/DeskDashboard.js';
+import { LeadsLineChart, SourceDonut, Sparkline } from '../components/dashboard/OverviewCharts.js';
 import { LeadDetailDrawer } from '../components/leads/LeadDetailDrawer.js';
-import { leadsPerDay } from '../lib/lead-stats.js';
-import { formatDateTime } from '../lib/format.js';
+import { leadsBySource, leadsPerDay, trendPercent } from '../lib/lead-stats.js';
+import { formatDateTime, timeAgo } from '../lib/format.js';
 
-/** Change of this range against the one before it, as a delta pill; null when there is no baseline. */
-const delta = (cur: number, prev: number, range: number) => {
-  if (prev === 0) return cur === 0 ? null : { text: `New in last ${range}d`, good: true };
-  const pct = Math.round(((cur - prev) / prev) * 100);
-  return { text: `${pct >= 0 ? '+' : ''}${pct}% vs prev ${range}d`, good: pct >= 0 };
+const Trend: React.FC<{ pct: number | null }> = ({ pct }) => {
+  if (pct === null) return <span className="text-xs text-text-muted">New this period</span>;
+  const up = pct >= 0;
+  const Icon = up ? TrendingUp : TrendingDown;
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-semibold ${up ? 'text-success' : 'text-danger'}`}>
+      <Icon aria-hidden className="h-3.5 w-3.5" />
+      {up ? '+' : ''}{pct}% <span className="font-normal text-text-muted">vs previous 7 days</span>
+    </span>
+  );
 };
+
+const StatCard: React.FC<{
+  label: string; value: number | string; trend?: number | null; spark?: number[];
+  loading: boolean; hint?: string; icon: LucideIcon;
+  iconCls: string; // e.g. "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300"
+}> = ({ label, value, trend, spark, loading, hint, icon: Icon, iconCls }) => (
+  <Card className="stat-card p-5 group hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200">
+    <div className="flex items-start justify-between gap-2">
+      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider leading-tight">{label}</p>
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconCls}`}>
+        <Icon className="h-5 w-5" aria-hidden />
+      </div>
+    </div>
+    <div className="mt-3 flex items-end justify-between gap-3">
+      {loading ? <Skeleton className="h-9 w-16" /> : <p className="text-3xl font-black tabular-nums tracking-tight text-text">{value}</p>}
+      {spark && !loading && <Sparkline data={spark} label={`${label} trend, last 14 days`} />}
+    </div>
+    <div className="mt-2 min-h-[1.25rem]">{loading ? null : trend !== undefined ? <Trend pct={trend} /> : <span className="text-xs text-text-muted">{hint}</span>}</div>
+  </Card>
+);
 
 export const DashboardPage: React.FC = () => {
   const { user, company } = useAuth();
   const [open, setOpen] = useState<LeadItemResponse | null>(null);
-  const [range, setRange] = useState<Range>(30);
   const leadsQuery = useLeads({ limit: 200 });
   const visitsQuery = useAppointments({ date: 'upcoming', limit: 6 });
   const todayQuery = useAppointments({ date: 'today', limit: 50 });
   const { data: pendingApprovals } = usePendingApprovalsCount();
 
   const leads = useMemo(() => leadsQuery.data?.items ?? [], [leadsQuery.data]);
-  // two ranges back to back, so each KPI can compare against the period before
-  const series = useMemo(() => leadsPerDay(leads, range * 2), [leads, range]);
-  const hotSeries = useMemo(() => leadsPerDay(leads.filter(l => l.intentLabel === 'hot'), range * 2), [leads, range]);
-  const sum = (a: Array<{ count: number }>) => a.reduce((s, p) => s + p.count, 0);
-  const newNow = sum(series.slice(-range)), newPrev = sum(series.slice(0, range));
-  const hotNow = sum(hotSeries.slice(-range)), hotPrev = sum(hotSeries.slice(0, range));
+  const series = useMemo(() => leadsPerDay(leads, 30), [leads]);
+  const sources = useMemo(() => leadsBySource(leads), [leads]);
+  const last30 = series.reduce((s, p) => s + p.count, 0);
   const booked = leads.filter(l => l.status === 'booked' || l.status === 'converted').length;
   const hot = leads.filter(l => l.intentLabel === 'hot').length;
   const visits = visitsQuery.data?.items ?? [];
@@ -80,54 +102,61 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      <div className="mb-3 flex items-center gap-3">
-        <p className="flex-1 text-[12.5px] text-text-muted">Showing the last {range} days</p>
-        <RangeSwitch value={range} onChange={setRange} />
-      </div>
-
-      <section aria-label="Key numbers" className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="New leads" value={newNow} delta={delta(newNow, newPrev, range)} spark={series.slice(-Math.min(range, 14)).map(p => p.count)} colour="var(--accent)" loading={loading} />
-        <KpiCard label="Hot leads" value={hotNow} delta={delta(hotNow, hotPrev, range)} spark={hotSeries.slice(-Math.min(range, 14)).map(p => p.count)} colour="var(--success)" loading={loading} />
-        <KpiCard label="Visits today" value={todayQuery.data?.total ?? 0} hint={`${visitsQuery.data?.total ?? 0} upcoming`} loading={todayQuery.isLoading} colour="var(--warning)" />
-        <KpiCard label="Booked" value={booked} hint={leads.length ? `${Math.round((booked / leads.length) * 100)}% of loaded leads` : 'No leads yet'} loading={loading} colour="var(--brass)" />
+      <section aria-label="Key numbers" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Leads (last 30 days)" value={last30} trend={trendPercent(series)} spark={series.slice(-14).map(p => p.count)} loading={loading} icon={Zap} iconCls="bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300" />
+        <StatCard label="Total leads" value={leadsQuery.data?.total ?? 0} hint={`${hot} hot right now`} loading={loading} icon={Users} iconCls="bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300" />
+        <StatCard label="Visits today" value={todayQuery.data?.total ?? 0} hint={`${visitsQuery.data?.total ?? 0} upcoming`} loading={todayQuery.isLoading} icon={CalendarCheck} iconCls="bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" />
+        <StatCard label="Booked" value={booked} hint={leads.length ? `${Math.round((booked / leads.length) * 100)}% of loaded leads` : 'No leads yet'} loading={loading} icon={Flame} iconCls="bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-300" />
       </section>
 
-      <section className="mt-3.5 grid grid-cols-1 gap-3.5 lg:grid-cols-12">
-        <Card className="p-4 lg:col-span-8">
-          <h2 className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px] font-semibold text-text">
-            <span className="flex-1">Leads over time</span>
-            <span className="flex gap-3 text-[11.5px] font-normal text-text-muted">
-              <span className="inline-flex items-center gap-1.5"><i aria-hidden className="h-2 w-2 rounded-sm bg-accent/40" />New</span>
-              <span className="inline-flex items-center gap-1.5"><i aria-hidden className="h-2 w-2 rounded-sm bg-success" />Hot</span>
-            </span>
-          </h2>
-          {loading ? <Skeleton className="h-52 w-full" /> : <LeadsOverTime leads={leads} range={range} />}
+      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="p-5 lg:col-span-2">
+          <h2 className="text-base font-semibold text-text">Leads, last 30 days</h2>
+          <p className="mb-3 text-xs text-text-muted">New leads captured per day</p>
+          {loading ? <Skeleton className="h-64 w-full" /> : last30 === 0 ? <p className="py-16 text-center text-sm text-text-muted">No leads in the last 30 days yet.</p> : <LeadsLineChart data={series} />}
         </Card>
-        <Card className="p-4 lg:col-span-4">
-          <h2 className="flex items-center text-[13.5px] font-semibold text-text"><span className="flex-1">Leads by status</span><small className="text-xs font-normal text-text-muted">{leads.length} total</small></h2>
-          {loading ? <Skeleton className="mt-3 h-52 w-full" /> : <LeadsByStatus leads={leads} />}
+        <Card className="p-5">
+          <h2 className="text-base font-semibold text-text">Leads by source</h2>
+          <p className="mb-3 text-xs text-text-muted">Where enquiries come from</p>
+          {loading ? <Skeleton className="h-44 w-full" /> : sources.length === 0 ? <p className="py-16 text-center text-sm text-text-muted">Nothing to show yet.</p> : <SourceDonut data={sources} />}
         </Card>
       </section>
 
-      <section className="mt-3.5 grid grid-cols-1 gap-3.5 lg:grid-cols-12">
-        <Card className="p-4 lg:col-span-4">
-          <h2 className="mb-3 flex items-center text-[13.5px] font-semibold text-text"><span className="flex-1">Agent leaderboard</span><small className="text-xs font-normal text-text-muted">by booked</small></h2>
-          {loading ? <Skeleton className="h-40 w-full" /> : <AgentLeaderboard leads={leads} />}
+      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-text">Recent leads</h2>
+            <Link to="/leads" className="text-sm font-semibold text-accent hover:underline">View all</Link>
+          </div>
+          {loading ? (
+            <div className="space-y-3">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+          ) : leads.length === 0 ? (
+            <p className="flex items-center gap-2 py-8 text-sm text-text-muted"><Inbox aria-hidden className="h-4 w-4" /> New leads show up here as they arrive.</p>
+          ) : (
+            <ul className="divide-y divide-border-subtle">
+              {[...leads].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6).map(l => (
+                <li key={l.id}>
+                  <button type="button" onClick={() => setOpen(l)} className="flex w-full items-center gap-3 py-2.5 text-left hover:bg-surface-2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+                    <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
+                      {l.name.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-text">{l.name}</span>
+                      <span className="block truncate text-xs text-text-muted">{timeAgo(l.createdAt)}</span>
+                    </span>
+                    <StatusBadge status={l.status} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
 
-        <Card className="p-4 lg:col-span-4">
-          <h2 className="mb-2 flex items-center text-[13.5px] font-semibold text-text">
-            <span className="flex-1">Newest leads</span>
-            <Link to="/leads" className="text-xs font-semibold text-accent hover:underline">View all</Link>
-          </h2>
-          {loading ? <div className="space-y-3">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div> : <NewestLeads leads={leads} onOpen={setOpen} />}
-        </Card>
-
-        <Card className="p-4 lg:col-span-4">
-          <h2 className="mb-2 flex items-center text-[13.5px] font-semibold text-text">
-            <span className="flex-1">Upcoming visits</span>
-            <Link to="/appointments" className="text-xs font-semibold text-accent hover:underline">Calendar</Link>
-          </h2>
+        <Card className="p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-text">Upcoming visits</h2>
+            <Link to="/appointments" className="text-sm font-semibold text-accent hover:underline">Calendar</Link>
+          </div>
           {visitsQuery.isLoading ? (
             <div className="space-y-3">{[0, 1, 2].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : visits.length === 0 ? (
@@ -138,8 +167,8 @@ export const DashboardPage: React.FC = () => {
                 <li key={v.id} className="flex items-center gap-3 py-2.5">
                   <CalendarCheck aria-hidden className="h-5 w-5 shrink-0 text-accent" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12.5px] font-medium text-text">{v.leadName ?? 'Visitor'}</span>
-                    <span className="block truncate text-[11.5px] text-text-muted">{v.projectName ?? 'Site visit'} · {formatDateTime(v.scheduledAt)}</span>
+                    <span className="block truncate text-sm font-medium text-text">{v.leadName ?? 'Visitor'}</span>
+                    <span className="block truncate text-xs text-text-muted">{v.projectName ?? 'Site visit'} · {formatDateTime(v.scheduledAt)}</span>
                   </span>
                   <span className="text-xs capitalize text-text-muted">{v.status.replace('_', ' ')}</span>
                 </li>

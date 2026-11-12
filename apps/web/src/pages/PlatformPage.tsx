@@ -12,6 +12,10 @@ import { useReducedMotion } from '../lib/use-reduced-motion.js';
 import { MegaNav } from '../components/marketing/MegaNav.js';
 import { ProductExplorer } from '../components/marketing/ProductExplorer.js';
 import { PropertyShowcase } from '../components/marketing/PropertyShowcase.js';
+import { EstateReveal } from '../components/marketing/EstateReveal.js';
+import { PhoneFeatures } from '../components/marketing/PhoneFeatures.js';
+import { PriceCalculator } from '../components/marketing/PriceCalculator.js';
+import { ProductivityFeatures } from '../components/marketing/ProductivityFeatures.js';
 import { BuiltFor, ClosingDemo, Faq, FeatureGrid, Hero, HowItWorks, MarketingFooter, Pricing, ProductTour, ProofBand, TrustStrip, UseCases } from '../components/marketing/Sections.js';
 
 /** The public marketing site at "/". */
@@ -42,13 +46,17 @@ export const PlatformPage: React.FC = () => {
           <ProductTour />
           <ProofBand />
           <Compare />
+          <EstateReveal />
           <PropertyShowcase />
           <ProductExplorer />
           <UseCases />
+          <ProductivityFeatures />
           <FeatureGrid />
           <BuiltFor />
+          <PhoneFeatures />
           <HowItWorks />
           <RoiCalculator />
+          <PriceCalculator />
           <Pricing />
           <Faq />
           <ClosingDemo />

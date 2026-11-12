@@ -48,6 +48,7 @@ export const notifications = pgTable(
     title: varchar('title', { length: 255 }).notNull(),
     message: text('message').notNull(),
     isRead: boolean('is_read').notNull().default(false),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     linkUrl: text('link_url'),
     metadata: jsonb('metadata')
       .notNull()

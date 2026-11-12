@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { Navigate, Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar.js';
 import { TopBar } from './TopBar.js';
+import { AssistantPanel } from './AssistantPanel.js';
 import { Calendar, Compass, LayoutDashboard, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext.js';
 import { Skeleton } from '../common/Skeleton.js';
@@ -27,6 +28,16 @@ export const AppShell: React.FC = () => {
     }
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
+  // Ctrl/⌘ J toggles the AI assistant from anywhere in the app
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setAssistantOpen(o => !o); }
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, []);
 
   useEffect(() => {
     try {
@@ -70,13 +81,15 @@ export const AppShell: React.FC = () => {
       <Sidebar isCollapsed={isCollapsed} onToggleCollapse={() => setIsCollapsed(prev => !prev)} isMobileOpen={isMobileOpen} onCloseMobile={() => setIsMobileOpen(false)} />
 
       <div className="relative z-10 flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar onOpenMobileMenu={() => setIsMobileOpen(true)} />
+        <TopBar onOpenMobileMenu={() => setIsMobileOpen(true)} assistantOpen={assistantOpen} onToggleAssistant={() => setAssistantOpen(o => !o)} />
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto px-4 py-6 pb-20 focus:outline-none sm:px-6 md:pb-8 lg:px-8">
           <div key={location.pathname} className="page-enter mx-auto max-w-[1520px]">
             <Outlet />
           </div>
         </main>
       </div>
+
+      <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} />
 
       <nav aria-label="Quick navigation" className="fixed bottom-0 left-0 right-0 z-40 flex h-14 items-center justify-around border-t border-border bg-surface md:hidden">
         {MOBILE_TABS.map(tab => {

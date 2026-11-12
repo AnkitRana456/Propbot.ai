@@ -4,6 +4,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Compass, ExternalLink, X } from
 import { NAVIGATION_ITEMS, NAV_SECTION_LABEL, isNavVisible, type NavSection } from '../../config/navigation.js';
 import { useAuth } from '../../contexts/AuthContext.js';
 import { usePendingApprovalsCount } from '../../services/approvals.service.js';
+import { GettingStarted } from './GettingStarted.js';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -143,6 +144,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
             </NavLink>
           </div>
         </nav>
+
+        {!rail && <GettingStarted />}
 
         <div className="hidden shrink-0 border-t border-border p-2 md:block">
           <button

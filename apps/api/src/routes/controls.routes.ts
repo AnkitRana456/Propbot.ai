@@ -109,6 +109,7 @@ controlsRouter.post('/notification-rules', admin, h(async (req, res) => send(res
 controlsRouter.delete('/notification-rules/:id', admin, h(async (req, res) => (await notificationsService.removeRule(company(req), param(req)), ok(res))));
 controlsRouter.get('/notifications', h(async (req, res) => send(res, await notificationsService.list(company(req), me(req), req.query.unread === 'true'))));
 controlsRouter.post('/notifications/read', h(async (req, res) => send(res, { updated: await notificationsService.markRead(company(req), me(req), z.object({ ids: z.array(z.string().uuid()).max(200).optional() }).parse(req.body ?? {}).ids) })));
+controlsRouter.post('/notifications/archive', h(async (req, res) => { const b = z.object({ ids: z.array(z.string().uuid()).min(1).max(200), archived: z.boolean().default(true) }).parse(req.body ?? {}); return send(res, { updated: await notificationsService.archive(company(req), me(req), b.ids, b.archived) }); }));
 
 // usage
 controlsRouter.get('/usage', requirePermission('view_analytics'), h(async (req, res) => send(res, await usageService.summary(company(req), z.coerce.number().int().min(1).max(365).default(30).parse(req.query.days)))));

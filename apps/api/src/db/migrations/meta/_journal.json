@@ -176,6 +176,13 @@
       "when": 1793870000000,
       "tag": "0025_workflow_run_resume",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793880000000,
+      "tag": "0026_notification_archive",
+      "breakpoints": true
     }
   ]
 }

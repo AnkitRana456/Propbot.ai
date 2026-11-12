@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { UserPlus, Search, ShieldCheck, Mail, Check, X, Clock } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { UserPlus, ShieldCheck, Mail, Check, X, Clock } from 'lucide-react';
 import {
   useUsersList,
   useUsersKpis,
@@ -14,31 +14,35 @@ import {
   useReset2FaMutation,
 } from '../services/users.service.js';
 import { UsersKpiCards } from '../components/users/UsersKpiCards.js';
-import { UsersTable } from '../components/users/UsersTable.js';
+import { TeamTable, minutesSince, type Member } from '../components/users/TeamTable.js';
+import { useToast } from '../components/ui/Toast.js';
 import { UserManageDrawer } from '../components/users/UserManageDrawer.js';
 import { InviteUserModal } from '../components/users/InviteUserModal.js';
 import { AuditLogsTab } from '../components/users/AuditLogsTab.js';
-import type { UserItem, UserInvitationItem, UserRole, UserStatus } from '@propbot/shared';
+import type { UserItem, UserInvitationItem, UserRole } from '@propbot/shared';
+
+const ROLE_LABEL: Record<string, string> = { company_admin: 'Admin', sales_manager: 'Sales manager', agent: 'Agent', viewer: 'Viewer', 'ps-owner': 'Platform owner' };
+const ROLES = ['Admin', 'Sales manager', 'Agent', 'Viewer'];
+const roleValue = (label: string) => (Object.entries(ROLE_LABEL).find(([, l]) => l === label)?.[0] ?? 'viewer') as UserRole;
+const STATUS_OF: Record<string, Member['status']> = { active: 'active', pending_approval: 'away', disabled: 'offline' };
+const INV = 'inv:';
+const NO_INVITES: UserInvitationItem[] = []; // stable, so `members` is not rebuilt every render
 
 export const UsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'pending' | 'invites' | 'audit'>('users');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [rev, setRev] = useState(0); // bumped when an action fails, so the table snaps back to the server's list
+  const toast = useToast();
 
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [isManageDrawerOpen, setIsManageDrawerOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   // Queries
-  const { data: usersData, isLoading: isLoadingUsers } = useUsersList({
-    q: searchQuery || undefined,
-    role: (roleFilter as UserRole) || undefined,
-    status: (statusFilter as UserStatus) || undefined,
-  });
+  const { data: usersData, isLoading: isLoadingUsers } = useUsersList({ limit: 100 });
   const { data: kpisData, isLoading: isLoadingKpis } = useUsersKpis();
   const { data: pendingUsers = [] } = usePendingUsers();
-  const { data: invitations = [] } = useUserInvitations();
+  const { data: invitationsData } = useUserInvitations();
+  const invitations = invitationsData ?? NO_INVITES;
 
   // Mutations
   const approveMutation = useApproveUserMutation();
@@ -49,19 +53,30 @@ export const UsersPage: React.FC = () => {
   const revokeInviteMutation = useRevokeInviteMutation();
   const reset2FaMutation = useReset2FaMutation();
 
+  const members = useMemo<Member[]>(() => [
+    ...(usersData?.data ?? []).map(u => ({ id: u.id, name: u.name, email: u.email, status: STATUS_OF[u.status] ?? 'offline', role: ROLE_LABEL[u.role] ?? u.role, lastActive: minutesSince(u.createdAt) })),
+    ...invitations.map(i => ({ id: INV + i.id, name: i.email.split('@')[0]!.replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), email: i.email, status: 'invited' as const, role: ROLE_LABEL[i.role] ?? i.role, lastActive: 1e9 })),
+  ], [usersData, invitations, rev]);
+
+  const fail = (msg: string, err?: unknown) => { toast.error((err as Error)?.message || msg); setRev(n => n + 1); };
+  const changeRole = async (ids: string[], label: string) => {
+    for (const id of ids) {
+      if (id.startsWith(INV)) { fail('Revoke the invite and invite again to change its role.'); continue; }
+      try { await updateMutation.mutateAsync({ id, data: { role: roleValue(label) } }); } catch (err) { fail('Could not change the role.', err); }
+    }
+  };
+  const removeMembers = async (ids: string[]) => {
+    for (const id of ids) {
+      try { await (id.startsWith(INV) ? revokeInviteMutation.mutateAsync(id.slice(INV.length)) : deleteMutation.mutateAsync(id)); } catch (err) { fail('Could not remove them.', err); }
+    }
+  };
+  const inviteByEmail = async (email: string, label: string) => {
+    try { await inviteMutation.mutateAsync({ email, role: roleValue(label), leadCapacity: 50 }); toast.success(`Invitation sent to ${email}`); } catch (err) { fail('Could not send the invite.', err); }
+  };
+
   const handleOpenManage = (user: UserItem) => {
     setSelectedUser(user);
     setIsManageDrawerOpen(true);
-  };
-
-  const handleDeleteUser = async (user: UserItem) => {
-    if (confirm(`Are you sure you want to deactivate ${user.name}? They will lose access immediately.`)) {
-      try {
-        await deleteMutation.mutateAsync(user.id);
-      } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to deactivate user.');
-      }
-    }
   };
 
   return (
@@ -147,49 +162,19 @@ export const UsersPage: React.FC = () => {
 
       {/* Tab Contents */}
       {activeTab === 'users' && (
-        <div className="space-y-4">
-          {/* Search & Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-              <input
-                type="text"
-                placeholder="Search team member by name or email..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-              />
-            </div>
-            <select
-              value={roleFilter}
-              onChange={e => setRoleFilter(e.target.value)}
-              className="px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
-            >
-              <option value="">All Roles</option>
-              <option value="company_admin">Company Admin</option>
-              <option value="sales_manager">Sales Manager</option>
-              <option value="agent">Agent</option>
-              <option value="viewer">Viewer</option>
-            </select>
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
-            >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="pending_approval">Pending Approval</option>
-              <option value="disabled">Disabled</option>
-            </select>
-          </div>
-
-          <UsersTable
-            users={usersData?.data || []}
-            isLoading={isLoadingUsers}
-            onManage={handleOpenManage}
-            onDelete={handleDeleteUser}
-          />
-        </div>
+        <TeamTable
+          title="Team members"
+          members={members}
+          roles={ROLES}
+          lastLabel="Joined"
+          loading={isLoadingUsers}
+          statusLabels={{ away: 'Pending approval', offline: 'Disabled' }}
+          onOpen={m => { const u = usersData?.data.find(x => x.id === m.id); if (u) handleOpenManage(u); }}
+          onInvite={inviteByEmail}
+          onRole={changeRole}
+          onRemove={removeMembers}
+          confirmRemove={ids => confirm(`Remove ${ids.length === 1 ? 'this person' : `${ids.length} people`}? Users lose access immediately; invites are revoked.`)}
+        />
       )}
 
       {activeTab === 'pending' && (

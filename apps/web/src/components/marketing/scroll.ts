@@ -63,7 +63,12 @@ export function usePageMotion(reduced: boolean): void {
       gsap.fromTo('[data-tour-frame]', { rotationX: DIST.tilt, y: 40, transformPerspective: 1600, transformOrigin: '50% 100%' }, { rotationX: 0, y: 0, ease: 'none', scrollTrigger: { trigger: '[data-tour-frame]', start: 'top 95%', end: 'top 35%', scrub: true } });
     });
 
+    // pinned sections (journey, estate) are created by different components, so their start positions can be measured
+    // before the others' pin spacers exist: once everything has mounted, put them in page order and measure again
+    const settle = window.setTimeout(() => { ScrollTrigger.sort(); ScrollTrigger.refresh(); }, 500);
+
     return () => {
+      window.clearTimeout(settle);
       mm.revert();
       gsap.ticker.remove(tick);
       l.destroy();

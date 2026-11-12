@@ -100,7 +100,7 @@ export const AppointmentsPage: React.FC = () => {
       ) : isLoading ? (
         <Skeleton className="h-80 w-full" />
       ) : view === 'calendar' ? (
-        <WeekCalendar appointments={items} />
+        <WeekCalendar appointments={items} onCreate={() => setBooking(true)} />
       ) : (
         <Card className="overflow-hidden">
           <AppointmentsTable appointments={items} onRefresh={() => void refetch()} />

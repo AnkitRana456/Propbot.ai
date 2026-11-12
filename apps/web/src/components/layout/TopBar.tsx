@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, ChevronRight, LogOut, Menu, Search, Settings } from 'lucide-react';
+import { Bell, ChevronRight, LogOut, Menu, Search, Settings, Sparkles } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext.js';
 import { breadcrumbFor } from '../../config/navigation.js';
-import { useMarkNotificationsRead, useNotificationCentre } from '../../services/controls.service.js';
+import { useNotificationCentre } from '../../services/controls.service.js';
+import { NotificationsDrawer } from './NotificationsDrawer.js';
 import { CommandPalette } from '../ui/CommandPalette.js';
 import { ThemeToggle } from '../ui/ThemeToggle.js';
 
 interface TopBarProps {
   onOpenMobileMenu: () => void;
+  assistantOpen?: boolean;
+  onToggleAssistant?: () => void;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -40,23 +43,14 @@ function usePopover() {
   return { open, setOpen, ref };
 }
 
-const ago = (iso: string) => {
-  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  if (m < 1440) return `${Math.round(m / 60)}h ago`;
-  return `${Math.round(m / 1440)}d ago`;
-};
-
-export const TopBar: React.FC<TopBarProps> = ({ onOpenMobileMenu }) => {
+export const TopBar: React.FC<TopBarProps> = ({ onOpenMobileMenu, assistantOpen = false, onToggleAssistant }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, company, logout } = useAuth();
   const [isCommandOpen, setIsCommandOpen] = useState(false);
-  const notif = usePopover();
+  const [notifOpen, setNotifOpen] = useState(false);
   const menu = usePopover();
   const { data: centre } = useNotificationCentre();
-  const markRead = useMarkNotificationsRead();
   const unread = centre?.unreadCount ?? 0;
   const crumbs = breadcrumbFor(location.pathname);
 
@@ -129,37 +123,32 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenMobileMenu }) => {
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle className="hidden sm:inline-flex" />
 
-          <div className="relative" ref={notif.ref}>
+          {onToggleAssistant && (
             <button
               type="button"
-              onClick={() => notif.setOpen(o => !o)}
+              onClick={onToggleAssistant}
+              aria-expanded={assistantOpen}
+              aria-label="AI assistant"
+              title="AI assistant (Ctrl J)"
+              className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${assistantOpen ? 'border-accent/40 bg-accent-soft text-accent' : 'border-border bg-surface text-text-muted hover:bg-surface-2 hover:text-text'}`}
+            >
+              <Sparkles className="h-4 w-4" />
+            </button>
+          )}
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setNotifOpen(o => !o)}
               className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
               aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
               aria-haspopup="dialog"
-              aria-expanded={notif.open}
+              aria-expanded={notifOpen}
             >
               <Bell className="h-4 w-4" />
               {unread > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-on-accent">{unread > 9 ? '9+' : unread}</span>}
             </button>
-            {notif.open && (
-              <div role="dialog" aria-label="Notifications" className="dropdown-elevated absolute right-0 z-50 mt-2 w-[min(340px,calc(100vw-2rem))] p-3">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                  <span className="text-sm font-semibold text-text">Notifications</span>
-                  <button type="button" disabled={unread === 0 || markRead.isPending} onClick={() => markRead.mutate(undefined)} className="text-xs font-semibold text-accent disabled:opacity-40">Mark all read</button>
-                </div>
-                <ul className="mt-2 max-h-72 space-y-1.5 overflow-y-auto">
-                  {(centre?.items ?? []).slice(0, 8).map(n => (
-                    <li key={n.id} className={`rounded-lg border p-2.5 text-xs ${n.isRead ? 'border-border' : 'border-accent/30 bg-accent-soft/40'}`}>
-                      <div className="flex justify-between gap-2"><span className="font-semibold text-text">{n.title}</span><span className="shrink-0 text-text-faint">{ago(n.createdAt)}</span></div>
-                      <p className="mt-0.5 text-text-muted">{n.message}</p>
-                      {n.linkUrl && <Link to={n.linkUrl} onClick={() => notif.setOpen(false)} className="mt-1 inline-block font-semibold text-accent">Open</Link>}
-                    </li>
-                  ))}
-                  {(centre?.items ?? []).length === 0 && <li className="py-6 text-center text-xs text-text-muted">You are all caught up.</li>}
-                </ul>
-                <Link to="/controls" onClick={() => notif.setOpen(false)} className="mt-2 block border-t border-border pt-2 text-center text-xs font-semibold text-text-muted hover:text-text">Manage alerts</Link>
-              </div>
-            )}
+            <NotificationsDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
           </div>
 
           <div className="relative" ref={menu.ref}>
@@ -197,7 +186,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenMobileMenu }) => {
         </div>
       </header>
 
-      {isCommandOpen && <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} />}
+      {/* always mounted, so its G-then-letter shortcuts work while it is closed */}
+      <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} shortcuts />
     </>
   );
 };

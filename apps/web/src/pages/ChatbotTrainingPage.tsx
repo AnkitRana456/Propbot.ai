@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useChatbot } from '../services/chatbots.service.js';
 import { knowledgeService } from '../services/knowledge.service.js';
-import { SourceList } from '../components/knowledge/SourceList.js';
+import { KnowledgeFolders } from '../components/knowledge/KnowledgeFolders.js';
 import { AddSourceModal } from '../components/knowledge/AddSourceModal.js';
 import { QaOverridesModal } from '../components/knowledge/QaOverridesModal.js';
 import { UnansweredInboxModal } from '../components/knowledge/UnansweredInboxModal.js';
@@ -292,11 +293,12 @@ export const ChatbotTrainingPage: React.FC = () => {
             </button>
           </div>
 
-          <SourceList
+          <KnowledgeFolders
             sources={sources}
             isLoading={isSourcesLoading || isChatbotLoading}
             onRetrain={sourceId => retrainMutation.mutate(sourceId)}
             onDelete={sourceId => deleteMutation.mutate(sourceId)}
+            onAdd={() => setIsAddModalOpen(true)}
             retrainingId={retrainingId}
           />
         </div>
@@ -311,7 +313,8 @@ export const ChatbotTrainingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Modals, portalled: the page's animated wrapper would otherwise trap these fixed overlays inside it */}
+      {createPortal(<>
       <AddSourceModal
         isOpen={isAddModalOpen}
         chatbotId={chatbotId!}
@@ -352,6 +355,7 @@ export const ChatbotTrainingPage: React.FC = () => {
           await resolveUnansweredMutation.mutateAsync({ questionId, answer });
         }}
       />
+      </>, document.body)}
     </div>
   );
 };
